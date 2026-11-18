@@ -44,6 +44,41 @@ const mockVersions: VersionInfo[] = [
   },
 ];
 
+/** A version row for the Story 21.5 tests. */
+function versionInfo(
+  version: string,
+  channel: VersionInfo['channel'],
+  isLatest = false,
+  filesize = '40.0 MB'
+): VersionInfo {
+  return {
+    version,
+    filename: `vs_server_linux-x64_${version}.tar.gz`,
+    filesize,
+    md5: 'abc123',
+    cdnUrl: `https://cdn.example.com/${version}`,
+    localUrl: `/local/${version}`,
+    isLatest,
+    channel,
+  };
+}
+
+// Story 21.5: pre-releases with one- and two-digit numbers, and a two-digit patch part
+const preReleaseVersions: VersionInfo[] = [
+  versionInfo('1.21.9', 'stable'),
+  versionInfo('1.22.0-rc.1', 'unstable'),
+  versionInfo('1.22.0', 'stable', true),
+  versionInfo('1.22.0-rc.12', 'unstable', true),
+  versionInfo('1.21.10', 'stable'),
+  versionInfo('1.22.0-rc.2', 'unstable'),
+];
+
+function rowVersions(): string[] {
+  return screen
+    .getAllByTestId(/^version-table-row-/)
+    .map((row) => (row.getAttribute('data-testid') ?? '').replace('version-table-row-', ''));
+}
+
 describe('VersionTable', () => {
   it('renders table with version data', () => {
     render(<VersionTable versions={mockVersions} />);
@@ -204,6 +239,61 @@ describe('VersionTable', () => {
       const firstRowChannel = within(rows[0]).getByTestId(/version-table-channel/);
       expect(firstRowChannel).toHaveTextContent('Stable');
     });
+
+    it('orders pre-releases before their release, newest first by default (Story 21.5)', () => {
+      render(<VersionTable versions={preReleaseVersions} />);
+
+      expect(rowVersions()).toEqual([
+        '1.22.0',
+        '1.22.0-rc.12',
+        '1.22.0-rc.2',
+        '1.22.0-rc.1',
+        '1.21.10',
+        '1.21.9',
+      ]);
+    });
+
+    it('sorts versions ascending after two clicks on Version (Story 21.5)', async () => {
+      const user = userEvent.setup();
+      render(<VersionTable versions={preReleaseVersions} />);
+
+      const versionHeader = screen.getByTestId('version-table-header-version');
+      // From the default (descending) one click removes the sort, the next sorts ascending
+      await user.click(versionHeader);
+      await user.click(versionHeader);
+
+      expect(rowVersions()).toEqual([
+        '1.21.9',
+        '1.21.10',
+        '1.22.0-rc.1',
+        '1.22.0-rc.2',
+        '1.22.0-rc.12',
+        '1.22.0',
+      ]);
+    });
+
+    it('sorts the Size column by size, not by its text (Story 21.5)', async () => {
+      const user = userEvent.setup();
+      render(
+        <VersionTable
+          versions={[
+            versionInfo('1.21.1', 'stable', false, '45.9 MB'),
+            versionInfo('1.21.2', 'stable', false, '1.1 GB'),
+            versionInfo('1.21.3', 'stable', false, '45.10 MB'),
+            versionInfo('1.21.4', 'stable', false, '800 KB'),
+            versionInfo('1.21.5', 'stable', false, 'unknown'),
+          ]}
+        />
+      );
+
+      const sizeHeader = screen.getByTestId('version-table-header-filesize');
+      await user.click(sizeHeader);
+      // Sizes that cannot be read come last
+      expect(rowVersions()).toEqual(['1.21.4', '1.21.3', '1.21.1', '1.21.2', '1.21.5']);
+
+      await user.click(sizeHeader);
+      expect(rowVersions()).toEqual(['1.21.5', '1.21.2', '1.21.1', '1.21.3', '1.21.4']);
+    });
   });
 
   describe('responsive column hiding', () => {
@@ -213,6 +303,10 @@ describe('VersionTable', () => {
       const sizeHeader = screen.getByTestId('version-table-header-filesize');
       expect(sizeHeader).toHaveClass('hidden');
       expect(sizeHeader).toHaveClass('sm:table-cell');
+
+      // Story 21.5: the body cells read the same column meta
+      const sizeCell = screen.getByTestId('version-table-size-1.20.0').closest('td');
+      expect(sizeCell).toHaveClass('hidden', 'sm:table-cell');
     });
   });
 
@@ -242,6 +336,19 @@ describe('VersionTable', () => {
       // 1.19.8 is older, should not be highlighted
       const olderRow = screen.getByTestId('version-table-row-1.19.8');
       expect(olderRow.className).not.toMatch(/bg-primary/);
+    });
+
+    it('marks pre-releases with higher numbers as newer (Story 21.5)', () => {
+      render(<VersionTable versions={preReleaseVersions} installedVersion="1.22.0-rc.2" />);
+
+      for (const newer of ['1.22.0-rc.12', '1.22.0']) {
+        expect(screen.getByTestId(`version-table-row-${newer}`).className).toMatch(/bg-primary/);
+      }
+      for (const notNewer of ['1.22.0-rc.2', '1.22.0-rc.1', '1.21.10']) {
+        expect(screen.getByTestId(`version-table-row-${notNewer}`).className).not.toMatch(
+          /bg-primary/
+        );
+      }
     });
 
     it('does not highlight any versions when not installed', () => {
@@ -345,16 +452,62 @@ describe('VersionTable', () => {
   });
 
   describe('accessibility', () => {
-    it('has aria-sort on sorted column', () => {
+    it('marks the sorted column and sets none on the other sortable columns', () => {
       render(<VersionTable versions={mockVersions} />);
 
       // Default sort is version descending
       const versionHeader = screen.getByTestId('version-table-header-version');
       expect(versionHeader).toHaveAttribute('aria-sort', 'descending');
 
-      // Other sortable columns should not have aria-sort initially
+      // Story 21.5: the other sortable columns read none
       const channelHeader = screen.getByTestId('version-table-header-channel');
-      expect(channelHeader).not.toHaveAttribute('aria-sort');
+      expect(channelHeader).toHaveAttribute('aria-sort', 'none');
+    });
+
+    describe('aria-sort through the accessibility tree (Story 21.5)', () => {
+      function header(name: string) {
+        return screen.getByRole('columnheader', { name });
+      }
+
+      it('marks Version descending by default, Channel and Size none, the rest nothing', () => {
+        render(<VersionTable versions={mockVersions} />);
+
+        expect(header('Version')).toHaveAttribute('aria-sort', 'descending');
+        expect(header('Channel')).toHaveAttribute('aria-sort', 'none');
+        expect(header('Size')).toHaveAttribute('aria-sort', 'none');
+        expect(header('Status')).not.toHaveAttribute('aria-sort');
+        expect(header('Actions')).not.toHaveAttribute('aria-sort');
+      });
+
+      it('moves aria-sort to Channel when Channel is sorted', async () => {
+        const user = userEvent.setup();
+        render(<VersionTable versions={mockVersions} />);
+
+        await user.click(header('Channel'));
+        expect(header('Channel')).toHaveAttribute('aria-sort', 'ascending');
+        expect(header('Version')).toHaveAttribute('aria-sort', 'none');
+      });
+
+      it('reads none on every sortable column when a click removes the sort', async () => {
+        const user = userEvent.setup();
+        render(<VersionTable versions={mockVersions} />);
+
+        await user.click(header('Version'));
+        for (const name of ['Version', 'Channel', 'Size']) {
+          expect(header(name)).toHaveAttribute('aria-sort', 'none');
+        }
+
+        await user.click(header('Version'));
+        expect(header('Version')).toHaveAttribute('aria-sort', 'ascending');
+      });
+
+      it('hides the sort chevrons from screen readers', () => {
+        render(<VersionTable versions={mockVersions} />);
+
+        const chevrons = header('Version').querySelectorAll('svg');
+        expect(chevrons).toHaveLength(1);
+        expect(chevrons[0]).toHaveAttribute('aria-hidden', 'true');
+      });
     });
 
     it('sortable headers are keyboard accessible', async () => {

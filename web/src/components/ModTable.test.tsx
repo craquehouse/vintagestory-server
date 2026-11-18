@@ -736,10 +736,10 @@ describe('ModTable', () => {
       });
 
       // Click the Name header to sort
-      const nameHeader = screen.getByText('Name').closest('button');
+      const nameHeader = screen.getByRole('button', { name: 'Name' });
       expect(nameHeader).toBeInTheDocument();
 
-      fireEvent.click(nameHeader!);
+      fireEvent.click(nameHeader);
 
       // Verify sorting indicators appear (ChevronUp or ChevronDown)
       await waitFor(() => {
@@ -762,10 +762,10 @@ describe('ModTable', () => {
       });
 
       // Click the Version header to sort
-      const versionHeader = screen.getByText('Version').closest('button');
+      const versionHeader = screen.getByRole('button', { name: 'Version' });
       expect(versionHeader).toBeInTheDocument();
 
-      fireEvent.click(versionHeader!);
+      fireEvent.click(versionHeader);
 
       await waitFor(() => {
         const rows = screen.getAllByTestId(/^mod-row-/);
@@ -787,10 +787,10 @@ describe('ModTable', () => {
       });
 
       // Click the Status header to sort
-      const statusHeader = screen.getByText('Status').closest('button');
+      const statusHeader = screen.getByRole('button', { name: 'Status' });
       expect(statusHeader).toBeInTheDocument();
 
-      fireEvent.click(statusHeader!);
+      fireEvent.click(statusHeader);
 
       await waitFor(() => {
         const rows = screen.getAllByTestId(/^mod-row-/);
@@ -811,13 +811,13 @@ describe('ModTable', () => {
         expect(screen.getByText('Name')).toBeInTheDocument();
       });
 
-      const nameHeader = screen.getByText('Name').closest('button');
+      const nameHeader = screen.getByRole('button', { name: 'Name' });
 
       // Click once for asc
-      fireEvent.click(nameHeader!);
+      fireEvent.click(nameHeader);
 
       // Click again for desc
-      fireEvent.click(nameHeader!);
+      fireEvent.click(nameHeader);
 
       await waitFor(() => {
         const rows = screen.getAllByTestId(/^mod-row-/);
@@ -840,16 +840,16 @@ describe('ModTable', () => {
 
       const rowIds = () =>
         screen.getAllByTestId(/^mod-row-/).map((row) => row.getAttribute('data-testid'));
-      const nameHeader = screen.getByText('Name').closest('button');
+      const nameHeader = screen.getByRole('button', { name: 'Name' });
 
       expect(rowIds()).toEqual(['mod-row-carrycapacity', 'mod-row-smithingplus']);
 
-      fireEvent.click(nameHeader!);
+      fireEvent.click(nameHeader);
       await waitFor(() => {
         expect(rowIds()).toEqual(['mod-row-smithingplus', 'mod-row-carrycapacity']);
       });
 
-      fireEvent.click(nameHeader!);
+      fireEvent.click(nameHeader);
       await waitFor(() => {
         expect(rowIds()).toEqual(['mod-row-carrycapacity', 'mod-row-smithingplus']);
       });
@@ -920,8 +920,8 @@ describe('ModTable', () => {
       });
 
       // Mods should be sortable by enabled status
-      const statusHeader = screen.getByText('Status').closest('button');
-      fireEvent.click(statusHeader!);
+      const statusHeader = screen.getByRole('button', { name: 'Status' });
+      fireEvent.click(statusHeader);
 
       await waitFor(() => {
         const rows = screen.getAllByTestId(/^mod-row-/);
@@ -1598,7 +1598,7 @@ describe('ModTable', () => {
   describe('sorting preferences (VSS-g54)', () => {
     it('initializes sort state from preferences cookie', async () => {
       // Mock a cookie with version sort preference
-      const mockGetCookie = getCookie as ReturnType<typeof vi.fn>;
+      const mockGetCookie = vi.mocked(getCookie);
       mockGetCookie.mockReturnValueOnce(
         JSON.stringify({
           theme: 'system',
@@ -1626,7 +1626,7 @@ describe('ModTable', () => {
     });
 
     it('initializes with enabled sort preference', async () => {
-      const mockGetCookie = getCookie as ReturnType<typeof vi.fn>;
+      const mockGetCookie = vi.mocked(getCookie);
       mockGetCookie.mockReturnValueOnce(
         JSON.stringify({
           theme: 'system',
@@ -1936,7 +1936,7 @@ describe('ModTable', () => {
     function cardSlugs(): string[] {
       return screen
         .getAllByTestId(/^installed-mod-card-/)
-        .map((card) => card.getAttribute('data-testid')!.replace('installed-mod-card-', ''));
+        .map((card) => (card.getAttribute('data-testid') ?? '').replace('installed-mod-card-', ''));
     }
 
     it('renders one card per mod and no table', async () => {
@@ -2037,7 +2037,9 @@ describe('ModTable', () => {
       const card = await screen.findByTestId('installed-mod-card-carrycapacity');
       const label = card.querySelector('label');
       expect(label).toHaveTextContent('Disabled');
-      fireEvent.click(label!.querySelector('span')!);
+      const labelText = label?.querySelector('span');
+      if (!labelText) throw new Error('No text span in the toggle label');
+      fireEvent.click(labelText);
 
       await waitFor(() => {
         const call = mockFetch.mock.calls.find(([, options]) => options?.method === 'POST');
@@ -2141,7 +2143,7 @@ describe('ModTable', () => {
     });
 
     it('follows a stored sort preference', async () => {
-      (getCookie as ReturnType<typeof vi.fn>).mockReturnValueOnce(
+      vi.mocked(getCookie).mockReturnValueOnce(
         JSON.stringify({
           theme: 'system',
           consoleFontSize: 14,
@@ -2585,6 +2587,176 @@ describe('ModTable', () => {
       expect(onRemoved).not.toHaveBeenCalled();
       expect(toast.error).toHaveBeenCalledTimes(1);
       expect(toast.error).toHaveBeenCalledWith('Error', { description: BUSY });
+    });
+  });
+
+  describe('version sort (Story 21.5)', () => {
+    // Name order (alpha, beta, delta, epsilon, gamma) differs from version order
+    const versionModsResponse = {
+      status: 'ok',
+      data: {
+        mods: [
+          ['alphamod', 'Alpha Mod', '1.10.0'],
+          ['betamod', 'Beta Mod', '1.0.0'],
+          ['gammamod', 'Gamma Mod', '1.0.0-rc.12'],
+          ['deltamod', 'Delta Mod', '1.9.0'],
+          ['epsilonmod', 'Epsilon Mod', '1.0.0-rc.2'],
+        ].map(([slug, name, version]) => ({
+          filename: `${slug}-${version}.zip`,
+          slug,
+          version,
+          enabled: true,
+          installedAt: '2024-01-15T10:30:00Z',
+          assetId: 1,
+          name,
+          authors: [],
+          description: null,
+        })),
+        pendingRestart: false,
+      },
+    };
+    const ASCENDING = ['epsilonmod', 'gammamod', 'betamod', 'deltamod', 'alphamod'];
+    const DESCENDING = [...ASCENDING].reverse();
+    const DIRECTIONS: { direction: 'asc' | 'desc'; expected: string[] }[] = [
+      { direction: 'asc', expected: ASCENDING },
+      { direction: 'desc', expected: DESCENDING },
+    ];
+
+    beforeEach(() => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(versionModsResponse) })
+      );
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    function storeVersionSort(direction: 'asc' | 'desc') {
+      vi.mocked(getCookie).mockReturnValueOnce(
+        JSON.stringify({
+          theme: 'system',
+          consoleFontSize: 14,
+          sidebarCollapsed: false,
+          gameServerNavExpanded: true,
+          installedModsSort: { column: 'version', direction },
+        })
+      );
+    }
+
+    function renderTable() {
+      return render(<ModTable />, { wrapper: createWrapper(createTestQueryClient()) });
+    }
+
+    function rowSlugs(): string[] {
+      return screen
+        .getAllByTestId(/^mod-row-/)
+        .map((row) => (row.getAttribute('data-testid') ?? '').replace('mod-row-', ''));
+    }
+
+    function cardSlugs(): string[] {
+      return screen
+        .getAllByTestId(/^installed-mod-card-/)
+        .map((card) => (card.getAttribute('data-testid') ?? '').replace('installed-mod-card-', ''));
+    }
+
+    it.each(DIRECTIONS)(
+      'orders table rows by version $direction',
+      async ({ direction, expected }) => {
+        storeVersionSort(direction);
+        renderTable();
+
+        await screen.findByTestId('mod-table');
+        expect(rowSlugs()).toEqual(expected);
+      }
+    );
+
+    it.each(DIRECTIONS)(
+      'orders cards by version $direction at phone width',
+      async ({ direction, expected }) => {
+        storeVersionSort(direction);
+        setViewportWidth(390);
+        renderTable();
+
+        await screen.findByTestId('installed-mod-cards');
+        expect(cardSlugs()).toEqual(expected);
+      }
+    );
+
+    it('sorts by version ascending, then descending, when the Version header is clicked', async () => {
+      renderTable();
+      await screen.findByTestId('mod-table');
+      expect(rowSlugs()).toEqual(['alphamod', 'betamod', 'deltamod', 'epsilonmod', 'gammamod']);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Version' }));
+      expect(rowSlugs()).toEqual(ASCENDING);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Version' }));
+      expect(rowSlugs()).toEqual(DESCENDING);
+    });
+  });
+
+  describe('aria-sort (Story 21.5)', () => {
+    beforeEach(() => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(mockModsResponse) })
+      );
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    function header(name: string) {
+      return screen.getByRole('columnheader', { name });
+    }
+
+    it('marks Name ascending by default, the other sortable columns none, the rest nothing', async () => {
+      render(<ModTable />, { wrapper: createWrapper(createTestQueryClient()) });
+      await screen.findByTestId('mod-table');
+
+      expect(header('Name')).toHaveAttribute('aria-sort', 'ascending');
+      expect(header('Version')).toHaveAttribute('aria-sort', 'none');
+      expect(header('Status')).toHaveAttribute('aria-sort', 'none');
+      expect(header('Available')).not.toHaveAttribute('aria-sort');
+      expect(header('Side')).not.toHaveAttribute('aria-sort');
+      expect(header('Compatibility')).not.toHaveAttribute('aria-sort');
+      const headers = screen.getAllByRole('columnheader');
+      expect(headers[headers.length - 1]).toHaveAccessibleName('Actions');
+      expect(headers[headers.length - 1]).not.toHaveAttribute('aria-sort');
+    });
+
+    it('moves aria-sort with the sort column and its direction', async () => {
+      render(<ModTable />, { wrapper: createWrapper(createTestQueryClient()) });
+      await screen.findByTestId('mod-table');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Version' }));
+      expect(header('Version')).toHaveAttribute('aria-sort', 'ascending');
+      expect(header('Name')).toHaveAttribute('aria-sort', 'none');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Version' }));
+      expect(header('Version')).toHaveAttribute('aria-sort', 'descending');
+
+      // A column of booleans sorts descending first
+      fireEvent.click(screen.getByRole('button', { name: 'Status' }));
+      expect(header('Status')).toHaveAttribute('aria-sort', 'descending');
+      expect(header('Name')).toHaveAttribute('aria-sort', 'none');
+      expect(header('Version')).toHaveAttribute('aria-sort', 'none');
+    });
+
+    it('hides the sort chevrons from screen readers', async () => {
+      render(<ModTable />, { wrapper: createWrapper(createTestQueryClient()) });
+      await screen.findByTestId('mod-table');
+      fireEvent.click(screen.getByRole('button', { name: 'Version' }));
+
+      const headerRow = screen.getAllByRole('row')[0];
+      const chevrons = headerRow.querySelectorAll('svg');
+      expect(chevrons.length).toBeGreaterThan(0);
+      for (const chevron of chevrons) {
+        expect(chevron).toHaveAttribute('aria-hidden', 'true');
+      }
     });
   });
 });

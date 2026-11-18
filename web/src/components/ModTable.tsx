@@ -74,6 +74,8 @@ import {
 } from '@/hooks/use-mods';
 import { usePreferences, type InstalledModsSort } from '@/contexts/PreferencesContext';
 import type { ModInfo } from '@/api/types';
+import { compareVersions } from '@/lib/version-compare';
+import { ariaSort } from '@/lib/table-aria-sort';
 
 interface ModTableProps {
   /** Callback when a mod is successfully removed */
@@ -109,8 +111,8 @@ function SortableHeader({
       onClick={onClick}
     >
       {label}
-      {sorted === 'asc' && <ChevronUp className="h-4 w-4" />}
-      {sorted === 'desc' && <ChevronDown className="h-4 w-4" />}
+      {sorted === 'asc' && <ChevronUp className="h-4 w-4" aria-hidden="true" />}
+      {sorted === 'desc' && <ChevronDown className="h-4 w-4" aria-hidden="true" />}
       {!sorted && <span className="w-4" />}
     </button>
   );
@@ -271,7 +273,6 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
   );
 
   // Define columns with TanStack Table
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const columns = useMemo(
     () =>
       columnHelper.columns([
@@ -301,6 +302,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
             />
           ),
           cell: ({ getValue }) => <span className="text-muted-foreground">v{getValue()}</span>,
+          sortFn: (rowA, rowB) => compareVersions(rowA.original.version, rowB.original.version),
         }),
         columnHelper.display({
           id: 'available',
@@ -442,7 +444,11 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className={header.column.columnDef.meta?.className}>
+                  <TableHead
+                    key={header.id}
+                    className={header.column.columnDef.meta?.className}
+                    aria-sort={ariaSort(header.column.getCanSort(), header.column.getIsSorted())}
+                  >
                     {header.isPlaceholder
                       ? null
                       : flexRender(header.column.columnDef.header, header.getContext())}

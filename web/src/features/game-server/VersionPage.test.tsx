@@ -600,6 +600,56 @@ describe('VersionPage', () => {
       // mockRunningStatus has version 1.21.6 and availableStableVersion 1.21.6 (same)
       expect(screen.queryByTestId('update-available-banner')).not.toBeInTheDocument();
     });
+
+    // Story 21.5: an update is offered only when the latest stable version is newer
+    describe('update offer (Story 21.5)', () => {
+      afterEach(() => {
+        vi.unstubAllGlobals();
+      });
+
+      it.each([
+        { installed: '1.21.9', stable: '1.21.10', offered: true },
+        { installed: '1.21.6-pre.1', stable: '1.21.6', offered: true },
+        { installed: '1.22.0-rc.2', stable: '1.21.9', offered: false },
+        { installed: '1.21.10', stable: '1.21.9', offered: false },
+        // Story 21.5 review (F2), a decision: an installed version that cannot be read as a
+        // version sorts above every readable one, so no update is offered over it
+        { installed: 'unknown', stable: '1.21.9', offered: false },
+        { installed: 'beta', stable: '1.21.9', offered: false },
+        { installed: '', stable: '1.21.9', offered: false },
+      ])(
+        'with $installed installed and $stable stable, offers an update: $offered',
+        async ({ installed, stable, offered }) => {
+          const status = {
+            ...mockInstalledStatus,
+            data: {
+              ...mockInstalledStatus.data,
+              version: installed,
+              available_stable_version: stable,
+            },
+          };
+          vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(status) })
+          );
+
+          const queryClient = createTestQueryClient();
+          render(<VersionPage />, {
+            wrapper: createWrapper(queryClient),
+          });
+
+          await waitFor(() => {
+            expect(screen.getByTestId('installed-version')).toHaveTextContent(installed);
+          });
+
+          if (offered) {
+            expect(screen.getByTestId('update-available-banner')).toBeInTheDocument();
+          } else {
+            expect(screen.queryByTestId('update-available-banner')).not.toBeInTheDocument();
+          }
+        }
+      );
+    });
   });
 
   /**

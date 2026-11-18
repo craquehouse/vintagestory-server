@@ -85,3 +85,24 @@ export function formatMemoryAdaptive(
 
   return `${mb.toFixed(1)} MB`;
 }
+
+const FILESIZE_PATTERN = /^\s*(\d+(?:\.\d+)?)\s*(B|KB|MB|GB|TB)\s*$/i;
+const FILESIZE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB'];
+
+/**
+ * Read a human-readable file size, as the version list reports it ("45.2 MB"), as bytes
+ * (1 KB = 1024 B). Story 21.5: lets the Version page sort its Size column by size.
+ *
+ * @param text - A number and a unit (B, KB, MB, GB or TB, any case)
+ * @returns The size in bytes, or null when the text is not a size
+ *
+ * @example
+ * parseFilesize('45.2 MB') // 47395635.2
+ * parseFilesize('unknown') // null
+ */
+export function parseFilesize(text: string): number | null {
+  const match = FILESIZE_PATTERN.exec(text);
+  if (!match) return null;
+  const power = FILESIZE_UNITS.indexOf(match[2].toUpperCase());
+  return Number(match[1]) * 1024 ** power;
+}

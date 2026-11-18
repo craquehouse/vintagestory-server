@@ -5,7 +5,12 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { isValidNumeric, formatNumericOrFallback, formatMemoryAdaptive } from './numeric-utils';
+import {
+  isValidNumeric,
+  formatNumericOrFallback,
+  formatMemoryAdaptive,
+  parseFilesize,
+} from './numeric-utils';
 
 describe('isValidNumeric', () => {
   it('returns true for positive numbers', () => {
@@ -124,5 +129,22 @@ describe('formatMemoryAdaptive', () => {
 
   it('returns fallback for negative values', () => {
     expect(formatMemoryAdaptive(-100)).toBe('N/A');
+  });
+});
+
+describe('parseFilesize (Story 21.5)', () => {
+  it.each([
+    ['512 B', 512],
+    ['800 KB', 800 * 1024],
+    ['45.2 MB', 45.2 * 1024 ** 2],
+    ['1.1 GB', 1.1 * 1024 ** 3],
+    ['45.10 mb', 45.1 * 1024 ** 2],
+    ['40MB', 40 * 1024 ** 2],
+  ])('reads %j', (text, bytes) => {
+    expect(parseFilesize(text)).toBeCloseTo(bytes);
+  });
+
+  it.each(['', 'unknown', '45.2', 'MB', '45.2 XB', '1.2.3 MB'])('returns null for %j', (text) => {
+    expect(parseFilesize(text)).toBeNull();
   });
 });

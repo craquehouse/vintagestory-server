@@ -54,6 +54,73 @@ const unstableVersion: VersionInfo = {
   isLatest: false,
 };
 
+// Story 21.5 review: typed install status results. UseQueryResult is a union keyed on
+// `status`, so each helper builds one member of it with its literal flags.
+type InstallStatusResult = ReturnType<typeof useServerStatus.useInstallStatus>;
+type InstallStatusData = NonNullable<InstallStatusResult['data']>;
+
+/** The query before it has data: disabled, or waiting for its first answer. */
+function pendingInstallStatus(): InstallStatusResult {
+  return {
+    data: undefined,
+    error: null,
+    isError: false,
+    isPending: true,
+    isLoading: false,
+    isLoadingError: false,
+    isRefetchError: false,
+    isSuccess: false,
+    isPlaceholderData: false,
+    status: 'pending',
+    fetchStatus: 'idle',
+    dataUpdatedAt: 0,
+    errorUpdatedAt: 0,
+    failureCount: 0,
+    failureReason: null,
+    errorUpdateCount: 0,
+    isFetched: false,
+    isFetchedAfterMount: false,
+    isFetching: false,
+    isInitialLoading: false,
+    isPaused: false,
+    isRefetching: false,
+    isStale: false,
+    isEnabled: false,
+    refetch: vi.fn(),
+  };
+}
+
+/** The query with an answer. */
+function successInstallStatus(data: InstallStatusData): InstallStatusResult {
+  return {
+    data,
+    error: null,
+    isError: false,
+    isPending: false,
+    isLoading: false,
+    isLoadingError: false,
+    isRefetchError: false,
+    isSuccess: true,
+    isPlaceholderData: false,
+    status: 'success',
+    fetchStatus: 'idle',
+    dataUpdatedAt: Date.now(),
+    errorUpdatedAt: 0,
+    failureCount: 0,
+    failureReason: null,
+    errorUpdateCount: 0,
+    isFetched: true,
+    isFetchedAfterMount: true,
+    isFetching: false,
+    isInitialLoading: false,
+    isPaused: false,
+    isRefetching: false,
+    isStale: false,
+    isEnabled: true,
+    refetch: vi.fn(),
+  };
+}
+
 // Helper to create a QueryClient wrapper
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -91,6 +158,17 @@ describe('getActionType', () => {
     expect(getActionType('1.21.6', '1.21.6')).toBe('reinstall');
   });
 
+  // Story 21.5 review (F1): the same version spelled differently is a reinstall
+  it.each([
+    ['v1.0.0', '1.0.0'],
+    ['1.0.0+build', '1.0.0'],
+    ['01.0.0', '1.0.0'],
+    ['1.0.0', 'v1.0.0'],
+    ['1.0', '1.0.0'],
+  ])('returns "reinstall" for %s over %s (equal precedence)', (target, installed) => {
+    expect(getActionType(target, installed)).toBe('reinstall');
+  });
+
   it('returns "upgrade" when selecting newer version', () => {
     expect(getActionType('1.21.6', '1.20.0')).toBe('upgrade');
   });
@@ -99,17 +177,23 @@ describe('getActionType', () => {
     expect(getActionType('1.20.0', '1.21.6')).toBe('downgrade');
   });
 
-  it('handles pre-release versions with string comparison', () => {
-    // Note: Simple string comparison is used per ADR-1 (keep it simple)
-    // String sort: "1.21.6" < "1.21.6-pre.1" (empty suffix < "-pre.1")
-    // This means going from 1.21.6-pre.1 to 1.21.6 is treated as downgrade
-    // (even though semantically 1.21.6 is newer than 1.21.6-pre.1)
-    // This edge case is acceptable per Dev Notes
-    expect(getActionType('1.21.6', '1.21.6-pre.1')).toBe('downgrade');
-    expect(getActionType('1.21.6-pre.1', '1.21.6')).toBe('upgrade');
+  it('orders pre-releases before their release', () => {
+    expect(getActionType('1.21.6', '1.21.6-pre.1')).toBe('upgrade');
+    expect(getActionType('1.21.6-pre.1', '1.21.6')).toBe('downgrade');
     // More typical pre-release comparisons work correctly
     expect(getActionType('1.22.0-pre.1', '1.21.6')).toBe('upgrade');
     expect(getActionType('1.21.6', '1.22.0-pre.1')).toBe('downgrade');
+  });
+
+  // Story 21.5: Semantic Versioning precedence, not string comparison
+  it.each([
+    ['1.21.10', '1.21.9', 'upgrade'],
+    ['1.21.9', '1.21.10', 'downgrade'],
+    ['1.21.6', '1.21.6-pre.1', 'upgrade'],
+    ['1.21.6-pre.1', '1.21.6', 'downgrade'],
+    ['1.22.0-rc.12', '1.22.0-rc.2', 'upgrade'],
+  ])('moving to %s from %s is a(n) %s', (target, installed, expected) => {
+    expect(getActionType(target, installed)).toBe(expected);
   });
 });
 
@@ -138,33 +222,7 @@ describe('InstallVersionDialog', () => {
       submittedAt: 0,
       isPaused: false,
     });
-    vi.mocked(useServerStatus.useInstallStatus).mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      error: null,
-      isError: false,
-      isSuccess: false,
-      isFetching: false,
-      isPending: false,
-      isRefetching: false,
-      status: 'pending',
-      fetchStatus: 'idle',
-      dataUpdatedAt: 0,
-      errorUpdatedAt: 0,
-      failureCount: 0,
-      failureReason: null,
-      errorUpdateCount: 0,
-      isStale: false,
-      isPlaceholderData: false,
-      isFetched: false,
-      isFetchedAfterMount: false,
-      isInitialLoading: false,
-      refetch: vi.fn(),
-      // TanStack Query's UseQueryResult has complex generic types that are
-      // impractical to fully type in test mocks. Using `as any` is the standard
-      // pattern for mocking query hooks. See: https://github.com/TanStack/query/discussions/4795
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
+    vi.mocked(useServerStatus.useInstallStatus).mockReturnValue(pendingInstallStatus());
   });
 
   describe('action type display', () => {
@@ -212,6 +270,40 @@ describe('InstallVersionDialog', () => {
 
       expect(screen.getByTestId('dialog-title')).toHaveTextContent('Reinstall Server Version');
       expect(screen.getByTestId('confirm-button')).toHaveTextContent('Reinstall');
+    });
+
+    it('shows "Reinstall" with no downgrade warning for v1.21.9 over 1.21.9 (Story 21.5 review)', () => {
+      render(
+        <InstallVersionDialog
+          {...getDefaultProps({
+            version: { ...mockVersion, version: 'v1.21.9' },
+            installedVersion: '1.21.9',
+            serverState: 'installed',
+          })}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      expect(screen.getByTestId('dialog-title')).toHaveTextContent('Reinstall Server Version');
+      expect(screen.queryByTestId('downgrade-warning')).not.toBeInTheDocument();
+      expect(screen.getByTestId('confirm-button')).toBeEnabled();
+    });
+
+    it('shows "Upgrade" for 1.21.10 over 1.21.9, with no downgrade warning (Story 21.5)', () => {
+      render(
+        <InstallVersionDialog
+          {...getDefaultProps({
+            version: { ...mockVersion, version: '1.21.10' },
+            installedVersion: '1.21.9',
+            serverState: 'installed',
+          })}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      expect(screen.getByTestId('dialog-title')).toHaveTextContent('Upgrade Server Version');
+      expect(screen.getByTestId('confirm-button')).toHaveTextContent('Upgrade');
+      expect(screen.queryByTestId('downgrade-warning')).not.toBeInTheDocument();
     });
 
     it('shows "Downgrade" when selecting older version', () => {
@@ -539,40 +631,16 @@ describe('InstallVersionDialog', () => {
 
   describe('progress display', () => {
     it('shows progress when installing', () => {
-      vi.mocked(useServerStatus.useInstallStatus).mockReturnValue({
-        data: {
+      vi.mocked(useServerStatus.useInstallStatus).mockReturnValue(
+        successInstallStatus({
           status: 'ok',
           data: {
             state: 'downloading',
             progress: 45,
             message: 'Downloading server files...',
           },
-        },
-        isLoading: false,
-        error: null,
-        isError: false,
-        isSuccess: true,
-        isFetching: false,
-        isPending: false,
-        isRefetching: false,
-        status: 'success',
-        fetchStatus: 'idle',
-        dataUpdatedAt: Date.now(),
-        errorUpdatedAt: 0,
-        failureCount: 0,
-        failureReason: null,
-        errorUpdateCount: 0,
-        isStale: false,
-        isPlaceholderData: false,
-        isFetched: true,
-        isFetchedAfterMount: true,
-        isInitialLoading: false,
-        refetch: vi.fn(),
-        // TanStack Query's UseQueryResult has complex generic types that are
-        // impractical to fully type in test mocks. Using `as any` is the standard
-        // pattern for mocking query hooks. See: https://github.com/TanStack/query/discussions/4795
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
+        })
+      );
 
       render(
         <InstallVersionDialog
@@ -591,40 +659,16 @@ describe('InstallVersionDialog', () => {
     });
 
     it('hides confirm button when installing', () => {
-      vi.mocked(useServerStatus.useInstallStatus).mockReturnValue({
-        data: {
+      vi.mocked(useServerStatus.useInstallStatus).mockReturnValue(
+        successInstallStatus({
           status: 'ok',
           data: {
             state: 'downloading',
             progress: 45,
             message: 'Downloading...',
           },
-        },
-        isLoading: false,
-        error: null,
-        isError: false,
-        isSuccess: true,
-        isFetching: false,
-        isPending: false,
-        isRefetching: false,
-        status: 'success',
-        fetchStatus: 'idle',
-        dataUpdatedAt: Date.now(),
-        errorUpdatedAt: 0,
-        failureCount: 0,
-        failureReason: null,
-        errorUpdateCount: 0,
-        isStale: false,
-        isPlaceholderData: false,
-        isFetched: true,
-        isFetchedAfterMount: true,
-        isInitialLoading: false,
-        refetch: vi.fn(),
-        // TanStack Query's UseQueryResult has complex generic types that are
-        // impractical to fully type in test mocks. Using `as any` is the standard
-        // pattern for mocking query hooks. See: https://github.com/TanStack/query/discussions/4795
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
+        })
+      );
 
       render(
         <InstallVersionDialog

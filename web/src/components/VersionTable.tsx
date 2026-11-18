@@ -35,6 +35,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { compareVersions } from '@/lib/version-compare';
+import { parseFilesize } from '@/lib/numeric-utils';
+import { ariaSort } from '@/lib/table-aria-sort';
 import type { VersionInfo, VersionChannel } from '@/api/types';
 
 interface VersionTableProps {
@@ -68,36 +71,16 @@ const channelStyles: Record<VersionChannel, { label: string; className: string }
 };
 
 /**
- * Compare two version strings semantically.
- * Handles versions like "1.20.0", "1.19.8", "1.20.1-rc.1".
- *
- * @returns negative if a < b, positive if a > b, 0 if equal
+ * Compare two file sizes ("45.2 MB") by size; sizes that cannot be read come last, in
+ * text order. Story 21.5.
  */
-function compareVersions(a: string, b: string): number {
-  // Split into main version and prerelease suffix
-  const [aMain, aPrerelease] = a.split('-');
-  const [bMain, bPrerelease] = b.split('-');
-
-  // Compare main version parts numerically
-  const aParts = aMain.split('.').map(Number);
-  const bParts = bMain.split('.').map(Number);
-
-  for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
-    const aPart = aParts[i] ?? 0;
-    const bPart = bParts[i] ?? 0;
-    if (aPart !== bPart) {
-      return aPart - bPart;
-    }
-  }
-
-  // If main versions are equal, handle prerelease
-  // No prerelease > prerelease (1.20.0 > 1.20.0-rc.1)
-  if (!aPrerelease && bPrerelease) return 1;
-  if (aPrerelease && !bPrerelease) return -1;
-  if (!aPrerelease && !bPrerelease) return 0;
-
-  // Both have prerelease, compare alphabetically
-  return aPrerelease.localeCompare(bPrerelease);
+function compareFilesizes(a: string, b: string): number {
+  const bytesA = parseFilesize(a);
+  const bytesB = parseFilesize(b);
+  if (bytesA !== null && bytesB !== null) return Math.sign(bytesA - bytesB);
+  if (bytesA !== null) return -1;
+  if (bytesB !== null) return 1;
+  return a < b ? -1 : a > b ? 1 : 0;
 }
 
 /**
@@ -122,9 +105,9 @@ const columnHelper = createColumnHelper<typeof features, VersionRowData>();
 function SortIndicator({ direction }: { direction: 'asc' | 'desc' | false }) {
   if (!direction) return null;
   return direction === 'asc' ? (
-    <ChevronUp className="h-4 w-4 ml-1" />
+    <ChevronUp className="h-4 w-4 ml-1" aria-hidden="true" />
   ) : (
-    <ChevronDown className="h-4 w-4 ml-1" />
+    <ChevronDown className="h-4 w-4 ml-1" aria-hidden="true" />
   );
 }
 
@@ -158,7 +141,7 @@ function createColumns(onVersionSelect?: (version: string) => void) {
           </span>
         );
       },
-      sortFn: 'alphanumeric',
+      sortFn: (rowA, rowB) => compareVersions(rowA.original.version, rowB.original.version),
     }),
     columnHelper.accessor('channel', {
       header: 'Channel',
@@ -187,7 +170,7 @@ function createColumns(onVersionSelect?: (version: string) => void) {
           {info.getValue()}
         </span>
       ),
-      sortFn: 'alphanumeric',
+      sortFn: (rowA, rowB) => compareFilesizes(rowA.original.filesize, rowB.original.filesize),
       meta: {
         className: 'hidden sm:table-cell',
       },
@@ -344,14 +327,7 @@ export function VersionTable({
             {headerGroup.headers.map((header) => {
               const canSort = header.column.getCanSort();
               const sortDirection = header.column.getIsSorted();
-              const meta = header.column.columnDef.meta as { className?: string } | undefined;
-
-              // Map sort direction to aria-sort value
-              const ariaSort = sortDirection
-                ? sortDirection === 'asc'
-                  ? 'ascending'
-                  : 'descending'
-                : undefined;
+              const meta = header.column.columnDef.meta;
 
               const handleKeyDown = canSort
                 ? (e: React.KeyboardEvent) => {
@@ -370,7 +346,7 @@ export function VersionTable({
                   onKeyDown={handleKeyDown}
                   tabIndex={canSort ? 0 : undefined}
                   role={canSort ? 'columnheader' : undefined}
-                  aria-sort={ariaSort}
+                  aria-sort={ariaSort(canSort, sortDirection)}
                   data-testid={`version-table-header-${header.id}`}
                 >
                   <span className="inline-flex items-center">
@@ -396,7 +372,7 @@ export function VersionTable({
               data-testid={`version-table-row-${row.original.version}`}
             >
               {row.getAllCells().map((cell) => {
-                const cellMeta = cell.column.columnDef.meta as { className?: string } | undefined;
+                const cellMeta = cell.column.columnDef.meta;
                 return (
                   <TableCell key={cell.id} className={cellMeta?.className}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
