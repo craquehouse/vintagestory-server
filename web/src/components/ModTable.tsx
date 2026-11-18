@@ -273,7 +273,6 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
   );
 
   // Define columns with TanStack Table
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const columns = useMemo(
     () =>
       columnHelper.columns([
