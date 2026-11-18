@@ -806,7 +806,7 @@ export function ModDetailPage() {
         <CardContent>
           {sanitizedDescription ? (
             <div
-              className="mod-description prose prose-sm prose-invert max-w-none"
+              className="mod-description"
               data-testid="mod-detail-description"
               dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
             />

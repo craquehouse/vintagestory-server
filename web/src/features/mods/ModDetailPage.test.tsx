@@ -449,6 +449,24 @@ describe('ModDetailPage', () => {
   });
 
   describe('description section (Subtask 2.3)', () => {
+    it('styles the description by .mod-description alone, no prose classes (Story 21.6)', async () => {
+      stubDetail({
+        description: '<h2>Setup</h2><p style="color: #c33">Author colour</p>',
+      });
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      const description = await screen.findByTestId('mod-detail-description');
+      expect(description).toHaveClass('mod-description');
+      expect(description.className).not.toMatch(/\bprose/);
+      expect(description.className).not.toMatch(/\bmax-w-none\b/);
+      // The author's inline style is kept, so it applies over the description rules
+      expect(within(description).getByText('Author colour')).toHaveAttribute(
+        'style',
+        'color: #c33'
+      );
+    });
+
     it('marks description links that open in a new tab (Story 18.1, VSS-tzl)', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
