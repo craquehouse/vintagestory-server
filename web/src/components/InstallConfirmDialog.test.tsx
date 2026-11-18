@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -293,6 +293,61 @@ describe('InstallConfirmDialog', () => {
 
       const cancelButton = screen.getByTestId('install-dialog-cancel');
       expect(cancelButton).toBeDisabled();
+    });
+  });
+
+  describe('dismissal while installing (Story 21.4)', () => {
+    function mockInstallPending() {
+      vi.mocked(useMods.useInstallMod).mockReturnValue({
+        mutate: mockMutate,
+        isPending: true,
+        isError: false,
+        error: null,
+        isSuccess: false,
+        isIdle: false,
+        data: undefined,
+        variables: { slug: 'carrycapacity', version: '1.2.0' },
+        reset: vi.fn(),
+        status: 'pending',
+        mutateAsync: vi.fn(),
+        context: undefined,
+        failureCount: 0,
+        failureReason: null,
+        submittedAt: 0,
+        isPaused: false,
+      });
+    }
+
+    function renderDialog() {
+      render(
+        <InstallConfirmDialog
+          mod={mockMod}
+          compatibility={{ status: 'compatible' }}
+          open={true}
+          onOpenChange={mockOnOpenChange}
+        />,
+        { wrapper: createWrapper() }
+      );
+    }
+
+    it('ignores Escape and the close button while the install request runs', () => {
+      mockInstallPending();
+      renderDialog();
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+      expect(mockOnOpenChange).not.toHaveBeenCalled();
+      expect(screen.getByTestId('install-confirm-dialog')).toBeInTheDocument();
+    });
+
+    it('closes on Escape when no request runs', () => {
+      renderDialog();
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      expect(mockOnOpenChange).toHaveBeenCalledTimes(1);
+      expect(mockOnOpenChange).toHaveBeenCalledWith(false);
     });
   });
 

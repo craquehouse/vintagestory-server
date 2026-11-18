@@ -70,6 +70,17 @@ function createTestQueryClient() {
   });
 }
 
+// Built like the app's query client (global mutation error handler), for tests that
+// count error toasts (Story 17.3, Story 21.4)
+function createAppLikeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false, onError: (error) => handleApiError(error) },
+    },
+  });
+}
+
 // Wrapper component for rendering with QueryClientProvider and PreferencesProvider
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
@@ -150,6 +161,80 @@ function notCheckedFetch() {
       : mockModsResponse;
     return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
   });
+}
+
+const REMOVE_BUSY =
+  "Another operation on mod 'smithingplus' is in progress. Try again when it has finished.";
+
+/**
+ * Story 21.4: fetch where the list answers at once and each DELETE waits until the test
+ * answers it. A removal that succeeds also leaves the list the stub serves afterwards.
+ */
+function mockHeldRemoval(listResponse: typeof mockModsResponse = mockModsResponse) {
+  let mods = listResponse.data.mods;
+  const held: {
+    slug: string;
+    resolve: (response: unknown) => void;
+    reject: (reason: unknown) => void;
+  }[] = [];
+  const fetchMock = vi.fn().mockImplementation((url: string, options?: RequestInit) => {
+    if (options?.method === 'DELETE') {
+      const slug = decodeURIComponent(url.split('/').pop() ?? '');
+      return new Promise((resolve, reject) => held.push({ slug, resolve, reject }));
+    }
+    const body = { ...listResponse, data: { ...listResponse.data, mods } };
+    return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+  });
+  globalThis.fetch = fetchMock;
+
+  function nextHeld() {
+    const request = held.shift();
+    if (!request) throw new Error('No DELETE is waiting for an answer');
+    return request;
+  }
+
+  return {
+    deleteCount: () =>
+      fetchMock.mock.calls.filter(([, options]) => options?.method === 'DELETE').length,
+    /** Answer the oldest waiting DELETE with success. */
+    succeed: async () => {
+      const request = nextHeld();
+      mods = mods.filter((mod) => mod.slug !== request.slug);
+      await act(async () => {
+        request.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              status: 'ok',
+              data: { slug: request.slug, pending_restart: false },
+            }),
+        });
+      });
+    },
+    /** Answer the oldest waiting DELETE with a 409 refusal. */
+    refuse: async (message = REMOVE_BUSY) => {
+      const request = nextHeld();
+      await act(async () => {
+        request.resolve({
+          ok: false,
+          status: 409,
+          statusText: 'Conflict',
+          json: () => Promise.resolve({ detail: { code: 'MOD_OPERATION_IN_PROGRESS', message } }),
+        });
+      });
+    },
+    /** Fail the oldest waiting DELETE without an answer (the request never reached the API). */
+    failWithoutAnswer: async () => {
+      const request = nextHeld();
+      await act(async () => {
+        request.reject(new TypeError('Failed to fetch'));
+      });
+    },
+  };
+}
+
+function pressEscape() {
+  fireEvent.keyDown(document, { key: 'Escape' });
 }
 
 describe('ModTable', () => {
@@ -1046,100 +1131,212 @@ describe('ModTable', () => {
       });
     });
 
-    it('closes the dialog at once and reports the removal when the request completes', async () => {
-      let resolveRemove: () => void = () => {};
-      const removePromise = new Promise<void>((resolve) => {
-        resolveRemove = resolve;
+    describe('waits for the removal (Story 21.4)', () => {
+      const oneModResponse = {
+        ...mockModsResponse,
+        data: { ...mockModsResponse.data, mods: [mockModsResponse.data.mods[0]] },
+      };
+
+      function renderTable(onRemoved = vi.fn()) {
+        render(<ModTable onRemoved={onRemoved} />, {
+          wrapper: createWrapper(createAppLikeQueryClient()),
+        });
+        return onRemoved;
+      }
+
+      async function openAndConfirm(slug = 'smithingplus') {
+        fireEvent.click(await screen.findByTestId(`mod-remove-${slug}`));
+        fireEvent.click(await screen.findByTestId('remove-dialog-confirm'));
+      }
+
+      async function expectRemoving(rowTestId = 'mod-row-smithingplus') {
+        await waitFor(() => {
+          expect(screen.getByTestId('remove-dialog-confirm')).toHaveTextContent('Removing...');
+          expect(screen.queryByTestId(rowTestId)).not.toBeInTheDocument();
+        });
+        expect(screen.getByTestId('remove-dialog')).toBeInTheDocument();
+        expect(screen.getByTestId('remove-dialog-confirm')).toBeDisabled();
+        expect(screen.getByTestId('remove-dialog-cancel')).toBeDisabled();
+      }
+
+      async function expectRemoveAgain() {
+        await waitFor(() => {
+          expect(screen.getByTestId('remove-dialog-confirm')).toHaveTextContent(/^Remove$/);
+        });
+        expect(screen.getByTestId('remove-dialog')).toBeInTheDocument();
+        expect(screen.getByTestId('remove-dialog-confirm')).toBeEnabled();
+        expect(screen.getByTestId('remove-dialog-cancel')).toBeEnabled();
+      }
+
+      it('stays open while the DELETE is held', async () => {
+        const api = mockHeldRemoval();
+        const onRemoved = renderTable();
+
+        await openAndConfirm();
+
+        await expectRemoving();
+        expect(api.deleteCount()).toBe(1);
+        // The title comes from the dialog's own state, not from the list
+        expect(screen.getByText('Remove Smithing Plus?')).toBeInTheDocument();
+
+        pressEscape();
+        expect(screen.getByTestId('remove-dialog')).toBeInTheDocument();
+        fireEvent.click(screen.getByTestId('remove-dialog-cancel'));
+        expect(screen.getByTestId('remove-dialog')).toBeInTheDocument();
+        expect(api.deleteCount()).toBe(1);
+        expect(onRemoved).not.toHaveBeenCalled();
       });
 
-      const removeFetch = vi.fn().mockImplementation(async () => {
-        await removePromise;
-        return {
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              status: 'ok',
-              data: {
-                slug: 'smithingplus',
-                pendingRestart: true,
-              },
-            }),
-        };
+      it('closes when the DELETE succeeds', async () => {
+        const api = mockHeldRemoval();
+        const onRemoved = renderTable();
+        await openAndConfirm();
+        await expectRemoving();
+
+        await api.succeed();
+
+        await waitFor(() => {
+          expect(screen.queryByTestId('remove-dialog')).not.toBeInTheDocument();
+        });
+        expect(onRemoved).toHaveBeenCalledTimes(1);
+        expect(onRemoved).toHaveBeenCalledWith('smithingplus');
+        expect(screen.queryByTestId('mod-row-smithingplus')).not.toBeInTheDocument();
+        expect(toast.error).not.toHaveBeenCalled();
       });
 
-      globalThis.fetch = vi.fn().mockImplementation((_url: string, options) => {
-        if (options?.method === 'DELETE') {
-          return removeFetch();
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockModsResponse),
+      it('stays open when the DELETE is refused, and Cancel then closes it', async () => {
+        const api = mockHeldRemoval();
+        const onRemoved = renderTable();
+        await openAndConfirm();
+        await expectRemoving();
+
+        await api.refuse();
+
+        await expectRemoveAgain();
+        expect(screen.getByTestId('mod-row-smithingplus')).toBeInTheDocument();
+        expect(toast.error).toHaveBeenCalledTimes(1);
+        expect(toast.error).toHaveBeenCalledWith('Error', { description: REMOVE_BUSY });
+
+        fireEvent.click(screen.getByTestId('remove-dialog-cancel'));
+        await waitFor(() => {
+          expect(screen.queryByTestId('remove-dialog')).not.toBeInTheDocument();
+        });
+        expect(screen.getByTestId('mod-row-smithingplus')).toBeInTheDocument();
+        expect(onRemoved).not.toHaveBeenCalled();
+      });
+
+      it('sends a second DELETE on a second confirm; Escape then closes', async () => {
+        const api = mockHeldRemoval();
+        const onRemoved = renderTable();
+        await openAndConfirm();
+        await expectRemoving();
+        await api.refuse();
+        await expectRemoveAgain();
+
+        fireEvent.click(screen.getByTestId('remove-dialog-confirm'));
+
+        await expectRemoving();
+        expect(api.deleteCount()).toBe(2);
+        await api.refuse();
+        await expectRemoveAgain();
+        expect(toast.error).toHaveBeenCalledTimes(2);
+
+        pressEscape();
+        await waitFor(() => {
+          expect(screen.queryByTestId('remove-dialog')).not.toBeInTheDocument();
+        });
+        expect(screen.getByTestId('mod-row-smithingplus')).toBeInTheDocument();
+        expect(onRemoved).not.toHaveBeenCalled();
+      });
+
+      it('returns the dialog to "Remove" when the request fails without an answer', async () => {
+        const api = mockHeldRemoval();
+        const onRemoved = renderTable();
+        await openAndConfirm();
+        await expectRemoving();
+
+        await api.failWithoutAnswer();
+
+        await expectRemoveAgain();
+        expect(screen.getByTestId('mod-row-smithingplus')).toBeInTheDocument();
+        expect(toast.error).toHaveBeenCalledTimes(1);
+        expect(toast.error).toHaveBeenCalledWith('Error', { description: 'Failed to fetch' });
+        expect(onRemoved).not.toHaveBeenCalled();
+      });
+
+      it("never shows another mod's removal in a dialog, nor closes it when that removal ends", async () => {
+        const api = mockHeldRemoval();
+        const onRemoved = renderTable();
+        await openAndConfirm('smithingplus');
+        await expectRemoving();
+
+        // A pointer cannot reach the row behind the modal; jsdom applies no pointer-events
+        fireEvent.click(screen.getByTestId('mod-remove-carrycapacity'));
+
+        expect(screen.getByText('Remove Carry Capacity?')).toBeInTheDocument();
+        expect(screen.getByTestId('remove-dialog-confirm')).toHaveTextContent(/^Remove$/);
+        expect(screen.getByTestId('remove-dialog-confirm')).toBeEnabled();
+        expect(screen.getByTestId('remove-dialog-cancel')).toBeEnabled();
+
+        await api.succeed();
+
+        await waitFor(() => {
+          expect(onRemoved).toHaveBeenCalledTimes(1);
+        });
+        expect(onRemoved).toHaveBeenCalledWith('smithingplus');
+        expect(screen.getByTestId('remove-dialog')).toBeInTheDocument();
+        expect(screen.getByText('Remove Carry Capacity?')).toBeInTheDocument();
+        expect(screen.getByTestId('remove-dialog-confirm')).toHaveTextContent(/^Remove$/);
+      });
+
+      it('gives Cancel the focus when the dialog opens', async () => {
+        mockHeldRemoval();
+        renderTable();
+
+        fireEvent.click(await screen.findByTestId('mod-remove-smithingplus'));
+
+        await waitFor(() => {
+          expect(screen.getByTestId('remove-dialog-cancel')).toHaveFocus();
         });
       });
 
-      const queryClient = createTestQueryClient();
-      const onRemoved = vi.fn();
-      render(<ModTable onRemoved={onRemoved} />, { wrapper: createWrapper(queryClient) });
+      it('stays open over the empty state when the only mod is removed', async () => {
+        const api = mockHeldRemoval(oneModResponse);
+        const onRemoved = renderTable();
+        await openAndConfirm();
 
-      await waitFor(() => {
-        expect(screen.getByTestId('mod-remove-smithingplus')).toBeInTheDocument();
-      });
+        await waitFor(() => {
+          expect(screen.getByTestId('mod-table-empty')).toBeInTheDocument();
+        });
+        expect(screen.getByTestId('remove-dialog')).toBeInTheDocument();
+        expect(screen.getByTestId('remove-dialog-confirm')).toHaveTextContent('Removing...');
+        expect(screen.getByText('Remove Smithing Plus?')).toBeInTheDocument();
+        pressEscape();
+        expect(screen.getByTestId('remove-dialog')).toBeInTheDocument();
 
-      fireEvent.click(screen.getByTestId('mod-remove-smithingplus'));
+        await api.succeed();
 
-      await waitFor(() => {
-        expect(screen.getByTestId('remove-dialog-confirm')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByTestId('remove-dialog-confirm'));
-
-      // The dialog closes at once; the request is still pending
-      expect(screen.queryByTestId('remove-dialog')).not.toBeInTheDocument();
-      await waitFor(() => {
-        expect(removeFetch).toHaveBeenCalledTimes(1);
-      });
-      expect(onRemoved).not.toHaveBeenCalled();
-
-      resolveRemove();
-
-      await waitFor(() => {
+        await waitFor(() => {
+          expect(screen.queryByTestId('remove-dialog')).not.toBeInTheDocument();
+        });
+        expect(screen.getByTestId('mod-table-empty')).toBeInTheDocument();
         expect(onRemoved).toHaveBeenCalledWith('smithingplus');
       });
-    });
 
-    it('closes dialog on remove error', async () => {
-      const removeFetch = vi.fn().mockRejectedValue(new Error('Remove failed'));
-
-      globalThis.fetch = vi.fn().mockImplementation((_url: string, options) => {
-        if (options?.method === 'DELETE') {
-          return removeFetch();
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockModsResponse),
+      it('stays open over the empty state when removing the only mod is refused', async () => {
+        const api = mockHeldRemoval(oneModResponse);
+        const onRemoved = renderTable();
+        await openAndConfirm();
+        await waitFor(() => {
+          expect(screen.getByTestId('mod-table-empty')).toBeInTheDocument();
         });
-      });
 
-      const queryClient = createTestQueryClient();
-      render(<ModTable />, { wrapper: createWrapper(queryClient) });
+        await api.refuse();
 
-      await waitFor(() => {
-        expect(screen.getByTestId('mod-remove-smithingplus')).toBeInTheDocument();
-      });
-
-      // Open dialog
-      fireEvent.click(screen.getByTestId('mod-remove-smithingplus'));
-
-      await waitFor(() => {
-        expect(screen.getByTestId('remove-dialog-confirm')).toBeInTheDocument();
-      });
-
-      // Click confirm
-      fireEvent.click(screen.getByTestId('remove-dialog-confirm'));
-
-      // Dialog should close even on error
-      await waitFor(() => {
-        expect(screen.queryByTestId('remove-dialog')).not.toBeInTheDocument();
+        await expectRemoveAgain();
+        expect(screen.getByTestId('mod-row-smithingplus')).toBeInTheDocument();
+        expect(toast.error).toHaveBeenCalledTimes(1);
+        expect(onRemoved).not.toHaveBeenCalled();
       });
     });
   });
@@ -1862,6 +2059,36 @@ describe('ModTable', () => {
       });
     });
 
+    it('keeps the dialog open from a card until the DELETE succeeds (Story 21.4)', async () => {
+      setViewportWidth(390);
+      const api = mockHeldRemoval();
+      const onRemoved = vi.fn();
+      render(<ModTable onRemoved={onRemoved} />, {
+        wrapper: createWrapper(createAppLikeQueryClient()),
+      });
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Remove Smithing Plus' }));
+      fireEvent.click(await screen.findByTestId('remove-dialog-confirm'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('remove-dialog-confirm')).toHaveTextContent('Removing...');
+        expect(screen.queryByTestId('installed-mod-card-smithingplus')).not.toBeInTheDocument();
+      });
+      expect(screen.getByTestId('remove-dialog-confirm')).toBeDisabled();
+      expect(screen.getByTestId('remove-dialog-cancel')).toBeDisabled();
+      pressEscape();
+      expect(screen.getByTestId('remove-dialog')).toBeInTheDocument();
+      expect(onRemoved).not.toHaveBeenCalled();
+
+      await api.succeed();
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('remove-dialog')).not.toBeInTheDocument();
+      });
+      expect(onRemoved).toHaveBeenCalledWith('smithingplus');
+      expect(api.deleteCount()).toBe(1);
+    });
+
     it('shows the badge, latest supported version and message for an incompatible mod', async () => {
       compatibilityMock.details = new Map([
         [
@@ -2275,16 +2502,6 @@ describe('ModTable', () => {
       });
     }
 
-    // Built like the app's query client (global mutation error handler)
-    function createAppLikeQueryClient() {
-      return new QueryClient({
-        defaultOptions: {
-          queries: { retry: false },
-          mutations: { retry: false, onError: (error) => handleApiError(error) },
-        },
-      });
-    }
-
     // The first list request answers; later ones (the refetch after the mutation) never
     // do, so what the table shows afterwards comes from the rollback alone.
     function mockFetch(isBusy: (url: string, options?: RequestInit) => boolean, message = BUSY) {
@@ -2348,7 +2565,7 @@ describe('ModTable', () => {
       expect(toast.error).toHaveBeenCalledWith('Error', { description: BUSY_CARRY });
     });
 
-    it('keeps the row of a refused removal, closes the dialog and shows the message', async () => {
+    it('keeps the row of a refused removal, keeps the dialog open and shows the message', async () => {
       const fetchMock = mockFetch((_url, options) => options?.method === 'DELETE');
       const onRemoved = vi.fn();
       render(<ModTable onRemoved={onRemoved} />, {
@@ -2357,10 +2574,13 @@ describe('ModTable', () => {
       fireEvent.click(await screen.findByTestId('mod-remove-smithingplus'));
       fireEvent.click(await screen.findByTestId('remove-dialog-confirm'));
 
+      // Story 21.4: the dialog stays open with Remove enabled again
       await waitFor(() => {
         expect(busyRequestMade(fetchMock, '/mods/smithingplus')).toBe(true);
-        expect(screen.queryByTestId('remove-dialog')).not.toBeInTheDocument();
+        expect(screen.getByTestId('remove-dialog-confirm')).toHaveTextContent(/^Remove$/);
       });
+      expect(screen.getByTestId('remove-dialog')).toBeInTheDocument();
+      expect(screen.getByTestId('remove-dialog-confirm')).toBeEnabled();
       expect(screen.getByTestId('mod-remove-smithingplus')).toBeInTheDocument();
       expect(onRemoved).not.toHaveBeenCalled();
       expect(toast.error).toHaveBeenCalledTimes(1);

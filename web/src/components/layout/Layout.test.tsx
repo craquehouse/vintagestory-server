@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -7,6 +7,7 @@ import { SidebarProvider } from '@/contexts/SidebarContext';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
 import { type ReactNode } from 'react';
 import { mockUseGameSetting } from '@/test/mocks/use-game-config';
+import { queryKeys } from '@/api/query-keys';
 
 // Mock useGameSetting hook for Header component
 vi.mock('@/hooks/use-game-config', () => ({
@@ -237,5 +238,45 @@ describe('Layout', () => {
       const navLinks = screen.getAllByRole('link');
       expect(navLinks.length).toBeGreaterThan(0);
     });
+  });
+  it('refreshes the mod queries when the installed game version changes (Story 21.4)', async () => {
+    let version = '1.22.7';
+    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+      const body = url.endsWith('/server/status')
+        ? {
+            status: 'ok',
+            data: { state: 'installed', version, uptime_seconds: null, last_exit_code: null },
+          }
+        : { status: 'ok', data: { mods: [], pendingRestart: false } };
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+    });
+    const queryClient = createTestQueryClient();
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+    render(
+      <QueryClientProvider client={queryClient}>
+        <PreferencesProvider>
+          <SidebarProvider>
+            <MemoryRouter>
+              <Layout>
+                <div>Test</div>
+              </Layout>
+            </MemoryRouter>
+          </SidebarProvider>
+        </PreferencesProvider>
+      </QueryClientProvider>
+    );
+    await waitFor(() =>
+      expect(queryClient.getQueryData(queryKeys.server.status)).toMatchObject({
+        data: { version: '1.22.7' },
+      })
+    );
+    expect(invalidate).not.toHaveBeenCalledWith({ queryKey: ['mods'] });
+
+    version = '1.22.8';
+    await act(async () => {
+      await queryClient.refetchQueries({ queryKey: queryKeys.server.status });
+    });
+
+    await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['mods'] }));
   });
 });

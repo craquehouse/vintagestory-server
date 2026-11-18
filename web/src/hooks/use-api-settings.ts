@@ -134,7 +134,8 @@ export function useUpdateApiSetting() {
  * Hook to set or clear the mod update webhook (Story 14.6).
  *
  * Not optimistic, unlike useUpdateApiSetting: the URL is a secret and must not be
- * written into the cached settings. Refetches the settings when it settles.
+ * written into the cached settings. Refetches the settings when it settles. Errors are
+ * not toasted globally; pass `onError` to `mutate` to report them (Story 21.4).
  */
 export function useSetModUpdateWebhook() {
   const queryClient = useQueryClient();
@@ -144,5 +145,7 @@ export function useSetModUpdateWebhook() {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.config.api });
     },
+    // The caller reports errors; skip the global toast so they are not shown twice.
+    onError: () => {},
   });
 }

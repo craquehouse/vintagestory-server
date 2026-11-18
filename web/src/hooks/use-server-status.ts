@@ -153,7 +153,8 @@ export function useStopServer() {
 /**
  * Hook to restart the server.
  *
- * Automatically invalidates server status on success.
+ * Automatically invalidates server status on success. Errors are not toasted
+ * globally; pass `onError` to `mutate` to report them (Story 21.4).
  */
 export function useRestartServer() {
   const queryClient = useQueryClient();
@@ -163,6 +164,8 @@ export function useRestartServer() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.server.status });
     },
+    // The caller reports errors; skip the global toast so they are not shown twice.
+    onError: () => {},
   });
 }
 
@@ -171,6 +174,7 @@ export function useRestartServer() {
  *
  * Story 13.4: Per ADR-4, invalidates both server status and versions queries
  * on success to ensure UI updates reflect the new installed version.
+ * Errors are not toasted globally; pass `onError` to `mutate` to report them (Story 21.4).
  *
  * @param options.onSuccess - Callback when installation starts successfully
  *
@@ -196,6 +200,8 @@ export function useInstallServer() {
       // Story 13.4: Also invalidate versions list to update "Installed" badges
       queryClient.invalidateQueries({ queryKey: ['versions'] });
     },
+    // The caller reports errors; skip the global toast so they are not shown twice.
+    onError: () => {},
   });
 }
 
@@ -263,11 +269,47 @@ export function useServerStateToasts(currentState: ServerState | undefined) {
 }
 
 /**
+ * Hook to fetch mod data again when the installed game version changes (Story 21.4).
+ *
+ * Watches the version the polled server status reports. When it differs from the last
+ * one seen (another version, an uninstall, or an install where none was), it
+ * invalidates every mod query, so the browse cards, the installed list and the mod
+ * detail pages describe the new version. The trigger is the status, not the install
+ * request, which answers when the installation has only started.
+ *
+ * - Until the status has loaded, nothing is remembered; the first loaded value, a
+ *   version or `null` (no server), is remembered and invalidates nothing.
+ * - A failed poll keeps the last data, so the version does not change.
+ * - `['mods']` does not cover the status query, so an invalidation cannot change this
+ *   hook's input and cause another one.
+ *
+ * Call it once, in the layout.
+ */
+export function useRefreshModDataOnGameVersionChange(): void {
+  const queryClient = useQueryClient();
+  const { data } = useServerStatus();
+  const isLoaded = data?.data !== undefined;
+  const version = data?.data?.version ?? null;
+  // null until the first status has loaded; then the version seen last
+  const lastVersionRef = useRef<{ version: string | null } | null>(null);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    const last = lastVersionRef.current;
+    lastVersionRef.current = { version };
+    if (last !== null && last.version !== version) {
+      queryClient.invalidateQueries({ queryKey: queryKeys.mods.all });
+    }
+  }, [isLoaded, version, queryClient]);
+}
+
+/**
  * Hook to uninstall the server.
  *
  * Story 13.7: Removes server binaries while preserving config/mods/worlds.
  * Per ADR-4, invalidates both server status and versions queries on success
- * to ensure UI updates reflect the uninstalled state.
+ * to ensure UI updates reflect the uninstalled state. Errors are not toasted globally;
+ * pass `onError` to `mutate` to report them (Story 21.4).
  *
  * @example
  * function RemoveButton() {
@@ -291,5 +333,7 @@ export function useUninstallServer() {
       // Story 13.7: Also invalidate versions list to update "Installed" badges
       queryClient.invalidateQueries({ queryKey: ['versions'] });
     },
+    // The caller reports errors; skip the global toast so they are not shown twice.
+    onError: () => {},
   });
 }

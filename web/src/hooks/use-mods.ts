@@ -69,7 +69,8 @@ export function useMods() {
 /**
  * Hook to install a mod.
  *
- * Invalidates mods list on success.
+ * Invalidates mods list on success. Errors are not toasted globally; pass `onError`
+ * to `mutate` to report them (Story 21.4).
  *
  * @example
  * function InstallButton({ slug }: { slug: string }) {
@@ -77,7 +78,12 @@ export function useMods() {
  *
  *   return (
  *     <button
- *       onClick={() => install({ slug })}
+ *       onClick={() =>
+ *         install(
+ *           { slug },
+ *           { onError: (error) => toast.error('Installation failed', { description: error.message }) }
+ *         )
+ *       }
  *       disabled={isPending}
  *     >
  *       {isPending ? 'Installing...' : 'Install'}
@@ -95,6 +101,8 @@ export function useInstallMod() {
       // Refetch mods list to include the new mod
       queryClient.invalidateQueries({ queryKey: queryKeys.mods.all });
     },
+    // The caller reports errors; skip the global toast so they are not shown twice.
+    onError: () => {},
   });
 }
 

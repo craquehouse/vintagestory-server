@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -698,6 +698,66 @@ describe('InstallVersionDialog', () => {
       // the dialog actually being closed and reopened
       // The real behavior is tested in the component - when onOpenChange(false)
       // is called, the checkbox state resets
+    });
+  });
+
+  describe('dismissal while the install request runs (Story 21.4)', () => {
+    function mockInstallPending() {
+      vi.mocked(useServerStatus.useInstallServer).mockReturnValue({
+        mutate: mockMutate,
+        isPending: true,
+        isError: false,
+        error: null,
+        isSuccess: false,
+        isIdle: false,
+        data: undefined,
+        variables: { version: '1.21.6' },
+        reset: vi.fn(),
+        status: 'pending',
+        mutateAsync: vi.fn(),
+        context: undefined,
+        failureCount: 0,
+        failureReason: null,
+        submittedAt: Date.now(),
+        isPaused: false,
+      });
+    }
+
+    it('ignores Escape and the close button while the install request runs', () => {
+      mockInstallPending();
+      render(<InstallVersionDialog {...getDefaultProps({ onOpenChange: mockOnOpenChange })} />, {
+        wrapper: createWrapper(),
+      });
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+      expect(mockOnOpenChange).not.toHaveBeenCalled();
+      expect(screen.getByTestId('install-version-dialog')).toBeInTheDocument();
+    });
+
+    it('closes on Escape when no request runs', () => {
+      render(<InstallVersionDialog {...getDefaultProps({ onOpenChange: mockOnOpenChange })} />, {
+        wrapper: createWrapper(),
+      });
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      expect(mockOnOpenChange).toHaveBeenCalledTimes(1);
+      expect(mockOnOpenChange).toHaveBeenCalledWith(false);
+    });
+
+    it('still closes on Escape while the server installs after the request was accepted', () => {
+      render(
+        <InstallVersionDialog
+          {...getDefaultProps({ serverState: 'installing', onOpenChange: mockOnOpenChange })}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      expect(mockOnOpenChange).toHaveBeenCalledWith(false);
     });
   });
 

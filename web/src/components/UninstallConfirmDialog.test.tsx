@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { UninstallConfirmDialog, type UninstallConfirmDialogProps } from './UninstallConfirmDialog';
 
@@ -148,6 +148,33 @@ describe('UninstallConfirmDialog', () => {
       render(<UninstallConfirmDialog {...getDefaultProps({ isPending: false })} />);
 
       expect(screen.getByTestId('confirm-button')).toHaveTextContent('Remove Server');
+    });
+
+    it('puts the focus on Cancel when it opens (Story 21.4)', async () => {
+      render(<UninstallConfirmDialog {...getDefaultProps()} />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('cancel-button')).toHaveFocus();
+      });
+    });
+
+    it('ignores Escape while pending (Story 21.4)', () => {
+      const onOpenChange = vi.fn();
+      render(<UninstallConfirmDialog {...getDefaultProps({ isPending: true, onOpenChange })} />);
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      expect(onOpenChange).not.toHaveBeenCalled();
+    });
+
+    it('closes on Escape when not pending (Story 21.4)', () => {
+      const onOpenChange = vi.fn();
+      render(<UninstallConfirmDialog {...getDefaultProps({ isPending: false, onOpenChange })} />);
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      expect(onOpenChange).toHaveBeenCalledTimes(1);
+      expect(onOpenChange).toHaveBeenCalledWith(false);
     });
   });
 

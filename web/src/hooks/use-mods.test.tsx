@@ -21,6 +21,7 @@ import {
   useApplyAllModUpdates,
 } from './use-mods';
 import { queryKeys } from '@/api/query-keys';
+import { handleApiError } from '@/api/error-handler';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -179,6 +180,43 @@ describe('useInstallMod', () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+  });
+
+  describe('one error toast (Story 21.4)', () => {
+    it("shows only the caller's toast for a refused install", async () => {
+      const message = "Mod 'newmod' is already installed.";
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 409,
+        statusText: 'Conflict',
+        json: () => Promise.resolve({ detail: { code: 'MOD_ALREADY_INSTALLED', message } }),
+      });
+      // Built like the app's query client: its default mutation onError shows a toast
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false, onError: (error) => handleApiError(error) },
+        },
+      });
+      const { result } = renderHook(() => useInstallMod(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        result.current.mutate(
+          { slug: 'newmod' },
+          {
+            onError: (error) => {
+              toast.error('Installation failed', { description: error.message });
+            },
+          }
+        );
+      });
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(toast.error).toHaveBeenCalledTimes(1);
+      expect(toast.error).toHaveBeenCalledWith('Installation failed', { description: message });
+    });
   });
 
   describe('update status after an install (Story 17.4)', () => {

@@ -125,7 +125,15 @@ export function InstallConfirmDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        // Story 21.4: Escape, an outside click and the close button do nothing while the
+        // install request runs
+        if (!next && isPending) return;
+        onOpenChange(next);
+      }}
+    >
       <DialogContent data-testid="install-confirm-dialog">
         <DialogHeader>
           <DialogTitle>Install Mod</DialogTitle>
