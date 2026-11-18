@@ -30,13 +30,14 @@ export function Layout({ children }: LayoutProps) {
           <SheetDescription className="sr-only">
             Main navigation links for the application
           </SheetDescription>
-          <Sidebar />
+          <Sidebar inSheet />
         </SheetContent>
       </Sheet>
 
       {/* Desktop sidebar */}
       <div
         className="fixed inset-y-0 left-0 z-30 hidden transition-all duration-300 md:block"
+        data-testid="desktop-sidebar"
         style={{ width: 'var(--sidebar-width)' }}
       >
         <Sidebar />

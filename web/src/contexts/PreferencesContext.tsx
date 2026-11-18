@@ -10,6 +10,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { useTheme } from 'next-themes';
 import { getCookie, setCookie } from '@/lib/cookies';
+import { readSidebarPreference, type SidebarPreference } from '@/lib/sidebar-preference';
 
 /** Theme preference options */
 export type ThemePreference = 'light' | 'dark' | 'system';
@@ -30,7 +31,8 @@ export interface InstalledModsSort {
 export interface UserPreferences {
   theme: ThemePreference;
   consoleFontSize: number;
-  sidebarCollapsed: boolean;
+  /** Story 21.8 (ADR-14): `auto` follows the width; replaces `sidebarCollapsed` */
+  sidebar: SidebarPreference;
   gameServerNavExpanded: boolean;
   installedModsSort: InstalledModsSort;
 }
@@ -39,7 +41,7 @@ export interface UserPreferences {
 const DEFAULT_PREFERENCES: UserPreferences = {
   theme: 'system',
   consoleFontSize: 14,
-  sidebarCollapsed: false,
+  sidebar: 'auto',
   gameServerNavExpanded: true,
   installedModsSort: { column: 'name', direction: 'asc' },
 };
@@ -57,7 +59,7 @@ interface PreferencesContextType {
   preferences: UserPreferences;
   setThemePreference: (theme: ThemePreference) => void;
   setConsoleFontSize: (size: number) => void;
-  setSidebarCollapsed: (collapsed: boolean) => void;
+  setSidebarPreference: (sidebar: SidebarPreference) => void;
   setGameServerNavExpanded: (expanded: boolean) => void;
   setInstalledModsSort: (sort: InstalledModsSort) => void;
 }
@@ -68,8 +70,17 @@ interface PreferencesProviderProps {
   children: ReactNode;
 }
 
+/** A parsed JSON value that is an object (not null, not an array). */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 /**
  * Load preferences from cookie, merging with defaults.
+ *
+ * Story 21.8: the cookie is read as `unknown`; anything but a JSON object gives the defaults.
+ * The sidebar key written before Story 21.8 (`sidebarCollapsed`) is migrated by
+ * `readSidebarPreference` and not written back.
  */
 function loadPreferences(): UserPreferences {
   const cookieValue = getCookie(PREFS_COOKIE_NAME);
@@ -78,16 +89,16 @@ function loadPreferences(): UserPreferences {
   }
 
   try {
-    const parsed = JSON.parse(cookieValue) as Partial<UserPreferences>;
+    const parsed: unknown = JSON.parse(cookieValue);
+    if (!isRecord(parsed)) {
+      return { ...DEFAULT_PREFERENCES };
+    }
     return {
       theme: isValidTheme(parsed.theme) ? parsed.theme : DEFAULT_PREFERENCES.theme,
       consoleFontSize: isValidFontSize(parsed.consoleFontSize)
         ? parsed.consoleFontSize
         : DEFAULT_PREFERENCES.consoleFontSize,
-      sidebarCollapsed:
-        typeof parsed.sidebarCollapsed === 'boolean'
-          ? parsed.sidebarCollapsed
-          : DEFAULT_PREFERENCES.sidebarCollapsed,
+      sidebar: readSidebarPreference(parsed),
       gameServerNavExpanded:
         typeof parsed.gameServerNavExpanded === 'boolean'
           ? parsed.gameServerNavExpanded
@@ -175,8 +186,8 @@ export function PreferencesProvider({ children }: PreferencesProviderProps) {
     setPreferences((prev) => ({ ...prev, consoleFontSize: clampedSize }));
   }, []);
 
-  const setSidebarCollapsed = useCallback((collapsed: boolean) => {
-    setPreferences((prev) => ({ ...prev, sidebarCollapsed: collapsed }));
+  const setSidebarPreference = useCallback((sidebar: SidebarPreference) => {
+    setPreferences((prev) => ({ ...prev, sidebar }));
   }, []);
 
   const setGameServerNavExpanded = useCallback((expanded: boolean) => {
@@ -193,7 +204,7 @@ export function PreferencesProvider({ children }: PreferencesProviderProps) {
         preferences,
         setThemePreference,
         setConsoleFontSize,
-        setSidebarCollapsed,
+        setSidebarPreference,
         setGameServerNavExpanded,
         setInstalledModsSort,
       }}

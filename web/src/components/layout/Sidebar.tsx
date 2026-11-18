@@ -40,10 +40,16 @@ function GithubIcon({ className }: { className?: string }) {
 
 interface SidebarProps {
   className?: string;
+  /**
+   * Story 21.8: rendered in the phone sheet. The sheet always shows the full sidebar, whatever
+   * the stored preference, and has no collapse toggle.
+   */
+  inSheet?: boolean;
 }
 
-export function Sidebar({ className }: SidebarProps) {
-  const { isCollapsed, toggleCollapse } = useSidebar();
+export function Sidebar({ className, inSheet = false }: SidebarProps) {
+  const { isCollapsed: collapsed, toggleCollapse } = useSidebar();
+  const isCollapsed = !inSheet && collapsed;
   const { preferences, setGameServerNavExpanded } = usePreferences();
   const { data: statusResponse } = useServerStatus();
   // Story 14.5: count of mods with an update available, shown on the Mods item
@@ -159,25 +165,29 @@ export function Sidebar({ className }: SidebarProps) {
 
         {/* Footer */}
         <div className="p-2">
-          {/* Collapse toggle */}
-          <Button
-            variant="ghost"
-            size={isCollapsed ? 'icon-sm' : 'sm'}
-            onClick={toggleCollapse}
-            className={cn(
-              'w-full text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-              isCollapsed ? 'justify-center' : 'justify-start'
-            )}
-          >
-            {isCollapsed ? (
-              <PanelLeft className="h-5 w-5" />
-            ) : (
-              <>
-                <PanelLeftClose className="h-5 w-5" />
-                <span className="ml-2">Collapse</span>
-              </>
-            )}
-          </Button>
+          {/* Collapse toggle (not in the phone sheet; Story 21.8: named in both states) */}
+          {!inSheet && (
+            <Button
+              variant="ghost"
+              size={isCollapsed ? 'icon-sm' : 'sm'}
+              onClick={toggleCollapse}
+              aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              data-testid="sidebar-toggle"
+              className={cn(
+                'w-full text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                isCollapsed ? 'justify-center' : 'justify-start'
+              )}
+            >
+              {isCollapsed ? (
+                <PanelLeft className="h-5 w-5" />
+              ) : (
+                <>
+                  <PanelLeftClose className="h-5 w-5" />
+                  <span className="ml-2">Collapse</span>
+                </>
+              )}
+            </Button>
+          )}
 
           {/* GitHub link + version */}
           <div
