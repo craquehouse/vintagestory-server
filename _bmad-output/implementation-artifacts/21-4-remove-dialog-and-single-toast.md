@@ -1,6 +1,6 @@
 # Story 21.4: The Mod Remove Dialog Waits, and One Toast per Failure
 
-Status: review
+Status: done
 
 <!-- Implements FR271-FR274 and FR286, Epic 21 ADR-6, ADR-7 and ADR-16. Beads: VSS-oc28 (UI-096), VSS-q38r (UI-097, pulled in by Matt, 2026-11-17); maintainer decision 4 (the remove dialog). Stories run in order 21.1 to 21.8, each stacked on the previous. Line references were verified at 966204f (epic-21-planning; its web/ is the code the ADRs cite at 05436da) and must be re-checked at implementation time: Story 21.1 reformats about 231 web files with Prettier first (quotes, wrapping and line numbers move; `Layout.tsx` and `App.tsx` change from double to single quotes). Web only. No API change, no new dependency. -->
 
@@ -147,7 +147,7 @@ so that **I know whether the mod was removed, am not told the same error twice, 
   - [x] 6.3: Record in the Dev Agent Record that `GET /api/v1alpha1/mods` and `GET /api/v1alpha1/server/status` (state and version) on the dev stack returned the same before and after the E2E run
   - [x] 6.4: `just check` passes; `just test-web` reports no skipped test beyond the pre-existing ones (`VSS-hnl`); the diff adds no suppression and no `cast`; `git status --short` shows nothing under `dev/`
   - [ ] 6.5: (left for the maintainer) Manual check on the Docker stack (needs the maintainer's confirmation before it is ticked, `project-context.md`): Dev Notes "Manual check"
-  - [ ] 6.6: (status and sprint status done; PR and the bead links left to the orchestrator, the dev brief forbids push and PR) Story status `review`, `just sprint set 21-4-remove-dialog-and-single-toast review`, PR (base: Story 21.3's branch while its PR is open, otherwise `main`; Story 21.1 must be merged first), PR link on `VSS-oc28` and `VSS-q38r`. The PR description says "API contract changes: none" and lists the four release-note subjects. Commit `chore(story-21.4/task-6): validate and move story 21.4 to review`
+  - [x] 6.6: (status and sprint status done; PR and the bead links left to the orchestrator, the dev brief forbids push and PR) Story status `review`, `just sprint set 21-4-remove-dialog-and-single-toast review`, PR (base: Story 21.3's branch while its PR is open, otherwise `main`; Story 21.1 must be merged first), PR link on `VSS-oc28` and `VSS-q38r`. The PR description says "API contract changes: none" and lists the six release-note subjects (the four planned plus the install-dialog guard and the uninstall-dialog focus fix). Commit `chore(story-21.4/task-6): validate and move story 21.4 to review`
 
 ## Dev Notes
 
@@ -475,9 +475,32 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
 - `project-context.md` (modified)
 - `_bmad-output/implementation-artifacts/21-4-remove-dialog-and-single-toast.md` (this story)
 
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-17
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `5cf8997f..091c2da0`
+**Outcome:** Approve
+
+**Summary:** All 18 ACs met, with tests that fail against the old code.
+- **Remove dialog:** pending state is scoped to its own mod; the dialog closes only on its own mod's success, and survives the empty list.
+- **Single toast:** all five hooks silence the client default, and all nine callers (including `PendingRestartBanner`) show exactly one toast. The `project-context.md` rule is accurate to `query-client.ts`.
+- **Version watcher:** it tells "not loaded" from "no version", invalidates `['mods']` once per change and never the status query, so nothing loops; it is StrictMode-safe and mounted once.
+- **`VersionChangeConfirmDialog`** needs no guard; the dev's reasoning was confirmed.
+- **E2E:** the specs are stubbed, read-only and untagged, and the README counts are exact (155 total, 124 untagged, 27 `@moddb`).
+
+Reviewer ran `just lint-web`, `just typecheck-web`, the web suite shuffled (3337 passed, 0 skipped) and `playwright test --list`.
+
+### Action Items
+
+- [x] [Low] the `useInstallMod` `@example` called `install({ slug })` without the `onError` its own rule requires. Fixed by the controller: the example now passes an `onError` toast.
+- [x] [Low] Task 6.6 said "four" release-note subjects; there are six (the two added at the maintainer's request). Corrected.
+- Nits, not changed: the E2E pending window fits a 1.5 s stub delay (repeat runs green); bookkeeping commit type.
+- Maintainer question raised by the dev and left open: should `VersionChangeConfirmDialog` stay open until its confirmed retry finishes, like the remove dialog? (Today it closes before the retry starts; nothing needs guarding.)
+
 ## Change Log
 
 | Date | Change |
 |---|---|
 | 2026-11-17 | Story created and validated (ready-for-dev) |
 | 2026-11-17 | Implemented Tasks 1-6 (with the install dialogs' guard and the uninstall dialog's focus fix from the maintainer's notes); status review |
+- 2026-11-17: Code review (GLM-5.3-Flash): approved; two documentation lows fixed by the controller. Status done.

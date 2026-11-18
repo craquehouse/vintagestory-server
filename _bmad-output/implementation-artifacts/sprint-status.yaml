@@ -232,7 +232,7 @@ development_status:
   21-1-web-formatted-once: done
   21-2-renovate-uv-hold-and-digests: done
   21-3-log-level-and-config-viewer: done
-  21-4-remove-dialog-and-single-toast: review
+  21-4-remove-dialog-and-single-toast: done
   21-5-version-sort-aria-sort-close-buttons: backlog
   21-6-mod-detail-polish: backlog
   21-7-tabs-and-tables-on-phones: backlog
