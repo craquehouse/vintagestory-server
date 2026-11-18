@@ -64,7 +64,7 @@ so that **content has room at tablet widths and stays readable on large monitors
 
 11. **Given** the Console page (`/game-server/console`) at 1920px, in both sidebar states
     **When** I measure the console panel
-    **Then** it is `viewport - sidebar - 48` px wide (1712px expanded, 1808px collapsed), wider than 1280px. `GameServerPage` (the side-by-side page the ADR names) has no route and is not changed (Dev Notes "ADR against the code")
+    **Then** it is `viewport - sidebar - 48` px wide (1712px expanded, 1808px collapsed), wider than 1280px. `GameServerPage` (the side-by-side page the ADR names) has no route; the maintainer decided on 2026-11-17 to delete it (Task 4.6)
     *(Covers FR285; ADR-15 decision 4)*
 
 12. **Given** the web source
@@ -110,6 +110,7 @@ so that **content has room at tablet widths and stays readable on large monitors
   - [ ] 4.2: `web/src/components/layout/Layout.tsx` (`:46-50`): inside the padding `div` wrap `children` in `<div className={fullWidth ? undefined : PAGE_CONTENT_WIDTH} data-testid="page-content">`, where `fullWidth` is true when `useLocation().pathname` matches an entry of `FULL_WIDTH_ROUTES` (`matchPath` from `react-router`). The padding `div` keeps `p-4 md:p-6` and stays the first `div` in `main`
   - [ ] 4.3: Game Settings on the shared constant: `features/game-server/SettingsPage.tsx` (`:22`, `:46`, `:61`, `:75`) and `GameConfigPanel.tsx` (`:29`, `:196`, `:210`, `:298`) import `PAGE_CONTENT_WIDTH` from `@/components/layout/content-width`; their wrappers stay (Dev Notes "Decision: Game Settings keeps its wrappers"). Update the comments at `SettingsPage.tsx:11` and `GameConfigPanel.tsx:7`
   - [ ] 4.4: Tests (Dev Notes "Web tests", Task 4 rows) and the Task 4 entries of "Existing tests that change", red first
+  - [ ] 4.6 (maintainer decision, 2026-11-17): delete the unreachable `features/game-server/GameServerPage.tsx`, its test and its export from `features/game-server/index.ts`; remove any helper, fixture or CSS used only by it (check with `grep -rn`). `FULL_WIDTH_ROUTES` stays `['/game-server/console']` and its doc comment no longer mentions `GameServerPage`. Commit separately before 4.5's commit: `refactor(story-21.8/task-4): remove the unused game server page`
   - [ ] 4.5: `grep -rn "max-w-\[1280px\]" web/src | grep -v "\.test\."` shows one line. `just test-web`, `just typecheck-web`, `just lint-web`, Prettier on the changed files. Commit `feat(story-21.8/task-4): limit page width to 1280px on wide screens`. The body says: pages are centered with a maximum width of 1280px; the Console page keeps the full width; the mod browser keeps four columns
 
 - [ ] Task 5: Wide-screen checks, E2E for the cap and the UX notes + tests (AC: 9, 10, 11, 13)
@@ -332,7 +333,7 @@ Found by prototyping Tasks 1, 2 and 4 on 966204f and running the whole web suite
 
 - The sidebar's widths (160px and 64px; the UX spec's 240px was never built), its breakpoints (`md` for the sheet, `lg` for `auto`), its contents and the 300ms animation.
 - The header bar: full width, server name at its left edge, not aligned with the centered content (ADR-15 decision 5).
-- `GameServerPage.tsx` and its test; `GameServerLayout` in `App.tsx`; the routes.
+- `GameServerLayout` in `App.tsx`; the routes. (`GameServerPage.tsx` is deleted by Task 4.6.)
 - The mod browser's number of columns, `VersionGrid`, the mod detail page's `max-w-4xl`, the Dashboard's grid.
 - The Console page's height rule (`ConsolePage.tsx:60-64`).
 - The other preferences, the cookie's name, lifetime and attributes, `lib/cookies.ts`.
@@ -346,9 +347,9 @@ None. No route, request, response field, status code or error code changes; the 
 
 ### Follow-ups (not in this story; for the maintainer)
 
-1. `GameServerPage` (`features/game-server/GameServerPage.tsx`, its test and its export) is unreachable code since the Game Server section got its own pages. Removing it, or giving it a route, is a product decision outside the two beads.
+1. ~~`GameServerPage` is unreachable code.~~ Decided by the maintainer (2026-11-17): delete it in this story (Task 4.6).
 2. The header's server name is not aligned with the centered content on wide screens. ADR-15 decision 5 leaves the header alone; whether it should follow the content is a design question.
-3. A very long mod name (the 63-character name of the E2E fixture) wraps in the installed mods table at every width once the page is capped (see "ADR against the code" 3). If one-line names matter more than a common width, the Installed tab could be exempted later.
+3. A very long mod name (the 63-character name of the E2E fixture) wraps in the installed mods table at every width once the page is capped (see "ADR against the code" 3). The maintainer decided (2026-11-17) that the cap applies to every page, the Installed tab included, and the Story 18.4 one-line tests are rewritten as Dev Notes say.
 
 ### UX notes: what the spec asked and what was built (template for Task 5.6)
 
