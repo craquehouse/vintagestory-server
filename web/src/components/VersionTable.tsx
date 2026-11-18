@@ -36,6 +36,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { compareVersions } from '@/lib/version-compare';
+import { parseFilesize } from '@/lib/numeric-utils';
 import type { VersionInfo, VersionChannel } from '@/api/types';
 
 interface VersionTableProps {
@@ -67,6 +68,19 @@ const channelStyles: Record<VersionChannel, { label: string; className: string }
     className: 'text-warning border-warning/30 bg-warning/10',
   },
 };
+
+/**
+ * Compare two file sizes ("45.2 MB") by size; sizes that cannot be read come last, in
+ * text order. Story 21.5.
+ */
+function compareFilesizes(a: string, b: string): number {
+  const bytesA = parseFilesize(a);
+  const bytesB = parseFilesize(b);
+  if (bytesA !== null && bytesB !== null) return Math.sign(bytesA - bytesB);
+  if (bytesA !== null) return -1;
+  if (bytesB !== null) return 1;
+  return a < b ? -1 : a > b ? 1 : 0;
+}
 
 /**
  * Extended version info with computed isNewer flag for table rows.
@@ -155,7 +169,7 @@ function createColumns(onVersionSelect?: (version: string) => void) {
           {info.getValue()}
         </span>
       ),
-      sortFn: 'alphanumeric',
+      sortFn: (rowA, rowB) => compareFilesizes(rowA.original.filesize, rowB.original.filesize),
       meta: {
         className: 'hidden sm:table-cell',
       },

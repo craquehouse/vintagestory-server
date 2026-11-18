@@ -271,6 +271,29 @@ describe('VersionTable', () => {
         '1.22.0',
       ]);
     });
+
+    it('sorts the Size column by size, not by its text (Story 21.5)', async () => {
+      const user = userEvent.setup();
+      render(
+        <VersionTable
+          versions={[
+            versionInfo('1.21.1', 'stable', false, '45.9 MB'),
+            versionInfo('1.21.2', 'stable', false, '1.1 GB'),
+            versionInfo('1.21.3', 'stable', false, '45.10 MB'),
+            versionInfo('1.21.4', 'stable', false, '800 KB'),
+            versionInfo('1.21.5', 'stable', false, 'unknown'),
+          ]}
+        />
+      );
+
+      const sizeHeader = screen.getByTestId('version-table-header-filesize');
+      await user.click(sizeHeader);
+      // Sizes that cannot be read come last
+      expect(rowVersions()).toEqual(['1.21.4', '1.21.3', '1.21.1', '1.21.2', '1.21.5']);
+
+      await user.click(sizeHeader);
+      expect(rowVersions()).toEqual(['1.21.5', '1.21.2', '1.21.1', '1.21.3', '1.21.4']);
+    });
   });
 
   describe('responsive column hiding', () => {
