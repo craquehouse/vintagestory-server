@@ -91,6 +91,17 @@ describe('getActionType', () => {
     expect(getActionType('1.21.6', '1.21.6')).toBe('reinstall');
   });
 
+  // Story 21.5 review (F1): the same version spelled differently is a reinstall
+  it.each([
+    ['v1.0.0', '1.0.0'],
+    ['1.0.0+build', '1.0.0'],
+    ['01.0.0', '1.0.0'],
+    ['1.0.0', 'v1.0.0'],
+    ['1.0', '1.0.0'],
+  ])('returns "reinstall" for %s over %s (equal precedence)', (target, installed) => {
+    expect(getActionType(target, installed)).toBe('reinstall');
+  });
+
   it('returns "upgrade" when selecting newer version', () => {
     expect(getActionType('1.21.6', '1.20.0')).toBe('upgrade');
   });
@@ -218,6 +229,23 @@ describe('InstallVersionDialog', () => {
 
       expect(screen.getByTestId('dialog-title')).toHaveTextContent('Reinstall Server Version');
       expect(screen.getByTestId('confirm-button')).toHaveTextContent('Reinstall');
+    });
+
+    it('shows "Reinstall" with no downgrade warning for v1.21.9 over 1.21.9 (Story 21.5 review)', () => {
+      render(
+        <InstallVersionDialog
+          {...getDefaultProps({
+            version: { ...mockVersion, version: 'v1.21.9' },
+            installedVersion: '1.21.9',
+            serverState: 'installed',
+          })}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      expect(screen.getByTestId('dialog-title')).toHaveTextContent('Reinstall Server Version');
+      expect(screen.queryByTestId('downgrade-warning')).not.toBeInTheDocument();
+      expect(screen.getByTestId('confirm-button')).toBeEnabled();
     });
 
     it('shows "Upgrade" for 1.21.10 over 1.21.9, with no downgrade warning (Story 21.5)', () => {

@@ -75,24 +75,29 @@ function comparePrecedence(a: ParsedVersion, b: ParsedVersion): number {
 }
 
 /**
- * Compare two version strings.
+ * Compare two version strings by precedence only: unlike `compareVersions`, two strings
+ * that name the same version (`1.0.0`, `v1.0.0`, `1.0.0+build`, `01.0.0`, `1.0`) give 0.
+ * Use it to ask "is this the same version?"; use `compareVersions` to sort.
+ *
+ * @returns -1 if `a` has lower precedence than `b`, 1 if higher, 0 if equal
+ */
+export function compareVersionPrecedence(a: string, b: string): number {
+  const parsedA = parseVersion(a);
+  const parsedB = parseVersion(b);
+
+  if (parsedA && parsedB) return comparePrecedence(parsedA, parsedB);
+  if (parsedA) return -1;
+  if (parsedB) return 1;
+  return sign(unreadableCollator.compare(a, b));
+}
+
+/**
+ * Compare two version strings for sorting: by precedence, then by the plain strings, so
+ * the order is total.
  *
  * @returns -1 if `a` comes before `b`, 1 if after, 0 only if the strings are identical
  */
 export function compareVersions(a: string, b: string): number {
-  const parsedA = parseVersion(a);
-  const parsedB = parseVersion(b);
-
-  let result: number;
-  if (parsedA && parsedB) {
-    result = comparePrecedence(parsedA, parsedB);
-  } else if (parsedA) {
-    result = -1;
-  } else if (parsedB) {
-    result = 1;
-  } else {
-    result = sign(unreadableCollator.compare(a, b));
-  }
-
+  const result = compareVersionPrecedence(a, b);
   return result !== 0 ? result : compareStrings(a, b);
 }

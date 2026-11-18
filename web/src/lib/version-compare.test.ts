@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { compareVersions } from './version-compare';
+import { compareVersionPrecedence, compareVersions } from './version-compare';
 
 function sorted(list: readonly string[]): string[] {
   return [...list].sort(compareVersions);
@@ -198,5 +198,40 @@ describe('compareVersions', () => {
         expect(sorted(permutation)).toEqual(expected);
       }
     });
+  });
+});
+
+describe('compareVersionPrecedence (Story 21.5 review)', () => {
+  it.each([
+    ['1.0.0', 'v1.0.0'],
+    ['1.0.0', '1.0.0+build'],
+    ['1.0.0', '01.0.0'],
+    ['1.0', '1.0.0'],
+    ['1.0.0-rc.1', '1.0.0-rc.1+b'],
+    ['beta', 'beta'],
+  ])('%j and %j have equal precedence', (a, b) => {
+    expect(compareVersionPrecedence(a, b)).toBe(0);
+    expect(compareVersionPrecedence(b, a)).toBe(0);
+  });
+
+  it.each([
+    ['1.0.0-rc.2', '1.0.0-rc.12'],
+    ['1.0.0-rc.12', '1.0.0'],
+    ['1.9.0', '1.10.0'],
+    ['1.0.0', 'beta'],
+    ['beta', 'build'],
+  ])('%j has lower precedence than %j', (a, b) => {
+    expect(compareVersionPrecedence(a, b)).toBe(-1);
+    expect(compareVersionPrecedence(b, a)).toBe(1);
+  });
+
+  it('agrees with compareVersions whenever the precedence differs', () => {
+    const list = ['1.0.0', 'v1.0.0', '1.0.0-rc.2', '1.2', 'beta', '', '1.0.0+b', '2'];
+    for (const a of list) {
+      for (const b of list) {
+        const precedence = compareVersionPrecedence(a, b);
+        if (precedence !== 0) expect(compareVersions(a, b), `${a} vs ${b}`).toBe(precedence);
+      }
+    }
   });
 });
