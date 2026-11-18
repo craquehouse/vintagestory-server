@@ -271,7 +271,7 @@ describe('SettingsPage', () => {
   });
 
   describe('responsive layout', () => {
-    it('applies responsive padding classes (p-4 and lg:p-6)', () => {
+    it('adds no padding of its own (Layout pads every page)', () => {
       vi.mocked(serverStatusHook.useServerStatus).mockReturnValue({
         data: { data: { state: 'running', version: '1.21.3' } },
         isLoading: false,
@@ -281,8 +281,7 @@ describe('SettingsPage', () => {
       renderWithProviders(<SettingsPage />);
 
       const page = screen.getByTestId('settings-page');
-      expect(page).toHaveClass('p-4');
-      expect(page).toHaveClass('lg:p-6');
+      expect(page.className).not.toMatch(/(^|\s)(\w+:)*p[xy]?-\d/);
     });
   });
 
