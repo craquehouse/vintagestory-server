@@ -1,6 +1,6 @@
 # Story 21.8: Sidebar Default and Content Width
 
-Status: review
+Status: done
 
 <!-- Implements FR284-FR285. Beads: VSS-w85 (UI-090), VSS-alx (UI-088), parent VSS-syuj. Governed by Epic 21 ADR-14 (sidebar preference) and ADR-15 (1280px content width), both accepted by the maintainer (Matt, 2026-11-17, answers 6 and 7). Last story of Epic 21, stacked on Story 21.7 (which is stacked on 21.1 to 21.6). Line references are to 966204f (branch epic-21-planning, before any Epic 21 story): Story 21.1 reformats about 231 web files with Prettier (single quotes, width 100), 21.5 changes `ui/sheet.tsx`, 21.6 changes `layout/Sidebar.tsx:208-216`, 21.7 changes `ui/tabs.tsx`, `VersionTable.tsx`, `JobsTable.tsx` and `e2e/layout-widths.spec.ts`. Re-check every cited line before editing. Web only: no API change, no new dependency. -->
 
@@ -524,7 +524,30 @@ Deleted:
 - `web/src/features/game-server/GameServerPage.tsx`
 - `web/src/features/game-server/GameServerPage.test.tsx`
 
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-17
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `8a0aa7e7..a18499e0`
+**Outcome:** Approve
+
+**Summary:** All ACs met.
+- **Red first:** with the source changes reverted and the new tests kept, 53 of 140 tests fail in 8 files.
+- **Cookie migration:** malformed cookies (not JSON, `null`, number, string, array, an unknown `sidebar` value) fall back to the defaults without throwing. Only a boolean `true` for `sidebarCollapsed` migrates to `collapsed`. The old key is dropped on the first write, and the cookie is read as `unknown` with a guard, with no assertion.
+- **Full-width routes:** `matchPath` accepts `/game-server/console` and `/game-server/console/` and caps `/game-server/consolex`. `max-w-[1280px]` is written once, and `max-w-4xl` is intact.
+- **`GameServerPage` removal:** nothing left dangling, and the routes are unchanged.
+- **The rewritten Story 18.4 tests are justified.** The button-beside-version layout already breaks at 1232px tables this story doesn't touch. The new assertions still catch sideways scroll, controls pushed off screen and a name that stops wrapping.
+- **Release notes and records:** `just changelog` shows exactly the two Features. README counts 241/237/210 verified. The measurement JSON holds only numbers and test IDs.
+
+Reviewer ran `just lint-web`, `just typecheck-web`, `just test-web` (also shuffled), `just changelog` and `playwright test --list`.
+
+### Action Items
+
+- [Low, docs] The body of commit a2203a7b says the route went in Story 11.5; it was Story 11.1 (`6d0f3203`). Corrected in the PR description; published history is not amended.
+- [Nit] The Completion Notes' Follow-up 4 (Game Settings panel at 1232px) is numbered beyond Dev Notes' list of three. [Nit] Task 3.1's grep note undercounts the spec's own migration-test references. Both are records only.
+- Game Settings at 1232px: confirmed. Its own `p-4 lg:p-6` has inset it 24px at every width since Story 17.8, and it is unchanged below the cap. Fixing it shifts the page at every lg+ width, outside AC 13, so it goes to the maintainer as a decision. The minimal fix is to drop the horizontal padding on the three `SettingsPage` roots (`lg:py-6 lg:px-0`) and re-measure.
+
 ## Change Log
 
 - 2026-11-17: Story 21.8 created and validated (ready-for-dev). Validation against the create-story checklist, every cited path and line read at 966204f. Tasks 1, 2 and 4 were prototyped and the whole web suite run (14 failures in three files and 3 type errors, all listed; prototype discarded). Findings fixed in the story: with `auto`, the width rule alone would show the icon-only sidebar in every phone's sheet, so the rule, the sheet and the preferences control are one commit; `GameServerPage` has no route, so one console page is exempt, by a path list in the layout (route handles need a data router); the cap makes Story 18.4's 63-character name wrap at every width, so three E2E tests are rewritten and the PR says so; `openPage` must write the new key or the tablet "sidebar expanded" tests run collapsed and still pass; the collapsed toggle had no accessible name; the cookie is read as `unknown` with a guard instead of an assertion; expected widths computed for 1280 to 2560px in both sidebar states.
 - 2026-11-17: Story 21.8 implemented (Tasks 1 to 5, gate 6.1 to 6.3); status review. Manual check 5.5, the PR (6.4) and the bead closing (6.5) are left for the maintainer and the controller.
+- 2026-11-17: Code review (Approve); done.
