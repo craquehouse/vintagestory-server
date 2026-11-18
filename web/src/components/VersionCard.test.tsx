@@ -261,7 +261,7 @@ describe('VersionCard', () => {
       expect(link).toHaveAttribute('title', 'View changelog');
       expect(link).toHaveAttribute(
         'aria-label',
-        'View changelog for version 1.21.6 (opens in new tab)'
+        'View changelog for version 1.21.6 (opens in a new tab)'
       );
     });
 

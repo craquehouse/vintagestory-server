@@ -11,6 +11,7 @@ import { ExternalLink, Loader2, Trash2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { CompatibilityBadge } from '@/components/CompatibilityBadge';
+import { NewTabLink } from '@/components/NewTabLink';
 import type {
   CompatibilityStatus,
   ModCompatibility as ModCompatibilityInfo,
@@ -38,16 +39,14 @@ export function ModNameLink({ mod }: { mod: ModInfo }) {
   return (
     <div>
       <div className="font-medium">
-        <a
+        <NewTabLink
           href={modDatabaseUrl(mod)}
-          target="_blank"
-          rel="noopener noreferrer"
           className="inline-flex items-center gap-1 hover:underline"
           data-testid={`mod-link-${mod.slug}`}
         >
           {mod.name || mod.slug}
-          <ExternalLink className="h-3 w-3 text-muted-foreground" />
-        </a>
+          <ExternalLink className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
+        </NewTabLink>
       </div>
       {mod.name && <div className="text-sm text-muted-foreground">{mod.slug}</div>}
     </div>

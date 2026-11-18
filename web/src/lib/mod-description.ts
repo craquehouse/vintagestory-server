@@ -8,7 +8,10 @@
  *   An HTML link also ends with a screen reader note, `<span class="sr-only"
  *   data-new-tab-note> (opens in a new tab)</span>`, built with `createElement` and
  *   `textContent` (Story 18.1, VSS-tzl). The visible icon is CSS on the page's
- *   `.mod-description` container. SVG links get no note: they cannot hold an HTML span.
+ *   `.mod-description` container. An SVG link cannot hold an HTML span; it gets one SVG
+ *   `<title>` as its first child instead, "<its text> (opens in a new tab)", and an
+ *   `xlink:href`-only link also gets the same `href`, without which Chromium does not
+ *   expose it as a link (Story 21.6, VSS-woae, Epic 21 ADR-10 decisions 4 to 6).
  * - An HTML `<img>` loads only from an `https://` or `data:image/` address, which the
  *   web UI's Content-Security-Policy allows (Epic 19 ADR-6 decision 14). Any other image
  *   is replaced by `<span data-image-not-shown>Image not shown: <alt></span>`, built with
@@ -21,12 +24,10 @@
  */
 
 import DOMPurify, { type Config } from 'dompurify';
+import { OPENS_IN_NEW_TAB } from './new-tab';
 
-/**
- * Screen reader text after a link that opens in a new tab (Story 18.1). Shared by the
- * description links and the detail page's trailer link so the two cannot drift.
- */
-export const OPENS_IN_NEW_TAB = '(opens in a new tab)';
+// Re-exported for the callers and tests that imported it from here before Story 21.6
+export { OPENS_IN_NEW_TAB };
 
 /** Text shown in place of a description image the page cannot load (Story 19.3). */
 export const IMAGE_NOT_SHOWN = 'Image not shown';
@@ -43,6 +44,52 @@ function isLoadableImage(src: string | null): boolean {
 const purifier = DOMPurify(window);
 
 const HTML_NAMESPACE = 'http://www.w3.org/1999/xhtml';
+const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
+
+/** Collapse runs of whitespace to one space and trim. */
+function collapse(text: string): string {
+  return text.replace(/\s+/g, ' ').trim();
+}
+
+/** Remove every trailing new-tab note (and the space before it) from a title's text. */
+function stripNote(text: string): string {
+  let base = collapse(text);
+  while (base.endsWith(OPENS_IN_NEW_TAB)) {
+    base = base.slice(0, -OPENS_IN_NEW_TAB.length).trim();
+  }
+  return base;
+}
+
+/**
+ * Give an SVG link one `<title>` naming it and the new tab (Story 21.6). The base text is
+ * the author's first title, else the text of the link's `text` elements, without any note.
+ * Every existing title is removed and the new one, built with `textContent`, goes first, so
+ * a second pass gives the same single title and an author's title cannot stand in for the
+ * note. The `href` copied from `xlink:href` has already passed DOMPurify's URI check.
+ */
+function addSvgLinkTitle(link: Element) {
+  const xlinkHref = link.getAttribute('xlink:href');
+  if (!link.hasAttribute('href') && xlinkHref !== null) {
+    link.setAttribute('href', xlinkHref);
+  }
+
+  const titles = Array.from(link.children).filter((child) => child.localName === 'title');
+  let base = titles.length > 0 ? stripNote(titles[0].textContent ?? '') : '';
+  if (!base) {
+    base = stripNote(
+      Array.from(link.querySelectorAll('text'))
+        .map((text) => text.textContent ?? '')
+        .join(' ')
+    );
+  }
+  for (const title of titles) {
+    title.remove();
+  }
+
+  const title = link.ownerDocument.createElementNS(SVG_NAMESPACE, 'title');
+  title.textContent = base ? `${base} ${OPENS_IN_NEW_TAB}` : OPENS_IN_NEW_TAB;
+  link.insertBefore(title, link.firstChild);
+}
 
 purifier.addHook('afterSanitizeAttributes', (node) => {
   if (node.nodeName === 'IMG' && node.namespaceURI === HTML_NAMESPACE) {
@@ -77,6 +124,8 @@ purifier.addHook('afterSanitizeAttributes', (node) => {
       note.setAttribute('data-new-tab-note', '');
       note.textContent = ` ${OPENS_IN_NEW_TAB}`;
       node.appendChild(note);
+    } else if (node.namespaceURI === SVG_NAMESPACE) {
+      addSvgLinkTitle(node);
     }
   }
 });

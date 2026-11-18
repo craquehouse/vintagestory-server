@@ -25,6 +25,7 @@ import { useModDetail } from '@/hooks/use-mod-detail';
 import { formatNumber } from '@/lib/utils';
 import { SideBadge } from '@/components/SideBadge';
 import { findInstalledModByIds } from '@/lib/mod-ids';
+import { OPENS_IN_NEW_TAB } from '@/lib/new-tab';
 import type { ModBrowseItem } from '@/api/types';
 
 interface ModCardProps {
@@ -184,9 +185,9 @@ export function ModCard({ mod, onClick, installedMods, gameVersion }: ModCardPro
                   onClick={(e) => e.stopPropagation()}
                   data-testid={`mod-card-link-${mod.slug}`}
                   title="Open on ModDB"
-                  aria-label={`Open ${mod.name} on ModDB (opens in new tab)`}
+                  aria-label={`Open ${mod.name} on ModDB ${OPENS_IN_NEW_TAB}`}
                 >
-                  <ExternalLink className="h-3 w-3" />
+                  <ExternalLink className="h-3 w-3" aria-hidden="true" />
                 </a>
               </span>
             </CardTitle>

@@ -40,7 +40,10 @@ describe('InstalledModParts (Story 16.5)', () => {
     it('links to the mod database page by asset ID and shows the slug under the name', () => {
       render(<ModNameLink mod={mod()} />);
       const link = screen.getByTestId('mod-link-playercorpse');
+      expect(link).toBe(screen.getByRole('link', { name: 'Player Corpse (opens in a new tab)' }));
       expect(link).toHaveAttribute('href', 'https://mods.vintagestory.at/show/mod/1234');
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
       expect(link).toHaveTextContent('Player Corpse');
       expect(screen.getByText('playercorpse')).toBeInTheDocument();
     });
@@ -48,6 +51,7 @@ describe('InstalledModParts (Story 16.5)', () => {
     it('falls back to the slug URL and shows only the slug without a name', () => {
       render(<ModNameLink mod={mod({ assetId: 0, name: null })} />);
       const link = screen.getByTestId('mod-link-playercorpse');
+      expect(link).toBe(screen.getByRole('link', { name: 'playercorpse (opens in a new tab)' }));
       expect(link).toHaveAttribute('href', 'https://mods.vintagestory.at/playercorpse');
       expect(screen.getAllByText('playercorpse')).toHaveLength(1);
     });

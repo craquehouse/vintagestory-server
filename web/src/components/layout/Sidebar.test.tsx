@@ -291,7 +291,9 @@ describe('Sidebar', () => {
     it('renders GitHub link with correct href', () => {
       renderWithProviders(<Sidebar />);
 
-      const githubLink = screen.getByRole('link', { name: /github/i });
+      // Story 21.6: named by hidden text, not aria-label, so the new-tab note is read
+      const githubLink = screen.getByRole('link', { name: 'GitHub (opens in a new tab)' });
+      expect(githubLink).not.toHaveAttribute('aria-label');
       expect(githubLink).toHaveAttribute(
         'href',
         'https://github.com/craquehouse/vintagestory-server'

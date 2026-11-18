@@ -19,6 +19,7 @@ import { useSidebar } from '@/contexts/SidebarContext';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import { useServerStatus } from '@/hooks/use-server-status';
 import { useModUpdates } from '@/hooks/use-mods';
+import { NewTabLink } from '@/components/NewTabLink';
 import { ExpandableNavItem, type SubNavItem } from './ExpandableNavItem';
 
 /** Top-level navigation items (non-expandable) */
@@ -185,15 +186,14 @@ export function Sidebar({ className }: SidebarProps) {
               isCollapsed ? 'justify-center' : 'justify-between px-3'
             )}
           >
-            <a
+            {/* Story 21.6: named by hidden text, so the new-tab note is read too */}
+            <NewTabLink
               href="https://github.com/craquehouse/vintagestory-server"
-              target="_blank"
-              rel="noopener noreferrer"
               className="hover:text-sidebar-foreground"
-              aria-label="GitHub"
             >
               <GithubIcon className="h-4 w-4" />
-            </a>
+              <span className="sr-only">GitHub</span>
+            </NewTabLink>
             {!isCollapsed && <span>v{APP_VERSION}</span>}
           </div>
         </div>

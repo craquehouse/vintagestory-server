@@ -153,7 +153,23 @@ describe('ModDetailPage', () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    vi.unstubAllGlobals();
   });
+
+  /** Story 21.6: new tests stub fetch with vi.stubGlobal (project-context, Story 20.2). */
+  function stubDetail(overrides: Record<string, unknown> = {}) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            ...mockModDetailResponse,
+            data: { ...mockModDetailResponse.data, ...overrides },
+          }),
+      })
+    );
+  }
 
   describe('loading state', () => {
     it('shows loading skeleton while fetching', () => {
@@ -168,6 +184,23 @@ describe('ModDetailPage', () => {
       renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
       expect(screen.getByTestId('mod-detail-loading')).toBeInTheDocument();
+    });
+
+    it('stacks the header skeleton below md (Story 21.6)', () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockImplementation(
+          () =>
+            new Promise(() => {
+              /* never resolves */
+            })
+        )
+      );
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      const header = screen.getByTestId('mod-detail-loading-header');
+      expect(header).toHaveClass('flex-col', 'md:flex-row');
     });
   });
 
@@ -209,6 +242,54 @@ describe('ModDetailPage', () => {
   });
 
   describe('header section (Subtask 2.2)', () => {
+    it('stacks the header below md and keeps one row from md up (Story 21.6)', async () => {
+      stubDetail();
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      const header = await screen.findByTestId('mod-detail-header');
+      expect(header).toHaveClass('flex', 'flex-col', 'md:flex-row');
+      const summary = screen.getByTestId('mod-detail-summary');
+      expect(summary).toHaveClass('flex-wrap', 'md:flex-nowrap', 'min-w-0');
+      expect(summary).toContainElement(screen.getByTestId('mod-detail-logo'));
+      expect(summary).toContainElement(screen.getByTestId('mod-detail-name'));
+      expect(screen.getByTestId('mod-detail-stats')).toHaveClass('flex-wrap');
+
+      const install = screen.getByTestId('mod-detail-install-section');
+      expect(header).toContainElement(install);
+      expect(summary).not.toContainElement(install);
+      expect(install).toHaveClass('w-full', 'md:w-64', 'md:shrink-0');
+      expect(screen.getByTestId('mod-detail-version-select')).toHaveClass(
+        'w-full',
+        'max-lg:min-h-11'
+      );
+      expect(screen.getByTestId('mod-detail-install-button')).toHaveClass('max-lg:min-h-11');
+    });
+
+    it('names the version select by its Version label (Story 21.6)', async () => {
+      stubDetail();
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      const select = await screen.findByTestId('mod-detail-version-select');
+      expect(screen.getByRole('combobox', { name: 'Version' })).toBe(select);
+    });
+
+    it('wraps the breadcrumb and gives Back to Browse a 44px target below lg (Story 21.6)', async () => {
+      stubDetail();
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      const breadcrumb = await screen.findByTestId('mod-detail-breadcrumb');
+      expect(breadcrumb).toHaveClass('flex-wrap', 'min-w-0');
+      expect(screen.getByTestId('mod-detail-breadcrumb-name')).toHaveClass(
+        'min-w-0',
+        'break-words'
+      );
+      expect(screen.getByTestId('mod-detail-back')).toHaveClass('max-lg:min-h-11');
+      expect(screen.getByTestId('mod-detail-slug')).toHaveClass('break-all');
+    });
+
     it('renders mod name and author', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
@@ -377,6 +458,24 @@ describe('ModDetailPage', () => {
   });
 
   describe('description section (Subtask 2.3)', () => {
+    it('styles the description by .mod-description alone, no prose classes (Story 21.6)', async () => {
+      stubDetail({
+        description: '<h2>Setup</h2><p style="color: #c33">Author colour</p>',
+      });
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      const description = await screen.findByTestId('mod-detail-description');
+      expect(description).toHaveClass('mod-description');
+      expect(description.className).not.toMatch(/\bprose/);
+      expect(description.className).not.toMatch(/\bmax-w-none\b/);
+      // The author's inline style is kept, so it applies over the description rules
+      expect(within(description).getByText('Author colour')).toHaveAttribute(
+        'style',
+        'color: #c33'
+      );
+    });
+
     it('marks description links that open in a new tab (Story 18.1, VSS-tzl)', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
@@ -731,6 +830,46 @@ describe('ModDetailPage', () => {
       expect(document.querySelector('iframe')).toBeNull();
     });
 
+    it('names every header link as opening in a new tab (Story 21.6)', async () => {
+      stubDetail({ trailer_url: 'https://www.youtube-nocookie.com/embed/mJHZH_sThDM' });
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      await screen.findByTestId('mod-detail-moddb-link');
+      for (const [name, testId] of [
+        ['ModDB Page', 'mod-detail-moddb-link'],
+        ['Homepage', 'mod-detail-homepage-link'],
+        ['Source', 'mod-detail-source-link'],
+        ['Watch trailer', 'mod-detail-trailer-link'],
+      ]) {
+        const link = screen.getByRole('link', { name: `${name} (opens in a new tab)` });
+        expect(link).toBe(screen.getByTestId(testId));
+        expect(link).toHaveAttribute('target', '_blank');
+        expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+      }
+      expect(screen.getByTestId('mod-detail-homepage-link')).toContainElement(
+        screen.getByTestId('mod-detail-homepage-new-tab-mark')
+      );
+      expect(screen.getByTestId('mod-detail-source-link')).toContainElement(
+        screen.getByTestId('mod-detail-source-new-tab-mark')
+      );
+    });
+
+    it('gives an SVG link in the description its new-tab title (Story 21.6)', async () => {
+      stubDetail({
+        description:
+          '<svg><a xlink:href="https://example.com/diagram"><text>Diagram</text></a></svg>',
+      });
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      const description = await screen.findByTestId('mod-detail-description');
+      const link = description.querySelector('svg a');
+      expect(link).toHaveAttribute('href', 'https://example.com/diagram');
+      expect(link?.firstElementChild?.localName).toBe('title');
+      expect(link?.firstElementChild).toHaveTextContent('Diagram (opens in a new tab)');
+    });
+
     it('renders no trailer link when trailer_url is null (Story 18.1)', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
@@ -1025,6 +1164,70 @@ describe('ModDetailPage', () => {
           .filter(([, options]) => options?.method === 'PUT')
           .map(([, options]) => JSON.parse(options.body));
       }
+
+      it('fits the version section like the install section (Story 21.6)', async () => {
+        const user = userEvent.setup();
+        vi.stubGlobal(
+          'fetch',
+          mockInstalled({
+            mods: installedAt('1.8.2'),
+            updates: updateStatus('update_available', '1.8.3'),
+          })
+        );
+
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+        expect(await screen.findByTestId('mod-detail-update-button')).toHaveClass(
+          'max-lg:min-h-11'
+        );
+        expect(screen.getByTestId('mod-detail-install-section')).toHaveClass(
+          'w-full',
+          'md:w-64',
+          'md:shrink-0'
+        );
+        expect(screen.getByTestId('mod-detail-version-select')).toHaveClass(
+          'w-full',
+          'max-lg:min-h-11'
+        );
+
+        await user.click(screen.getByTestId('mod-detail-version-select'));
+        await user.click(await screen.findByRole('option', { name: /v1\.8\.2/ }));
+        expect(screen.getByTestId('mod-detail-current-button')).toHaveClass('max-lg:min-h-11');
+      });
+
+      it('names the version select by its Version label (Story 21.6)', async () => {
+        vi.stubGlobal(
+          'fetch',
+          mockInstalled({
+            mods: installedAt('1.8.2'),
+            updates: updateStatus('up_to_date'),
+          })
+        );
+
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+        await screen.findByTestId('mod-detail-installed-indicator');
+        expect(screen.getByRole('combobox', { name: 'Version' })).toBe(
+          screen.getByTestId('mod-detail-version-select')
+        );
+      });
+
+      it('gives the Switch button a 44px target below lg (Story 21.6)', async () => {
+        const user = userEvent.setup();
+        vi.stubGlobal(
+          'fetch',
+          mockInstalled({
+            mods: installedAt('1.8.2'),
+            updates: updateStatus('up_to_date'),
+          })
+        );
+
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+        await user.click(await screen.findByTestId('mod-detail-version-select'));
+        await user.click(await screen.findByRole('option', { name: /v1\.8\.3/ }));
+        expect(screen.getByTestId('mod-detail-switch-button')).toHaveClass('max-lg:min-h-11');
+      });
 
       it('shows the installed version', async () => {
         globalThis.fetch = mockInstalled({

@@ -9,6 +9,7 @@ import { Check, ExternalLink, HardDrive } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { OPENS_IN_NEW_TAB } from '@/lib/new-tab';
 import type { VersionInfo, VersionChannel } from '@/api/types';
 
 interface VersionCardProps {
@@ -72,9 +73,9 @@ export function VersionCard({ version, installedVersion, isNewer, onClick }: Ver
               onClick={(e) => e.stopPropagation()}
               data-testid={`version-card-changelog-${version.version}`}
               title="View changelog"
-              aria-label={`View changelog for version ${version.version} (opens in new tab)`}
+              aria-label={`View changelog for version ${version.version} ${OPENS_IN_NEW_TAB}`}
             >
-              <ExternalLink className="h-3.5 w-3.5" />
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
             </a>
           </span>
         </h3>

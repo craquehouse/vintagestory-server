@@ -109,6 +109,10 @@ describe('VersionTable', () => {
     const changelogLink = screen.getByTestId('version-table-changelog-1.20.0');
     expect(changelogLink).toHaveAttribute('href', 'https://wiki.vintagestory.at/1.20.0');
     expect(changelogLink).toHaveAttribute('target', '_blank');
+    expect(changelogLink).toHaveAttribute(
+      'aria-label',
+      'View changelog for version 1.20.0 (opens in a new tab)'
+    );
   });
 
   it('shows loading skeleton when loading', () => {
