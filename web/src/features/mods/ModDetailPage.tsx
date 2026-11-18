@@ -46,11 +46,11 @@
  * Watch trailer links are `NewTabLink`s, named "... (opens in a new tab)", and Homepage
  * and Source show a trailing external-link mark. Below `md` the header stacks: logo and
  * info wrap in one group and the install card goes under them at full width; its
- * controls are 44px tall below `lg`. The description is typeset by the `.mod-description`
+ * controls are 44px tall below `lg`, and its Version label names the select. The description is typeset by the `.mod-description`
  * rules in `styles/index.css` from the theme tokens, not by `prose` classes.
  */
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router';
 import {
   ArrowLeft,
@@ -237,6 +237,8 @@ function InstallSection({
   const [selectedVersion, setSelectedVersion] = useState<string | null>(latestVersion);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const choices = versionChoices(releases, slug);
+  // Story 21.6: the label names the select, which otherwise reads as its value
+  const versionSelectId = useId();
 
   return (
     <>
@@ -244,9 +246,12 @@ function InstallSection({
         <CardContent className="pt-4 space-y-3">
           {/* Version selector */}
           <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">Version</label>
+            <label htmlFor={versionSelectId} className="text-sm text-muted-foreground">
+              Version
+            </label>
             <Select value={selectedVersion ?? ''} onValueChange={setSelectedVersion}>
               <SelectTrigger
+                id={versionSelectId}
                 className="w-full max-lg:min-h-11"
                 data-testid="mod-detail-version-select"
               >
@@ -338,6 +343,8 @@ function InstalledVersionSection({
   const { data: updatesData } = useModUpdates();
   const versionChange = useVersionChangeFlow();
   const [picked, setPicked] = useState<string | null>(null);
+  // Story 21.6: the label names the select, which otherwise reads as its value
+  const versionSelectId = useId();
 
   // Releases with the installed mod ID; a re-uploaded version keeps its first
   // (newest) listing, as the update check and version change API do.
@@ -435,9 +442,12 @@ function InstalledVersionSection({
           ) : (
             <>
               <div className="space-y-2">
-                <label className="text-sm text-muted-foreground">Version</label>
+                <label htmlFor={versionSelectId} className="text-sm text-muted-foreground">
+                  Version
+                </label>
                 <Select value={selectedVersion} onValueChange={setPicked}>
                   <SelectTrigger
+                    id={versionSelectId}
                     className="w-full max-lg:min-h-11"
                     data-testid="mod-detail-version-select"
                   >

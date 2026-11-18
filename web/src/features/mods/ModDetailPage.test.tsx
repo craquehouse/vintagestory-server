@@ -266,6 +266,15 @@ describe('ModDetailPage', () => {
       expect(screen.getByTestId('mod-detail-install-button')).toHaveClass('max-lg:min-h-11');
     });
 
+    it('names the version select by its Version label (Story 21.6)', async () => {
+      stubDetail();
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      const select = await screen.findByTestId('mod-detail-version-select');
+      expect(screen.getByRole('combobox', { name: 'Version' })).toBe(select);
+    });
+
     it('wraps the breadcrumb and gives Back to Browse a 44px target below lg (Story 21.6)', async () => {
       stubDetail();
 
@@ -1184,6 +1193,23 @@ describe('ModDetailPage', () => {
         await user.click(screen.getByTestId('mod-detail-version-select'));
         await user.click(await screen.findByRole('option', { name: /v1\.8\.2/ }));
         expect(screen.getByTestId('mod-detail-current-button')).toHaveClass('max-lg:min-h-11');
+      });
+
+      it('names the version select by its Version label (Story 21.6)', async () => {
+        vi.stubGlobal(
+          'fetch',
+          mockInstalled({
+            mods: installedAt('1.8.2'),
+            updates: updateStatus('up_to_date'),
+          })
+        );
+
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+        await screen.findByTestId('mod-detail-installed-indicator');
+        expect(screen.getByRole('combobox', { name: 'Version' })).toBe(
+          screen.getByTestId('mod-detail-version-select')
+        );
       });
 
       it('gives the Switch button a 44px target below lg (Story 21.6)', async () => {
