@@ -249,7 +249,7 @@ development_status:
   22-8-container-stop-saves-the-world: done
   epic-23: in-progress
   epic-23-retrospective: optional
-  23-1-configs-with-comments-can-be-viewed: in-progress
+  23-1-configs-with-comments-can-be-viewed: review
   23-2-file-browser-paths-are-lists-of-names: backlog
   23-3-game-settings-are-read-only-for-monitor-keys: backlog
   23-4-config-files-can-be-saved-through-the-api: backlog

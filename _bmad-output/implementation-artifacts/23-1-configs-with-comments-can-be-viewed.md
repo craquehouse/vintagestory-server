@@ -1,6 +1,6 @@
 # Story 23.1: Configs with Comments Can Be Viewed
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR309, FR310, FR311 and FR326 (JSON5 part), Epic 23 ADR-1, ADR-2 and ADR-9. Bead: VSS-ato4 (API-097), closed by this story after merge. Branch story/23-1-configs-with-comments-can-be-viewed from main at fc525885 with the epic's planning commit f759ee24. Line references verified at f759ee24. -->
 
@@ -86,11 +86,11 @@ so that **I can read the configs the game itself accepts instead of a parse erro
   - [x] 5.2: Commit `docs(story-23.1/task-5): explain how the file browser reads config files`
 
 - [ ] Task 6: Validate and move the story to review (AC: all)
-  - [ ] 6.1: `just check` green (API, web with 0 skipped, scripts, Pyright 0/0). Added lines hold no `type: ignore`, `pyright:`, `noqa`, `cast(`, `eslint-disable`, skip, `xfail` or `.only`. `git status --short dev/ data/` empty
-  - [ ] 6.2: `just changelog` shows exactly this story's two fix entries (Tasks 3 and 4)
+  - [x] 6.1: `just check` green (API, web with 0 skipped, scripts, Pyright 0/0). Added lines hold no `type: ignore`, `pyright:`, `noqa`, `cast(`, `eslint-disable`, skip, `xfail` or `.only`. `git status --short dev/ data/` empty
+  - [x] 6.2: `just changelog` shows exactly this story's two fix entries (Tasks 3 and 4)
   - [ ] 6.3: Manual check (maintainer only; leave unticked until he confirms): after this story is deployed, `ModConfig/seasonalflowers.json` opens in the file browser on his server as parsed content (Admin and Monitor), not a parse error. No agent writes to the dev stack or a live server for this story
-  - [ ] 6.4: Status `review` here; `just sprint set 23-1-configs-with-comments-can-be-viewed review`; Dev Agent Record and File List filled in
-  - [ ] 6.5: Commit `chore(story-23.1/task-6): validate and move story 23.1 to review`
+  - [x] 6.4: Status `review` here; `just sprint set 23-1-configs-with-comments-can-be-viewed review`; Dev Agent Record and File List filled in
+  - [x] 6.5: Commit `chore(story-23.1/task-6): validate and move story 23.1 to review`
 
 ## Dev Notes
 
@@ -225,8 +225,41 @@ if reveal:
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5), as the epic's controller.
+
 ### Debug Log References
+
+- `just check` (2026-11-19): API 3866 passed, web 3732 passed (139 files), 0 skipped; Pyright 0 errors, 0 warnings (twice: src and tests); ruff, Prettier, ShellCheck, actionlint, script tests green.
 
 ### Completion Notes List
 
+- 2026-11-19 (create-story): created from Epic 23's Story 23.1, ADR-1, ADR-2, ADR-9; the pyjson5 facts were checked in a scratch environment first. Found in creation and folded in (backlog drawdown, no bead): the web client renamed keys inside `content` (AC 6, ADR-2 decision 5).
+- 2026-11-19 (dev-story): Tasks 1 to 6 done; 6.3 (the maintainer's check on his server) left unticked.
+- **What changed.** `services/config_parse.py` (new): `parse_config_text(text, strict=False)` (pyjson5 with `maxdepth=200`, or `json.loads`), `ConfigParseError`/`ParseErrorInfo` with a 1-based line and column, `line_and_column`, one iterative walk refusing non-finite floats (and, in strict mode, nesting over 200), `CONFIG_FILE_MAX_DEPTH` moved here. pyjson5's message is cleaned (`near N` removed, `b'comma'` becomes `comma`). `services/config_files.py`: `read_file` uses it and returns `parse_error`, and for Admin `text` and `version` (`content_version`, SHA-256 of the bytes); the depth walk and its TypeGuards are gone; docstrings updated, and the router's. Web: `apiClient` option `transformResponse` (default true); `fetchConfigFileContent` reads without the transform and maps `parse_error`, `text`, `version`; types `ConfigParseError` and the new `ConfigFileContentData` fields; `FileViewer` props `parseError` and `text` with the warning (`role="alert"`, the app's `warning` colours) and the raw text or the Monitor note; `FileManagerPanel` passes them. README `### Config files`.
+- **Tests.** API: 33 in the new `tests/test_config_parse.py` (3 pin pyjson5's behaviour), 8 in `TestJson5Read` (`tests/test_config_files.py`), 6 in `TestJson5ReadOverHttp` (`tests/test_routers_config.py`). Web: 2 client, 3 config (and the 3 existing read rows now expect `{ transformResponse: false }`), 6 FileViewer, 2 FileManagerPanel.
+- **Existing tests changed.** `test_read_file_success` expects `parse_error: None`. Two "broken serverconfig" tests (`test_broken_serverconfig_is_withheld`, `test_broken_serverconfig`) used a trailing comma as their broken file, which JSON5 accepts; they now use a missing closing brace, keeping what they check (Monitor never gets a broken file's text). `CONFIG_FILE_MAX_DEPTH` is imported from `config_parse` in the two test modules.
+- **Deviations.** (1) pyjson5 refuses `1e400` and a 5,000-digit integer as "Unclosed NumericLiteral", a less helpful message than `json.loads`; both are still the `_raw` form with no digits in the message. (2) For extra data after the value, pyjson5's position is the last character of the value, so the line and column point there, not at the junk.
+- No added line holds a suppression, `cast(`, skip, `xfail` or `.only` (two `pyright: ignore` comments written in the first draft of `config_parse.py` were replaced by TypeGuards before any commit). `git status --short dev/ data/` empty. `just changelog` lists exactly two entries from this story: 206d998 (Task 3) and 8ca2433 (Task 4).
+
 ### File List
+
+- `api/pyproject.toml`, `api/uv.lock` (modified: pyjson5)
+- `api/src/vintagestory_api/services/config_parse.py` (new)
+- `api/src/vintagestory_api/services/config_files.py` (modified)
+- `api/src/vintagestory_api/routers/config.py` (modified: docstring)
+- `api/tests/test_config_parse.py` (new)
+- `api/tests/test_config_files.py`, `api/tests/test_routers_config.py` (modified)
+- `web/src/api/client.ts`, `web/src/api/client.test.ts` (modified)
+- `web/src/api/config.ts`, `web/src/api/config.test.ts` (modified)
+- `web/src/api/types.ts` (modified)
+- `web/src/components/FileViewer.tsx`, `web/src/components/FileViewer.test.tsx` (modified)
+- `web/src/features/settings/FileManagerPanel.tsx`, `web/src/features/settings/FileManagerPanel.test.tsx` (modified)
+- `README.md` (modified)
+- `_bmad-output/planning-artifacts/architecture/epic-23-config-file-editing.md` (modified: ADR-2 decision 5, pyjson5 results)
+- `_bmad-output/implementation-artifacts/23-1-configs-with-comments-can-be-viewed.md` (this file)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
+
+## Change Log
+
+- 2026-11-19: Story 23.1 created (ready-for-dev).
+- 2026-11-19: Implemented (dev-story): Tasks 1 to 6; status review. Task 6.3 waits for the maintainer.
