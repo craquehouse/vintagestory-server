@@ -56,10 +56,10 @@ so that **I do not type a change that then fails with "Update failed"**.
   - [x] 2.4: `just test-web`; `just typecheck-web`; `just format-web`, `just lint-web`
   - [x] 2.5: Commit `fix(story-23.3/task-2): show game settings read-only to Monitor keys`
 
-- [ ] Task 3: E2E with the Monitor key (AC: 5)
-  - [ ] 3.1: A spec next to the existing Monitor specs (`web/e2e/file-browser-monitor-note.spec.ts` is the model: how it loads the Monitor key and skips without it), visiting the Game Settings page, asserting `game-config-read-only-note` and that the `ServerName` input is disabled. Read-only: it never saves a setting
-  - [ ] 3.2: `just typecheck-web` (covers `e2e/`); run the spec only if the dev stack is up and the Monitor key is configured; otherwise record that it was not run locally (CI runs the untagged set)
-  - [ ] 3.3: Commit `test(story-23.3/task-3): check Game Settings are read-only for a Monitor key`
+- [x] Task 3: E2E with the Monitor key (AC: 5)
+  - [x] 3.1: A spec next to the existing Monitor specs (`web/e2e/file-browser-monitor-note.spec.ts` is the model: how it loads the Monitor key and skips without it), visiting the Game Settings page, asserting `game-config-read-only-note` and that the `ServerName` input is disabled. Read-only: it never saves a setting
+  - [x] 3.2: `just typecheck-web` (covers `e2e/`); run the spec only if the dev stack is up and the Monitor key is configured; otherwise record that it was not run locally (CI runs the untagged set)
+  - [x] 3.3: Commit `test(story-23.3/task-3): check Game Settings are read-only for a Monitor key`
 
 - [ ] Task 4: Validate and move the story to review (AC: all)
   - [ ] 4.1: `just check` green; `git diff f2405f9a -- api` empty; no suppression added
