@@ -48,10 +48,10 @@ so that **I can see what changed and undo a bad edit**.
 
 <!-- Red first. Subjects: type(story-23.6/task-N): ... One user-visible commit: Task 4 (feat(api)). -->
 
-- [ ] Task 1: The history store + tests (AC: 1, 2, 3, 5, 7)
-  - [ ] 1.1: Red first: `api/tests/test_config_history.py` (record and list; ids sortable and unique on a collision; read; remove; prune by count, by age with the newest kept, both; a malformed or unknown id; an index that is missing, unreadable or lists a missing file (skipped, logged); every write atomic; nothing outside the store's root)
-  - [ ] 1.2: `services/config_history.py` (Dev Notes "The store")
-  - [ ] 1.3: Commit `refactor(story-23.6/task-1): add a history store for config file saves`
+- [x] Task 1: The history store + tests (AC: 1, 2, 3, 5, 7)
+  - [x] 1.1: Red first: `api/tests/test_config_history.py` (record and list; ids sortable and unique on a collision; read; remove; prune by count, by age with the newest kept, both; a malformed or unknown id; an index that is missing, unreadable or lists a missing file (skipped, logged); every write atomic; nothing outside the store's root)
+  - [x] 1.2: `services/config_history.py` (Dev Notes "The store")
+  - [x] 1.3: Commit `refactor(story-23.6/task-1): add a history store for config file saves`
 
 - [ ] Task 2: The two API settings + tests (AC: 3, 7)
   - [ ] 2.1: Red first: rows in the API settings tests for defaults, bounds and saving (as `backup_keep_count`'s)
