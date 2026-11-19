@@ -88,5 +88,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 EXPOSE 8080 42420
 
 # Start uvicorn server. --no-sync: everything is installed at build time; a sync here
-# would add the dev group and download it from PyPI on every start (VSS-flj)
-CMD ["uv", "run", "--no-sync", "uvicorn", "vintagestory_api.main:app", "--host", "0.0.0.0", "--port", "8080"]
+# would add the dev group and download it from PyPI on every start (VSS-flj).
+# --timeout-graceful-shutdown 1: on SIGTERM uvicorn waits at most 1 s for open requests and
+# background tasks, then cancels them and runs the lifespan shutdown, which stops the game
+# in up to 8 s, inside Docker's 10 s (Story 22.8, Epic 22 ADR-16 decision 5)
+CMD ["uv", "run", "--no-sync", "uvicorn", "vintagestory_api.main:app", "--host", "0.0.0.0", "--port", "8080", "--timeout-graceful-shutdown", "1"]

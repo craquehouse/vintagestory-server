@@ -120,6 +120,38 @@ def reapply_at_api_start_recorder(monkeypatch: pytest.MonkeyPatch) -> ReapplyAtA
     return recorder
 
 
+class StopGameAtShutdownRecorder:
+    """Stands in for `stop_game_server_for_api_shutdown` in the lifespan (Story 22.8).
+
+    Appends "stop_game_server_for_api_shutdown" to `calls` on each call; raises `error`
+    when it is set. A test that checks the order with other shutdown steps gives them
+    this list.
+    """
+
+    def __init__(self) -> None:
+        self.calls: list[str] = []
+        self.error: Exception | None = None
+
+    async def __call__(self) -> None:
+        self.calls.append("stop_game_server_for_api_shutdown")
+        if self.error is not None:
+            raise self.error
+
+
+@pytest.fixture(autouse=True)
+def stop_game_at_shutdown_recorder(monkeypatch: pytest.MonkeyPatch) -> StopGameAtShutdownRecorder:
+    """Keep every lifespan a test runs away from a real game process and its files.
+
+    `just test-api` sets VS_DATA_DIR to the dev stack's data (`dev/`); the real shutdown
+    step stops the `ServerService` singleton another test may have built with `Settings()`,
+    which could write `dev/serverdata/serverconfig.json` and the state file. Tests of the
+    real step put it back on `main_module` and give it a temporary service.
+    """
+    recorder = StopGameAtShutdownRecorder()
+    monkeypatch.setattr(main_module, "stop_game_server_for_api_shutdown", recorder)
+    return recorder
+
+
 async def _no_op_disk_cleanup() -> None:
     """Stands in for the daily disk cleanup job (Story 22.4)."""
 

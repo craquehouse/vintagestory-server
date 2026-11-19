@@ -17,10 +17,15 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from conftest import PrepareModFilesRecorder, ReapplyAtApiStartRecorder
+from conftest import (
+    PrepareModFilesRecorder,
+    ReapplyAtApiStartRecorder,
+    StopGameAtShutdownRecorder,
+)
 from fastapi import FastAPI
 from fastapi.responses import PlainTextResponse
 from fastapi.testclient import TestClient
+from structlog.testing import capture_logs
 
 import vintagestory_api.config as config_module
 from vintagestory_api import __version__
@@ -854,6 +859,77 @@ class TestLifespanAutoStart:
             # Check disabled log message
             logs = captured_logs.getvalue()
             assert "auto_start_server_disabled" in logs
+
+
+class TestLifespanShutdownStopsTheGame:
+    """Story 22.8: the shutdown stops the game before the scheduler (Epic 22 ADR-16)."""
+
+    async def run_lifespan(self, calls: list[str]) -> None:
+        """Run the lifespan with auto-start off, recording the shutdown steps in `calls`."""
+        from vintagestory_api.main import lifespan_for
+
+        settings = MagicMock()
+        settings.data_dir = Path("/tmp/test_data")
+        settings.mod_db_url = DEFAULT_MOD_DB_URL
+        api_settings_service = MagicMock()
+        api_settings_service.get_settings.return_value.auto_start_server = False
+        scheduler = MagicMock()
+
+        def scheduler_shutdown(wait: bool) -> None:
+            calls.append("scheduler_shutdown")
+
+        scheduler.shutdown.side_effect = scheduler_shutdown
+        close_mod_service = AsyncMock(side_effect=lambda: calls.append("close_mod_service"))
+
+        with (
+            patch("vintagestory_api.main.initialize_debug_state"),
+            patch("vintagestory_api.main.is_debug_enabled", return_value=False),
+            patch(
+                "vintagestory_api.services.api_settings.ApiSettingsService",
+                return_value=api_settings_service,
+            ),
+            patch("vintagestory_api.main.SchedulerService", return_value=scheduler),
+            patch.object(jobs_module, "register_default_jobs"),
+            patch("vintagestory_api.services.mods.close_mod_service", close_mod_service),
+        ):
+            async with lifespan_for(settings)(FastAPI()):
+                pass
+
+    @pytest.mark.asyncio
+    async def test_the_game_is_stopped_before_the_scheduler(
+        self, stop_game_at_shutdown_recorder: StopGameAtShutdownRecorder
+    ) -> None:
+        """AC 1."""
+        calls = stop_game_at_shutdown_recorder.calls
+
+        await self.run_lifespan(calls)
+
+        assert calls == [
+            "stop_game_server_for_api_shutdown",
+            "scheduler_shutdown",
+            "close_mod_service",
+        ]
+
+    @pytest.mark.asyncio
+    async def test_a_failing_stop_is_logged_and_the_shutdown_goes_on(
+        self, stop_game_at_shutdown_recorder: StopGameAtShutdownRecorder
+    ) -> None:
+        """AC 5."""
+        calls = stop_game_at_shutdown_recorder.calls
+        stop_game_at_shutdown_recorder.error = RuntimeError("boom")
+
+        with capture_logs() as logs:
+            await self.run_lifespan(calls)
+
+        assert calls == [
+            "stop_game_server_for_api_shutdown",
+            "scheduler_shutdown",
+            "close_mod_service",
+        ]
+        [failed] = [log for log in logs if log["event"] == "api_shutdown_game_stop_failed"]
+        assert failed["log_level"] == "error"
+        assert failed["error_type"] == "RuntimeError"
+        assert any(log["event"] == "api_shutting_down" for log in logs)
 
 
 class TestLogModDbUrl:

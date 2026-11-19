@@ -16,6 +16,11 @@ dockerfile="$SCRIPTS_DIR/../Dockerfile"
 if grep -qE '^ARG .*API_KEY' "$dockerfile"; then fail "Dockerfile declares no API key build argument"; else pass; fi
 assert_contains "web build sets VITE_API_KEY empty" 'VITE_API_KEY=""' "$(<"$dockerfile")"
 
+# uvicorn waits at most 1 s for open requests at SIGTERM, so the lifespan shutdown stops
+# the game inside Docker's 10 s grace (Story 22.8, Epic 22 ADR-16 decision 5)
+cmd_line=$(grep -E '^CMD \[' "$dockerfile")
+assert_contains "the CMD bounds uvicorn's graceful shutdown to 1 second" '"--timeout-graceful-shutdown", "1"' "$cmd_line"
+
 # Every action in every workflow is pinned to a full commit SHA (NFR17)
 unpinned=$(grep -hE '^\s*-?\s*uses:' "$SCRIPTS_DIR"/../.github/workflows/*.yml |
     grep -vE 'uses:\s*([^@[:space:]]+@[0-9a-f]{40}|\./[^[:space:]]+|docker://[^[:space:]]+@sha256:[0-9a-f]{64})(\s|$)' || true)

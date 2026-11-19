@@ -4,8 +4,10 @@ inputDocuments:
   - '_bmad-output/planning-artifacts/prd.md'
   - '_bmad-output/planning-artifacts/architecture.md'
   - '_bmad-output/planning-artifacts/ux-design-specification.md'
-lastUpdated: '2026-11-18'
+lastUpdated: '2026-11-19'
 updates:
+  - date: '2026-11-19'
+    description: 'Added Story 22.8 (stopping the container saves the world first) to Epic 22 with FR308, on the maintainer''s thirteenth answer after Story 22.7''s throwaway run (found in the epic; no bead)'
   - date: '2026-11-18'
     description: 'Added Epic 22 (6 stories) for Server Operations and Metrics; FR287-FR305, with the maintainer''s eleven answers of the same day (VSS-zws pulled in); revised the same day: FR306 (one pending-restart state) pulled into Story 22.2 during its validation, and Story 22.7 with FR307 (VSS-zws fixed, after Story 22.3 confirmed it; maintainer''s twelfth answer)'
   - date: '2026-11-17'
@@ -523,6 +525,7 @@ This document provides the complete epic and story breakdown for vintagestory-se
 | FR305 | Epic 22 | Cleanup limits edited in the API Settings tab |
 | FR306 | Epic 22 | A restart-required game setting is a pending restart, cleared by a restart |
 | FR307 | Epic 22 | A restart-required change made while the game runs survives a live change |
+| FR308 | Epic 22 | Stopping the container stops the game through the normal stop first, so the world is saved |
 
 ## Epic List
 
@@ -2039,8 +2042,8 @@ So that **I can monitor background task status**.
 | Epic 19: API Security and Mod File Safety | 19.1, 19.2, 19.3, 19.4, 19.5, 19.6, 19.7 | 7 |
 | Epic 20: Tooling and Test Health | 20.1, 20.2, 20.3, 20.4, 20.5, 20.6, 20.7 | 7 |
 | Epic 21: Maintainer Decisions and Web Polish | 21.1, 21.2, 21.3, 21.4, 21.5, 21.6, 21.7, 21.8 | 8 |
-| Epic 22: Server Operations and Metrics | 22.1, 22.2, 22.3, 22.4, 22.5, 22.6, 22.7 | 7 |
-| **Total** | | **135** |
+| Epic 22: Server Operations and Metrics | 22.1, 22.2, 22.3, 22.4, 22.5, 22.6, 22.7, 22.8 | 8 |
+| **Total** | | **136** |
 
 ---
 
@@ -7231,11 +7234,11 @@ So that **content has room at tablet widths and stays readable on large monitors
 
 **Goal:** An operator can watch the game server from Prometheus and the dashboard (players online, the game process's CPU and memory, uptime, state), restart it on a daily schedule with warnings to players, and keep the disk from filling with old log archives and backups; and every scheduled job can be turned off, and metrics collection set, from the API Settings tab. Four open beads are closed.
 
-**Architecture:** `architecture/epic-22-server-operations-and-metrics.md` (ADR-1 to ADR-15, with the facts checked at `e16a7932`). There is no preparation story: what planning could not check (the stop time of a world save, whether the game prunes its own log archives, `VSS-zws`, the console prefix of the join and leave lines) is a task inside Stories 22.1, 22.3 and 22.4, run in throwaway containers or confirmed by the maintainer.
+**Architecture:** `architecture/epic-22-server-operations-and-metrics.md` (ADR-1 to ADR-16, with the facts checked at `e16a7932`). There is no preparation story: what planning could not check (the stop time of a world save, whether the game prunes its own log archives, `VSS-zws`, the console prefix of the join and leave lines) is a task inside Stories 22.1, 22.3 and 22.4, run in throwaway containers or confirmed by the maintainer.
 
-**Decided by the maintainer (Matt, 2026-11-18):** eleven answers given one at a time (`sprint-change-proposal-2026-11-18-epic-22.md`, section 5): a Prometheus `/metrics` at the root and `playersOnline` in the JSON metrics and the dashboard (ADR-2, ADR-3); `/metrics` open like `/healthz` (ADR-3); the metric set of ADR-4; players counted from the game's join and leave lines (ADR-1); restart times as a daily `HH:MM` list in the container's time zone (ADR-5); warnings at 15, 5 and 1 minutes with fixed text (ADR-6); a restart whenever the game runs, players or not, and never a start (ADR-6); cleanup of log archives older than 14 days with the newest 5 kept, backups only when a count is set, `BackupSaves` never (ADR-9); log rotation left to the game (ADR-10); an On switch per interval field and a Metrics Collection field from 1 second to 1 hour (ADR-11); `VSS-zws` pulled in, `VSS-hv60`, `VSS-3tb1` and `VSS-7z3` not (ADR-8). A twelfth answer the same day, after Story 22.3's Task 1 confirmed `VSS-zws`: fix it in a new Story 22.7, a small API story after 22.4, that keeps the restart-required edits made while the game runs and writes them to `serverconfig.json` again after the process exits, before any start (ADR-15). Planner decisions not reviewed yet: the job layout of ADR-6 and ADR-7, the 16-minute gap between restart times (ADR-6 decision 6), the 03:00 cleanup time and the safety rules (ADR-9), the hidden API Settings tab for Monitor (ADR-12, told to the maintainer with question 11), the UI of ADR-13, and the design of ADR-15 (edits kept on disk, when they are written back and dropped, a failed write-back not blocking a start).
+**Decided by the maintainer (Matt, 2026-11-18):** eleven answers given one at a time (`sprint-change-proposal-2026-11-18-epic-22.md`, section 5): a Prometheus `/metrics` at the root and `playersOnline` in the JSON metrics and the dashboard (ADR-2, ADR-3); `/metrics` open like `/healthz` (ADR-3); the metric set of ADR-4; players counted from the game's join and leave lines (ADR-1); restart times as a daily `HH:MM` list in the container's time zone (ADR-5); warnings at 15, 5 and 1 minutes with fixed text (ADR-6); a restart whenever the game runs, players or not, and never a start (ADR-6); cleanup of log archives older than 14 days with the newest 5 kept, backups only when a count is set, `BackupSaves` never (ADR-9); log rotation left to the game (ADR-10); an On switch per interval field and a Metrics Collection field from 1 second to 1 hour (ADR-11); `VSS-zws` pulled in, `VSS-hv60`, `VSS-3tb1` and `VSS-7z3` not (ADR-8). A twelfth answer the same day, after Story 22.3's Task 1 confirmed `VSS-zws`: fix it in a new Story 22.7, a small API story after 22.4, that keeps the restart-required edits made while the game runs and writes them to `serverconfig.json` again after the process exits, before any start (ADR-15). Planner decisions not reviewed yet: the job layout of ADR-6 and ADR-7, the 16-minute gap between restart times (ADR-6 decision 6), the 03:00 cleanup time and the safety rules (ADR-9), the hidden API Settings tab for Monitor (ADR-12, told to the maintainer with question 11), the UI of ADR-13, and the design of ADR-15 (edits kept on disk, when they are written back and dropped, a failed write-back not blocking a start). A thirteenth answer (Matt, 2026-11-19), after Story 22.7's throwaway run showed that `docker restart` kills the game without a world save: "Add Story 22.8 now: Small API story after 22.7: on API shutdown, stop a running game through the normal stop path (SIGTERM, wait up to 10 s, save measured < 1 s) before exiting; README notes the container stop grace period (Docker default 10 s; compose stop_grace_period / Kubernetes terminationGracePeriodSeconds). Verified in a throwaway container." (ADR-16). Its design (the stop before the scheduler shutdown, no start once the shutdown has begun, an 8-second stop timeout inside Docker's 10-second grace, the README only and no compose change) is the planner's and not reviewed yet.
 
-**Order:** 22.1, 22.2, 22.3, 22.4, 22.7, 22.5, 22.6. Story 22.7 was added after 22.3 (answer 12) and runs after 22.4 and before 22.5.
+**Order:** 22.1, 22.2, 22.3, 22.4, 22.7, 22.8, 22.5, 22.6. Story 22.7 was added after 22.3 (answer 12) and runs after 22.4 and before 22.5. Story 22.8 was added after 22.7 (answer 13) and runs after 22.7 and before 22.5.
 
 **Dependencies:**
 
@@ -7243,11 +7246,12 @@ So that **content has room at tablet widths and stays readable on large monitors
 - Stories 22.3 and 22.4 both edit `services/api_settings.py`, `jobs/__init__.py` and the README's configuration table; 22.4 comes after 22.3 and uses the `apply_setting` function 22.3 adds (ADR-7).
 - Stories 22.5 and 22.6 both edit `ApiSettingsPanel.tsx`, its test and `web/src/api/config.ts`; 22.6 comes after 22.5, and after 22.3 and 22.4, whose settings it edits.
 - Story 22.7 comes after 22.4. It uses the shared pending-restart state of 22.2 and the throwaway-container steps of 22.3, and touches only API files (`services/game_config.py`, `services/server.py`, `main.py`, a new state store) and the README; 22.4 does not touch them. Stories 22.5 and 22.6 do not depend on 22.7 and 22.7 does not depend on them; it runs before them only to keep one branch at a time.
+- Story 22.8 comes after 22.7. It edits the same `services/server.py` and `main.py` lifespan and the same README section 22.7 touched, and its shutdown stop runs 22.7's write-back after the exit; its branch starts from 22.7's. It touches no web file and no settings file, so 22.5 and 22.6 do not depend on it and it does not depend on them.
 - Stories are run one after another. Each branch starts from the previous story's branch, and each pull request targets `main`; the merge order is the story order.
 
-**Beads:** four in scope, each closed with an AAR by its story after merge: `VSS-bhw` in 22.2 (22.1 carries its first half), `VSS-29p` in 22.4 (22.3 carries its first half), `VSS-zws` in 22.7 (22.3 confirmed it), `VSS-9jv` in 22.5. Story 22.6 has no bead: it is the web half of `VSS-29p`'s settings. What planning found is in the stories (the change proposal lists it), not in new beads.
+**Beads:** four in scope, each closed with an AAR by its story after merge: `VSS-bhw` in 22.2 (22.1 carries its first half), `VSS-29p` in 22.4 (22.3 carries its first half), `VSS-zws` in 22.7 (22.3 confirmed it), `VSS-9jv` in 22.5. Story 22.6 has no bead: it is the web half of `VSS-29p`'s settings. What planning found is in the stories (the change proposal lists it), not in new beads. Story 22.8 has no bead either: it was found inside the epic (Story 22.7's Run C) and is drawn down there.
 
-**Product changes:** one new route (`GET /metrics`, open); one new field in the JSON metrics (`playersOnline`); four new API settings (`scheduled_restart_times`, `log_archive_retention_days`, `log_archive_keep_min`, `backup_keep_count`; the existing settings' API bounds do not change); two new background jobs (`scheduled_restart_HHMM`, `disk_cleanup`); one new state file (`vsmanager/state/pending-config-edits.json`, Story 22.7); `TZ` documented; one new runtime dependency (`prometheus-client`). No existing route, field or status code changes. Nothing is breaking. Deleting old log archives by default (14 days, 5 kept) is new behaviour an operator should read about in the release note.
+**Product changes:** one new route (`GET /metrics`, open); one new field in the JSON metrics (`playersOnline`); four new API settings (`scheduled_restart_times`, `log_archive_retention_days`, `log_archive_keep_min`, `backup_keep_count`; the existing settings' API bounds do not change); two new background jobs (`scheduled_restart_HHMM`, `disk_cleanup`); one new state file (`vsmanager/state/pending-config-edits.json`, Story 22.7); a stop of the running game when the manager shuts down (Story 22.8, no new setting; the shipped compose file is not changed); `TZ` documented; one new runtime dependency (`prometheus-client`). No existing route, field or status code changes. Nothing is breaking. Deleting old log archives by default (14 days, 5 kept) is new behaviour an operator should read about in the release note.
 
 ### Current State
 
@@ -7255,6 +7259,7 @@ So that **content has room at tablet widths and stays readable on large monitors
 - The game is restarted only by hand; there is no schedule and no warning to players
 - The game moves each run's logs into `Logs/Archive/` and nothing deletes them; `/genbackup` files accumulate in `Backups/`
 - Nobody has measured whether a stop's 10-second timeout leaves the world save enough time, and `VSS-zws` (does the game overwrite `serverconfig.json` edits made while it runs) is open
+- Stopping or restarting the container kills the game without a world save: the API's shutdown does not stop it (found by Story 22.7's throwaway run)
 - The API Settings tab cannot turn an interval job off, has no Metrics Collection field, caps the refresh intervals below the API's maximum, has two fallbacks that differ from the API defaults, and is shown to a Monitor key that cannot read it
 
 ### Target State
@@ -7265,6 +7270,7 @@ So that **content has room at tablet widths and stays readable on large monitors
 - A daily cleanup deletes old log archives and, when asked, old backups, and never touches the world, mods or `BackupSaves`
 - The stop time and `VSS-zws` are measured and recorded
 - A `Port` or `Ip` change made while the game runs reaches the next start, even after a live setting change made the game rewrite its config
+- Stopping, restarting or recreating the container stops the game through its normal stop first, so the world is saved
 - Every interval job can be turned off and on in the UI, Metrics Collection has a field, the bounds and fallbacks match the API, and a Monitor key does not see the tab
 - Restart times and cleanup limits are edited in the API Settings tab
 
@@ -7784,3 +7790,71 @@ So that **a later live setting change cannot quietly undo it while "Restart requ
 - [ ] The throwaway-container run (a `vss-22-7-*` container on its own `127.0.0.1` port, not 9080, 18080, 18081 or 18090; plain `docker build`/`docker run`, no compose, no bind mount, placeholder keys, removed with its image afterwards; never the dev stack at `http://localhost:9080` or its `./data`): repeat Story 22.3's `VSS-zws` steps with the fix and with a container restart in between; record the reads in the story and in ADR-15 (ADR-14)
 - [ ] The README (it has no game settings section today): a short paragraph after the Configuration table saying that a restart-required change made while the server runs is kept until the next start, and that the Game Settings page shows the game's value until the server stops (ADR-15 consequences)
 - [ ] `just check` green and the story moved to review; `VSS-zws` closed with an AAR after merge
+
+### Story 22.8: Stopping the Container Saves the World
+
+**Sprint key:** `22-8-container-stop-saves-the-world`
+**Beads:** none (found inside the epic by Story 22.7's Run C; backlog drawdown, answer 13)
+**FRs:** FR308
+
+As an **administrator**,
+I want **stopping or restarting the manager's container to stop the game server the normal way first**,
+So that **the world is saved and players do not lose their progress when I upgrade, restart or stop the container**.
+
+**Acceptance Criteria:**
+
+**Given** the game server is running
+**When** the API shuts down (the container gets SIGTERM)
+**Then** before the scheduler is shut down, the game is stopped through the normal stop path (SIGTERM, a kill only if it has not exited after 8 seconds), and the log shows `api_shutdown_stopping_game`, the stop's own lines, `api_shutdown_game_stopped`, then `scheduler_stopped` and `api_shutting_down`
+
+*(Covers FR308; ADR-16 decisions 1, 2, 3, 5 and 8)*
+
+**Given** no game process lives (never started, stopped, or exited)
+**When** the API shuts down
+**Then** nothing is stopped, no service is built, and the shutdown is as today
+
+*(Covers FR308; ADR-16 decisions 1 and 8)*
+
+**Given** a game that does not exit on SIGTERM
+**When** the API shuts down
+**Then** it is killed after 8 seconds (`server_stop_timeout`, `server_killed`) and the shutdown goes on
+
+*(Covers FR308; ADR-16 decision 5)*
+
+**Given** a scheduled restart holding the lifecycle lock, or a scheduled restart sequence in its warnings
+**When** the API shuts down
+**Then** the game is not started again: the restart's start is refused (`start_server_failed reason=api_shutting_down`), the sequence ends without a start, and the game ends the shutdown stopped
+
+*(Covers FR308; ADR-16 decisions 3 and 4)*
+
+**Given** the shutdown stop fails
+**When** the API shuts down
+**Then** `api_shutdown_game_stop_failed` is logged at ERROR and the scheduler and the mod service are still shut down
+
+*(Covers FR308; ADR-16 decisions 1 and 8)*
+
+**Given** a restart-required game setting saved while the game ran, and the game rewrote `serverconfig.json` after a live change (Story 22.7)
+**When** the API shuts down
+**Then** `serverconfig.json` holds the saved value after the stop (`pending_config_edits_reapplied trigger=exit`)
+
+*(Covers FR308; ADR-16 decision 7)*
+
+**Given** a throwaway container (never the dev stack) with a running game
+**When** it is stopped with `docker stop` (and restarted with `docker restart`, with an open console WebSocket, and with `docker stop -t` shorter and longer than the default)
+**Then** the story records the game's save and stop lines in `server-main.log`, the API's lines in order, the container's exit inside the grace period, and the process tree
+
+*(Covers FR308; ADR-16 decision 9, ADR-14)*
+
+**Given** the README
+**When** an operator reads how to run the container
+**Then** it says that stopping or restarting the container saves the world first, that the manager waits up to 8 seconds for the game, and that the stop grace period should stay at Docker's default of 10 seconds or more (`docker stop -t`, compose `stop_grace_period`, Kubernetes `terminationGracePeriodSeconds`)
+
+*(Covers FR308; ADR-16 decision 6)*
+
+**Tasks:**
+
+- [ ] `ServerService.stop_for_api_shutdown()` (the flag, the lock, the normal stop with 8 s, the log lines), the refusal in `_start_server_locked`, and the module-level `stop_game_server_for_api_shutdown()`, with tests on a fake process (graceful, killed, not running, a restart holding the lock, a sequence in its warnings, 22.7's write-back) (Epic 22 ADR-16 decisions 1 to 5, 7 and 8)
+- [ ] The lifespan calls it after `yield` and before the scheduler shutdown, inside its own guard; an autouse conftest recorder keeps every lifespan test away from the real singleton; lifespan tests for the order and the failure; a `fix(api)` commit with the release note (ADR-16 decisions 1, 3 and 8)
+- [ ] The throwaway-container run (a `vss-22-8-*` container and image on its own `127.0.0.1` port, not 9080, 18080, 18081, 18090, 18092 or 18094; plain `docker build`/`docker run`, no compose, no bind mount, no `--env-file`, placeholder key, removed afterwards; never the dev stack or `./data`): `docker stop`, `docker restart`, an open console WebSocket, `docker stop -t` shorter and longer than 10 s, the process tree; recorded in the story and in ADR-16 (ADR-16 decision 9, ADR-14)
+- [ ] The README: stopping and restarting the container, and the stop grace period (ADR-16 decision 6)
+- [ ] `just check` green and the story moved to review; the maintainer's manual check stays unticked

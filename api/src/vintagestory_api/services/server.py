@@ -75,6 +75,18 @@ def reapply_pending_config_edits_at_api_start() -> None:
     get_server_service().reapply_pending_config_edits_at_api_start()
 
 
+async def stop_game_server_for_api_shutdown() -> None:
+    """Stop a running game through its normal stop when the API shuts down (Story 22.8).
+
+    Runs in the lifespan shutdown before the scheduler (Epic 22 ADR-16 decisions 1 to 4).
+    Reads the singleton without building it: with none, no game process can live, and
+    nothing (no Settings(), no state file) is read at shutdown.
+    """
+    if _server_service is None:
+        return
+    await _server_service.stop_for_api_shutdown()
+
+
 ReapplyTrigger = Literal["exit", "start", "api_start"]
 
 
@@ -109,6 +121,11 @@ VERSION_ALIASES = {"stable", "unstable"}
 
 # Required server files to verify installation
 REQUIRED_SERVER_FILES = ["VintagestoryServer.dll", "VintagestoryLib.dll"]
+
+# How long the API's shutdown waits for the game to stop before it kills it: inside
+# Docker's default 10-second stop grace, leaving about 2 s for uvicorn before and the
+# scheduler and mod service after (Epic 22 ADR-16 decision 5)
+SHUTDOWN_STOP_TIMEOUT_SECONDS = 8.0
 
 
 def _strip_numeric_prefix(name: str) -> str:
@@ -222,6 +239,10 @@ class ServerService:
         self._pending_config_edits = PendingConfigEdits(self._settings.state_dir)
         # Keys the last start could not write back; they flag a restart again after it
         self._last_start_reapply_failed_keys: list[str] = []
+
+        # Set by stop_for_api_shutdown and never cleared: no start once the API's
+        # shutdown has begun (Story 22.8, Epic 22 ADR-16 decision 4)
+        self._shutting_down = False
 
     @property
     def settings(self) -> Settings:
@@ -1113,6 +1134,11 @@ class ServerService:
             logger.warning("start_server_failed", reason="already_starting")
             raise RuntimeError(ErrorCode.SERVER_ALREADY_RUNNING)
 
+        # Before any state change or file write: the API is shutting down (Story 22.8)
+        if self._shutting_down:
+            logger.warning("start_server_failed", reason="api_shutting_down")
+            raise RuntimeError(ErrorCode.SERVER_START_FAILED)
+
         # Initialize config if needed (first run)
         if self._config_init_service.needs_initialization():
             self._config_init_service.initialize_config()
@@ -1326,6 +1352,33 @@ class ServerService:
         """
         async with self._lifecycle_lock:
             return await self._restart_server_locked(timeout)
+
+    async def stop_for_api_shutdown(self, timeout: float = SHUTDOWN_STOP_TIMEOUT_SECONDS) -> None:
+        """Stop a running game through the normal stop as the API shuts down (Story 22.8).
+
+        The game saves its world on SIGTERM; it is killed after `timeout` seconds. No start
+        is allowed from here on. Never raises for a failed stop and never starts anything
+        (Epic 22 ADR-16 decisions 1 to 5).
+
+        Args:
+            timeout: Seconds to wait for the game to exit before SIGKILL.
+        """
+        # Before the lock, so a restart that holds it is refused at its start
+        self._shutting_down = True
+        async with self._lifecycle_lock:
+            if self.game_server_pid is None:
+                logger.debug("api_shutdown_game_not_running")
+                return
+
+            logger.info("api_shutdown_stopping_game", timeout=timeout)
+            started = time.monotonic()
+            try:
+                await self._stop_server_locked(timeout)
+            except RuntimeError as e:
+                # _stop_server_locked logged server_stop_failed and settled the state
+                logger.error("api_shutdown_game_stop_failed", error_code=str(e))
+                return
+            logger.info("api_shutdown_game_stopped", seconds=round(time.monotonic() - started, 2))
 
     async def _restart_server_locked(self, timeout: float) -> LifecycleResponse:
         """Internal restart logic (must be called with lock held)."""
