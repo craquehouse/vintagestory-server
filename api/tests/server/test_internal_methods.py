@@ -348,6 +348,32 @@ class TestClearPendingRestart:
             service._clear_pending_restart()
 
 
+class TestReflagUnappliedEdits:
+    """Tests for _reflag_unapplied_edits() (Story 22.7)."""
+
+    def test_a_failed_reflag_logs_the_error_type_not_its_text(
+        self, test_settings: Settings
+    ) -> None:
+        """The exception's text can hold a path or a value: only its type is logged."""
+        service = ServerService(test_settings)
+        service._last_start_reapply_failed_keys = ["Port"]
+
+        with (
+            patch("vintagestory_api.services.server._get_mod_service_module") as mock_get_module,
+            capture_logs() as logs,
+        ):
+            mock_get_module.side_effect = OSError("/data/secret/path: Port=42420")
+
+            service._reflag_unapplied_edits()
+
+        skipped = [log for log in logs if log["event"] == "pending_restart_reflag_skipped"]
+        assert len(skipped) == 1
+        assert skipped[0]["error_type"] == "OSError"
+        assert skipped[0]["log_level"] == "debug"
+        assert "reason" not in skipped[0]
+        assert all("/data/secret/path" not in str(value) for value in skipped[0].values())
+
+
 class TestGetHttpClient:
     """Tests for _get_http_client() method."""
 

@@ -12,10 +12,12 @@ from __future__ import annotations
 import copy
 import json
 import os
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from structlog.testing import capture_logs
 
 from vintagestory_api.config import Settings
 from vintagestory_api.models.server import ServerState
@@ -36,6 +38,7 @@ from vintagestory_api.services.game_config import (
     redact_secrets,
 )
 from vintagestory_api.services.mod_update_alerts import DISCORD_HOSTS, is_discord_webhook
+from vintagestory_api.services.server import ServerService
 
 # Story 17.5: a made-up password for the redaction tests; never a real value.
 SECRET = "pw-Zq9-monitor-must-not-see"
@@ -1629,3 +1632,263 @@ class TestGetMaxClients:
         (temp_settings.serverdata_dir / "serverconfig.json").write_text("{not json")
         with pytest.raises(json.JSONDecodeError):
             GameConfigService(settings=temp_settings).get_max_clients()
+
+
+# ==============================================================================
+# Story 22.7: restart-required settings saved while a game process lives
+# ==============================================================================
+
+
+class _FakeStdin:
+    """The game's stdin: keeps what the console path writes."""
+
+    def __init__(self) -> None:
+        self.written: list[bytes] = []
+
+    def write(self, data: bytes) -> None:
+        self.written.append(data)
+
+    async def drain(self) -> None:
+        return None
+
+
+class _LiveProcess:
+    """A game process that is alive (`returncode` is None) for as long as the test needs."""
+
+    def __init__(self) -> None:
+        self.pid = 4242
+        self.returncode: int | None = None
+        self.stdin = _FakeStdin()
+
+
+@pytest.fixture
+def real_server_service(
+    temp_settings: Settings, config_file: Path, monkeypatch: pytest.MonkeyPatch
+) -> ServerService:
+    """A real ServerService on the temp dir: installed, stopped, no process."""
+    temp_settings.server_dir.mkdir(parents=True, exist_ok=True)
+    (temp_settings.server_dir / "VintagestoryServer.dll").touch()
+    (temp_settings.server_dir / "VintagestoryLib.dll").touch()
+    # get_server_status reads the disk space through Settings() from the environment
+    monkeypatch.setattr("vintagestory_api.routers.health.get_disk_space_data", lambda: None)
+    return ServerService(temp_settings)
+
+
+def _set_process(
+    monkeypatch: pytest.MonkeyPatch, service: ServerService, state: ServerState | None
+) -> None:
+    """Give the service a live process in `state`, or (None) no process at all."""
+    if state is None:
+        monkeypatch.setattr(service, "_process", None)
+        monkeypatch.setattr(service, "_server_state", ServerState.INSTALLED)
+        return
+    monkeypatch.setattr(service, "_process", _LiveProcess())
+    monkeypatch.setattr(service, "_server_state", state)
+
+
+def _config_service(service: ServerService) -> GameConfigService:
+    return GameConfigService(
+        settings=service.settings,
+        server_service=service,
+        pending_restart_state=MagicMock(),
+    )
+
+
+def _pending_events(logs: Sequence[Mapping[str, object]]) -> list[Mapping[str, object]]:
+    return [log for log in logs if str(log["event"]).startswith("pending_config_edit")]
+
+
+class TestPendingConfigEditTracking:
+    """Story 22.7 Task 2: record and drop restart-required edits (ADR-15 decisions 1 and 4)."""
+
+    @pytest.mark.asyncio
+    async def test_port_while_running_is_recorded(
+        self, real_server_service: ServerService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _set_process(monkeypatch, real_server_service, ServerState.RUNNING)
+
+        with capture_logs() as logs:
+            result = await _config_service(real_server_service).update_setting("Port", 42421)
+
+        assert result.to_dict() == {
+            "key": "Port",
+            "value": 42421,
+            "method": "file_update",
+            "pending_restart": True,
+        }
+        assert real_server_service.pending_config_edits.edits["Port"].value == 42421
+        assert _pending_events(logs) == [
+            {"event": "pending_config_edit_recorded", "key": "Port", "log_level": "info"}
+        ]
+
+    @pytest.mark.asyncio
+    async def test_port_twice_while_running_keeps_the_newer(
+        self, real_server_service: ServerService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _set_process(monkeypatch, real_server_service, ServerState.RUNNING)
+        service = _config_service(real_server_service)
+
+        await service.update_setting("Port", 42421)
+        await service.update_setting("Port", 42422)
+
+        assert real_server_service.pending_config_edits.edits["Port"].value == 42422
+
+    @pytest.mark.asyncio
+    async def test_port_with_no_process_drops_the_edit(
+        self, real_server_service: ServerService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _set_process(monkeypatch, real_server_service, ServerState.RUNNING)
+        service = _config_service(real_server_service)
+        await service.update_setting("Port", 42421)
+
+        _set_process(monkeypatch, real_server_service, None)
+        with capture_logs() as logs:
+            await service.update_setting("Port", 42423)
+
+        assert real_server_service.pending_config_edits.edits == {}
+        assert _pending_events(logs) == [
+            {
+                "event": "pending_config_edits_dropped",
+                "keys": ["Port"],
+                "reason": "changed_again",
+                "log_level": "info",
+            }
+        ]
+        assert json.loads(service.config_path.read_text())["Port"] == 42423
+
+    @pytest.mark.asyncio
+    async def test_port_with_no_process_records_nothing(
+        self, real_server_service: ServerService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """AC 5: the game reads the file at its next start; no state file is written."""
+        _set_process(monkeypatch, real_server_service, None)
+
+        with capture_logs() as logs:
+            await _config_service(real_server_service).update_setting("Port", 42421)
+
+        assert real_server_service.pending_config_edits.edits == {}
+        assert _pending_events(logs) == []
+        assert not real_server_service.pending_config_edits.path.exists()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("state", [ServerState.STOPPING, ServerState.STARTING])
+    async def test_port_while_a_process_lives_in_transition_is_recorded(
+        self,
+        real_server_service: ServerService,
+        monkeypatch: pytest.MonkeyPatch,
+        state: ServerState,
+    ) -> None:
+        _set_process(monkeypatch, real_server_service, state)
+
+        await _config_service(real_server_service).update_setting("Port", 42421)
+
+        assert real_server_service.pending_config_edits.edits["Port"].value == 42421
+
+    @pytest.mark.asyncio
+    async def test_cleared_description_then_live_change_is_dropped(
+        self, real_server_service: ServerService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """AC 4: a pending description clear followed by a live description change."""
+        _set_process(monkeypatch, real_server_service, ServerState.RUNNING)
+        service = _config_service(real_server_service)
+
+        cleared = await service.update_setting("ServerDescription", None)
+        assert cleared.method == "file_update"
+        assert real_server_service.pending_config_edits.edits["ServerDescription"].value is None
+
+        with capture_logs() as logs:
+            changed = await service.update_setting("ServerDescription", "Back again")
+
+        assert changed.method == "console_command"
+        assert real_server_service.pending_config_edits.edits == {}
+        assert _pending_events(logs)[0]["reason"] == "changed_again"
+
+    @pytest.mark.asyncio
+    async def test_live_key_written_to_the_file_while_starting_drops_the_edit(
+        self, real_server_service: ServerService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A newer file write that is not itself recorded drops the key's edit."""
+        _set_process(monkeypatch, real_server_service, ServerState.RUNNING)
+        service = _config_service(real_server_service)
+        await service.update_setting("ServerDescription", None)
+
+        _set_process(monkeypatch, real_server_service, ServerState.STARTING)
+        result = await service.update_setting("ServerDescription", "Starting text")
+
+        assert result.method == "file_update"
+        assert result.pending_restart is False
+        assert real_server_service.pending_config_edits.edits == {}
+
+    @pytest.mark.asyncio
+    async def test_env_managed_port_is_refused_and_not_recorded(
+        self, real_server_service: ServerService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """AC 8."""
+        _set_process(monkeypatch, real_server_service, ServerState.RUNNING)
+        monkeypatch.setenv("VS_CFG_SERVER_PORT", "42420")
+
+        with pytest.raises(SettingEnvManagedError):
+            await _config_service(real_server_service).update_setting("Port", 42421)
+
+        assert real_server_service.pending_config_edits.edits == {}
+        assert not real_server_service.pending_config_edits.path.exists()
+
+    @pytest.mark.asyncio
+    async def test_failed_or_invalid_update_changes_no_edit(
+        self, real_server_service: ServerService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _set_process(monkeypatch, real_server_service, ServerState.RUNNING)
+        service = _config_service(real_server_service)
+        await service.update_setting("Port", 42421)
+        before = real_server_service.pending_config_edits.edits
+
+        with capture_logs() as logs:
+            with pytest.raises(SettingValueInvalidError):
+                await service.update_setting("Port", "not a port")
+            service.config_path.unlink()
+            with pytest.raises(SettingUpdateFailedError):
+                await service.update_setting("Port", 42422)
+
+        assert real_server_service.pending_config_edits.edits == before
+        assert _pending_events(logs) == []
+
+    @pytest.mark.asyncio
+    async def test_no_server_service_records_nothing(
+        self, temp_settings: Settings, config_file: Path
+    ) -> None:
+        service = GameConfigService(settings=temp_settings, server_service=None)
+
+        with capture_logs() as logs:
+            result = await service.update_setting("Port", 42421)
+
+        assert result.method == "file_update"
+        assert _pending_events(logs) == []
+        assert not (temp_settings.state_dir / "pending-config-edits.json").exists()
+
+    def test_no_secret_setting_can_be_recorded(self) -> None:
+        """A secret is set and cleared by console command while running, never recorded."""
+        for setting in LIVE_SETTINGS.values():
+            if setting.secret:
+                assert not setting.requires_restart
+                assert setting.clear_command is not None
+
+    @pytest.mark.asyncio
+    async def test_new_log_lines_carry_no_value(
+        self, real_server_service: ServerService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _set_process(monkeypatch, real_server_service, ServerState.RUNNING)
+        service = _config_service(real_server_service)
+
+        with capture_logs() as logs:
+            await service.update_setting("Port", 42421)
+            _set_process(monkeypatch, real_server_service, None)
+            await service.update_setting("Port", 42423)
+
+        events = _pending_events(logs)
+        assert [event["event"] for event in events] == [
+            "pending_config_edit_recorded",
+            "pending_config_edits_dropped",
+        ]
+        for event in events:
+            assert "42421" not in repr(event)
+            assert "42423" not in repr(event)

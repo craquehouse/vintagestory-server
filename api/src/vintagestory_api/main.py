@@ -40,6 +40,7 @@ from vintagestory_api.routers import (
 )
 from vintagestory_api.services.mods import prepare_mod_files
 from vintagestory_api.services.scheduler import SchedulerService
+from vintagestory_api.services.server import reapply_pending_config_edits_at_api_start
 
 logger = structlog.get_logger()
 
@@ -180,6 +181,13 @@ def lifespan_for(settings: Settings) -> Callable[[FastAPI], AbstractAsyncContext
             prepare_mod_files()
         except Exception as e:
             logger.error("mod_files_startup_failed", error_type=type(e).__name__, error=str(e))
+
+        # Put restart-required settings saved while the game ran back into serverconfig.json
+        # before the auto-start (Story 22.7, Epic 22 ADR-15 decision 3); the API always starts
+        try:
+            reapply_pending_config_edits_at_api_start()
+        except Exception as e:
+            logger.error("pending_config_edits_startup_failed", error_type=type(e).__name__)
 
         # Auto-start game server if enabled in API settings
         from vintagestory_api.models.server import ServerState

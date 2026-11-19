@@ -1,5 +1,6 @@
 """Game settings and mods share one pending-restart state (Story 22.2, AC 13, FR306)."""
 
+import asyncio
 import json
 import zipfile
 from collections.abc import Generator
@@ -196,3 +197,97 @@ def test_failed_start_keeps_the_flag(client: TestClient) -> None:
 
     assert response.status_code == 500
     assert pending_everywhere(client) == (True, True)
+
+
+# Story 22.7: a restart-required change saved while a game process lives is recorded
+
+
+class _FakeStdin:
+    def write(self, data: bytes) -> None:
+        return None
+
+    async def drain(self) -> None:
+        return None
+
+
+class _LiveProcess:
+    """A game process that stays alive for the test (`returncode` None)."""
+
+    def __init__(self) -> None:
+        self.pid = 4242
+        self.returncode: int | None = None
+        self.stdin = _FakeStdin()
+
+
+class _EmptyStream:
+    async def readline(self) -> bytes:
+        return b""
+
+
+class _StoppableProcess(_LiveProcess):
+    """A live process that exits on SIGTERM; its streams are at EOF."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.stdout = _EmptyStream()
+        self.stderr = _EmptyStream()
+
+    def send_signal(self, sig: int) -> None:
+        self.returncode = 0
+
+    async def wait(self) -> int:
+        while self.returncode is None:
+            await asyncio.sleep(0)
+        return self.returncode
+
+    def kill(self) -> None:
+        self.returncode = -9
+
+
+def test_port_saved_while_running_is_recorded(
+    client: TestClient,
+    service: ServerService,
+    settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(service, "_process", _LiveProcess())
+    monkeypatch.setattr(service, "_server_state", ServerState.RUNNING)
+
+    save_port(client)
+
+    assert service.pending_config_edits.edits["Port"].value == 42421
+    stored = json.loads((settings.state_dir / "pending-config-edits.json").read_text())
+    assert stored["edits"]["Port"]["value"] == 42421
+
+
+def test_port_saved_while_running_survives_the_game_write_through_stop_and_start(
+    client: TestClient,
+    service: ServerService,
+    settings: Settings,
+    mod_service: ModService,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Story 22.7 AC 1 through the routes."""
+    # The stop and start tell the mod service; never one built from Settings() (dev/)
+    monkeypatch.setattr(mods_module, "_mod_service", mod_service)
+    config_path = settings.serverdata_dir / "serverconfig.json"
+    process = _StoppableProcess()
+
+    async def spawn(*args: object, **kwargs: object) -> _StoppableProcess:
+        return _StoppableProcess()
+
+    monkeypatch.setattr(service, "_process", process)
+    monkeypatch.setattr(service, "_server_state", ServerState.RUNNING)
+    save_port(client)
+    # The game's own write after a live /serverconfig command
+    config_path.write_text(json.dumps({"Port": 42420}))
+
+    assert client.post("/api/v1alpha1/server/stop", headers=HEADERS).status_code == 200
+    assert json.loads(config_path.read_text())["Port"] == 42421
+
+    monkeypatch.setattr("asyncio.create_subprocess_exec", spawn)
+    assert client.post("/api/v1alpha1/server/start", headers=HEADERS).status_code == 200
+
+    health = client.get("/healthz")
+    assert health.json()["data"]["game_server_pending_restart"] is False
+    assert service.pending_config_edits.edits == {}

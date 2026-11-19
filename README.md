@@ -90,6 +90,8 @@ Set these in `.env` (see [`.env.example`](.env.example) for all of them). The ga
 | `VS_MOD_CACHE_MAX_SIZE_MB` | No | Size of the downloaded-mods cache before old files are evicted (`500`; `0` turns eviction off) |
 | `TZ` | No | Time zone of the container, for example `Europe/Berlin` (UTC when unset). Scheduled restarts follow it; log timestamps stay in UTC |
 
+**Game settings that need a restart.** `Port`, `Ip` and a cleared server description take effect only when the game server starts. If you change one while the server runs, the manager keeps the change in `vsmanager/state/pending-config-edits.json` and writes it to `serverconfig.json` again after the server stops and before every start (the Start and Restart buttons, scheduled restarts and auto-start), because the game rewrites `serverconfig.json` with its own values when another setting is changed live. Until the server stops, the Game Settings page shows the game's value; "Restart required" stays until a start has loaded the change. If the manager itself restarts in the meantime, it writes the change when it starts and does not show "Restart required" again; the next start still uses the change.
+
 ### Scheduled restarts
 
 The API setting `scheduled_restart_times` holds daily times as `HH:MM` (24-hour) in the container's time zone (`TZ`); it is empty by default. Example with an Admin key:

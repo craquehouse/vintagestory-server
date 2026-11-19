@@ -17,7 +17,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from conftest import PrepareModFilesRecorder
+from conftest import PrepareModFilesRecorder, ReapplyAtApiStartRecorder
 from fastapi import FastAPI
 from fastapi.responses import PlainTextResponse
 from fastapi.testclient import TestClient
@@ -43,7 +43,12 @@ from vintagestory_api.models.server import ServerState, ServerStatus
 from vintagestory_api.services import mods as mods_module
 from vintagestory_api.services.mod_state import ModStateManager, ModSyncSummary
 from vintagestory_api.services.mods import ModService, prepare_mod_files
+from vintagestory_api.services.pending_config_edits import PENDING_CONFIG_EDITS_FILENAME
 from vintagestory_api.services.pending_restart import PendingRestartState
+from vintagestory_api.services.server import (
+    ServerService,
+    reapply_pending_config_edits_at_api_start,
+)
 
 
 class TestGetSchedulerService:
@@ -372,6 +377,99 @@ class TestLifespanAutoStart:
         ]
         assert "read-only file system" in line
         assert type(error).__name__ in line
+
+    # Story 22.7: the write-back of pending config edits runs after the mod files are
+    # prepared and before the auto-start (Epic 22 ADR-15 decision 3)
+
+    @pytest.mark.asyncio
+    async def test_pending_config_edits_are_written_back_before_auto_start(
+        self,
+        prepare_mod_files_recorder: PrepareModFilesRecorder,
+        reapply_at_api_start_recorder: ReapplyAtApiStartRecorder,
+    ) -> None:
+        reapply_at_api_start_recorder.calls = prepare_mod_files_recorder.calls
+
+        await self.run_auto_start_lifespan(prepare_mod_files_recorder)
+
+        assert prepare_mod_files_recorder.calls == [
+            "prepare_mod_files",
+            "reapply_pending_config_edits_at_api_start",
+            "start_server",
+            "scheduler_start",
+        ]
+
+    @pytest.mark.asyncio
+    async def test_pending_config_edits_are_written_back_once_with_auto_start_off(
+        self,
+        prepare_mod_files_recorder: PrepareModFilesRecorder,
+        reapply_at_api_start_recorder: ReapplyAtApiStartRecorder,
+    ) -> None:
+        reapply_at_api_start_recorder.calls = prepare_mod_files_recorder.calls
+
+        await self.run_auto_start_lifespan(prepare_mod_files_recorder, auto_start=False)
+
+        assert prepare_mod_files_recorder.calls == [
+            "prepare_mod_files",
+            "reapply_pending_config_edits_at_api_start",
+            "scheduler_start",
+        ]
+
+    @pytest.mark.asyncio
+    async def test_a_failing_write_back_is_logged_and_start_up_continues(
+        self,
+        prepare_mod_files_recorder: PrepareModFilesRecorder,
+        reapply_at_api_start_recorder: ReapplyAtApiStartRecorder,
+        captured_logs: StringIO,
+    ) -> None:
+        reapply_at_api_start_recorder.calls = prepare_mod_files_recorder.calls
+        reapply_at_api_start_recorder.error = RuntimeError("unexpected")
+
+        await self.run_auto_start_lifespan(prepare_mod_files_recorder)
+
+        assert prepare_mod_files_recorder.calls == [
+            "prepare_mod_files",
+            "reapply_pending_config_edits_at_api_start",
+            "start_server",
+            "scheduler_start",
+        ]
+        [line] = [
+            line
+            for line in captured_logs.getvalue().splitlines()
+            if "pending_config_edits_startup_failed" in line
+        ]
+        assert "RuntimeError" in line
+        assert "error" in line.lower()
+
+    @pytest.mark.asyncio
+    async def test_a_bad_state_file_does_not_stop_the_api_start(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, captured_logs: StringIO
+    ) -> None:
+        """AC 7: a real temp-dir service whose state file is not JSON."""
+        settings = Settings(data_dir=tmp_path / "data", api_key_admin="test-admin-key")
+        settings.state_dir.mkdir(parents=True)
+        (settings.state_dir / PENDING_CONFIG_EDITS_FILENAME).write_text("not json")
+        service = ServerService(settings)
+        monkeypatch.setattr("vintagestory_api.services.server.get_server_service", lambda: service)
+        monkeypatch.setattr(
+            main_module,
+            "reapply_pending_config_edits_at_api_start",
+            reapply_pending_config_edits_at_api_start,
+        )
+        scheduler = MagicMock()
+
+        with (
+            patch("vintagestory_api.main.initialize_debug_state"),
+            patch("vintagestory_api.main.SchedulerService", return_value=scheduler),
+            patch.object(jobs_module, "register_default_jobs"),
+            patch("vintagestory_api.services.mods.close_mod_service", new_callable=AsyncMock),
+        ):
+            async with main_module.lifespan_for(settings)(FastAPI()):
+                pass
+
+        logs = captured_logs.getvalue()
+        assert "pending_config_edits_unreadable" in logs
+        assert "pending_config_edits_startup_failed" not in logs
+        scheduler.start.assert_called_once()
 
     @pytest.fixture
     def real_mod_start_up(
