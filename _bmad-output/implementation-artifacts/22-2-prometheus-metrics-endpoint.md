@@ -102,13 +102,13 @@ so that **I can graph players, CPU, memory and uptime, and alert when the server
   - [x] 3.5: `cd api && uv run ruff format <changed files>`; `just test-api tests/test_prometheus_metrics.py tests/test_game_config.py` green; `just typecheck-api` 0/0
   - [x] 3.6: Commit `refactor(story-22.2/task-3): collect the game server's Prometheus metrics at scrape time` (not served yet; precedent `refactor(story-22.1/task-1)`)
 
-- [ ] Task 4: The root `GET /metrics` route without authentication, scraped in the API E2E tests + tests (AC: 1, 7, 8, 10)
-  - [ ] 4.1: Red first: new `api/tests/test_prometheus_router.py` with the Task 4 rows of Dev Notes "API tests"; see them fail (404 or the SPA page)
-  - [ ] 4.2: New `api/src/vintagestory_api/routers/prometheus.py` (Dev Notes "The route")
-  - [ ] 4.3: `main.py`: add `prometheus` to the router import (`:26-39`, alphabetical, after `mods`) and `app.include_router(prometheus.router)` directly after `app.include_router(health.router)` (`:386`), under the same "at root" comment (`:385`), extended to name `/metrics`. Nothing else in `main.py` changes: the middlewares (`:369-383`) apply to it as to `/healthz`, and it is registered before `register_frontend` (`:415-416`), whose `/{full_path:path}` fallback (`:334-339`) would otherwise answer it
-  - [ ] 4.4: `cd api && uv run ruff format <changed files>`; `just test-api tests/test_prometheus_router.py tests/test_prometheus_metrics.py tests/test_security_headers_scope.py tests/test_frontend_routes.py tests/test_app_factory.py tests/test_health.py tests/test_static_serving.py` green
-  - [ ] 4.5: New `api/tests/e2e/test_e2e_metrics.py` (Dev Notes "E2E test"). Run it only through `just test-e2e-ci` (it builds the image from the branch, runs it on port 18080 and removes it; `scripts/e2e-ci.sh:150-158` runs `pytest tests/e2e` against it). Never `just test-e2e-api`, `just test-e2e` or `just test-e2e-web` (they target or restart the dev stack), and never rebuild or restart the dev stack for it
-  - [ ] 4.6: Commit `feat(story-22.2/task-4): serve game server metrics for Prometheus at /metrics` (body: Story 22.2 / task 4; `GET /metrics` at the root, without an API key, in the Prometheus text format: the game server's version, up, state, uptime, players online and maximum, pending restart, the game process's CPU and memory, and the manager's own process metrics; read live, so it works with metrics collection off; scraped by the API E2E tests)
+- [x] Task 4: The root `GET /metrics` route without authentication, scraped in the API E2E tests + tests (AC: 1, 7, 8, 10)
+  - [x] 4.1: Red first: new `api/tests/test_prometheus_router.py` with the Task 4 rows of Dev Notes "API tests"; see them fail (404 or the SPA page)
+  - [x] 4.2: New `api/src/vintagestory_api/routers/prometheus.py` (Dev Notes "The route")
+  - [x] 4.3: `main.py`: add `prometheus` to the router import (`:26-39`, alphabetical, after `mods`) and `app.include_router(prometheus.router)` directly after `app.include_router(health.router)` (`:386`), under the same "at root" comment (`:385`), extended to name `/metrics`. Nothing else in `main.py` changes: the middlewares (`:369-383`) apply to it as to `/healthz`, and it is registered before `register_frontend` (`:415-416`), whose `/{full_path:path}` fallback (`:334-339`) would otherwise answer it
+  - [x] 4.4: `cd api && uv run ruff format <changed files>`; `just test-api tests/test_prometheus_router.py tests/test_prometheus_metrics.py tests/test_security_headers_scope.py tests/test_frontend_routes.py tests/test_app_factory.py tests/test_health.py tests/test_static_serving.py` green
+  - [x] 4.5: New `api/tests/e2e/test_e2e_metrics.py` (Dev Notes "E2E test"). Run it only through `just test-e2e-ci` (it builds the image from the branch, runs it on port 18080 and removes it; `scripts/e2e-ci.sh:150-158` runs `pytest tests/e2e` against it). Never `just test-e2e-api`, `just test-e2e` or `just test-e2e-web` (they target or restart the dev stack), and never rebuild or restart the dev stack for it
+  - [x] 4.6: Commit `feat(story-22.2/task-4): serve game server metrics for Prometheus at /metrics` (body: Story 22.2 / task 4; `GET /metrics` at the root, without an API key, in the Prometheus text format: the game server's version, up, state, uptime, players online and maximum, pending restart, the game process's CPU and memory, and the manager's own process metrics; read live, so it works with metrics collection off; scraped by the API E2E tests)
 
 - [ ] Task 5: Document `/metrics` (AC: 9)
   - [ ] 5.1: `README.md`: the Features "API" bullet (`:18`) names `/metrics` beside the health endpoints; a new `### Metrics` section after `### Configuration` (`:73-90`), before `## Development` (`:92`), with the content of Dev Notes "Documentation"
@@ -454,6 +454,10 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive
 - `api/src/vintagestory_api/services/prometheus_metrics.py` (new: `GameServerCollector`, `build_registry`, `get_metrics_registry`)
 - `api/tests/test_game_config.py` (modified: `TestGetMaxClients`)
 - `api/tests/test_prometheus_metrics.py` (modified in Task 3: the collector and registry tests)
+- `api/src/vintagestory_api/routers/prometheus.py` (new: `GET /metrics`)
+- `api/src/vintagestory_api/main.py` (modified: `prometheus` router imported and included after `health.router`)
+- `api/tests/test_prometheus_router.py` (new)
+- `api/tests/e2e/test_e2e_metrics.py` (new)
 
 ## Change Log
 

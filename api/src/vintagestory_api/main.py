@@ -32,6 +32,7 @@ from vintagestory_api.routers import (
     jobs,
     metrics,
     mods,
+    prometheus,
     server,
     test_rbac,
     versions,
@@ -382,8 +383,10 @@ def create_app(settings: Settings, static_dir: Path = STATIC_DIR) -> FastAPI:
     # Sets up request_id for all log entries within the request
     app.add_middleware(RequestContextMiddleware)
 
-    # Health endpoints at root (NOT versioned - K8s convention)
+    # Health endpoints at root (NOT versioned - K8s convention), and /metrics for
+    # Prometheus beside them, open like /healthz (Epic 22 ADR-3)
     app.include_router(health.router)
+    app.include_router(prometheus.router)
 
     # API v1alpha1 endpoints (versioned, auth-protected)
     api_v1 = APIRouter(prefix="/api/v1alpha1", dependencies=[Depends(get_current_user)])
