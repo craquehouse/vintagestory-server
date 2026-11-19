@@ -81,9 +81,9 @@ so that **I can read the configs the game itself accepts instead of a parse erro
   - [x] 4.3: `just test-web`; `just typecheck-web`; `just format-web` then `just lint-web`
   - [x] 4.4: Commit `fix(story-23.1/task-4): show a config file that cannot be parsed as text, with where the error is` (body: Story 23.1 / task 4; also stops the viewer renaming keys with underscores inside a config file)
 
-- [ ] Task 5: README (AC: 8)
-  - [ ] 5.1: A `### Config files` section after `### Logs and disk use` (`README.md:118`) and before `### Metrics` (`:155`), text in Dev Notes "Documentation"
-  - [ ] 5.2: Commit `docs(story-23.1/task-5): explain how the file browser reads config files`
+- [x] Task 5: README (AC: 8)
+  - [x] 5.1: A `### Config files` section after `### Logs and disk use` (`README.md:118`) and before `### Metrics` (`:155`), text in Dev Notes "Documentation"
+  - [x] 5.2: Commit `docs(story-23.1/task-5): explain how the file browser reads config files`
 
 - [ ] Task 6: Validate and move the story to review (AC: all)
   - [ ] 6.1: `just check` green (API, web with 0 skipped, scripts, Pyright 0/0). Added lines hold no `type: ignore`, `pyright:`, `noqa`, `cast(`, `eslint-disable`, skip, `xfail` or `.only`. `git status --short dev/ data/` empty
