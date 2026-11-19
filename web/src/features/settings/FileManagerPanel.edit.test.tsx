@@ -11,6 +11,10 @@ import { FileManagerPanel } from './FileManagerPanel';
 import { clearAllDrafts } from './config-drafts';
 
 vi.mock('@/components/code-view/LazyCodeView', () => import('@/test/mocks/lazy-code-view'));
+vi.mock(
+  '@/components/code-view/LazyRevisionCompare',
+  () => import('@/test/mocks/lazy-revision-compare')
+);
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 const TEXT = '{\n  // c\n  "a": 1\n}\n';
@@ -19,6 +23,9 @@ function stubApi({ state = 'installed' }: { state?: string } = {}) {
   globalThis.fetch = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
     const json = (body: unknown) => ({ ok: true, status: 200, json: () => Promise.resolve(body) });
     if (url.includes('/server/status')) return json({ status: 'ok', data: { state } });
+    if (url.includes('/config/history/')) {
+      return json({ status: 'ok', data: { filename: 'x.json', revisions: [] } });
+    }
     if (url.includes('/config/files/validate')) {
       return json({ status: 'ok', data: { valid: true, parse_error: null } });
     }
@@ -222,5 +229,47 @@ describe('FileManagerPanel editing (Story 23.5)', () => {
     await waitFor(() =>
       expect(screen.getByTestId('config-editor-text')).toHaveValue('{"draft": 1}')
     );
+  });
+
+  // Story 23.7
+  it('opens the history panel from the History button, Admin only', async () => {
+    stubApi();
+    renderPanel();
+    await openFile();
+
+    fireEvent.click(screen.getByTestId('file-viewer-history'));
+
+    expect(await screen.findByTestId('config-history-panel')).toBeInTheDocument();
+    expect(await screen.findByTestId('config-history-empty')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('config-history-close'));
+    await waitFor(() => expect(screen.getByTestId('file-viewer-code')).toBeInTheDocument());
+  });
+
+  it('closes the history panel when another file is chosen', async () => {
+    stubApi();
+    renderPanel();
+    await openFile();
+    fireEvent.click(screen.getByTestId('file-viewer-history'));
+    await screen.findByTestId('config-history-panel');
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('file-item-z.json'));
+    });
+
+    await waitFor(() =>
+      expect(screen.queryByTestId('config-history-panel')).not.toBeInTheDocument()
+    );
+  });
+
+  it('gives a Monitor key no History button', async () => {
+    stubApi();
+    renderPanel('monitor');
+    await waitFor(() => expect(screen.getByTestId('file-item-x.json')).toBeInTheDocument());
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('file-item-x.json'));
+    });
+
+    await waitFor(() => expect(screen.getByTestId('file-viewer')).toBeInTheDocument());
+    expect(screen.queryByTestId('file-viewer-history')).not.toBeInTheDocument();
   });
 });

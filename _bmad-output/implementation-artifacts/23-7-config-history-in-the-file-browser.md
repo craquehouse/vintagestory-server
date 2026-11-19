@@ -52,10 +52,10 @@ so that **I can see what an edit changed and undo it from the web UI**.
   - [x] 2.2: `types.ts` (`ConfigRevision`, `ConfigHistoryData`, `ConfigRevisionData`), `config.ts`, `use-config-files.ts`
   - [x] 2.3: Commit `refactor(story-23.7/task-2): add the web API calls for config file history`
 
-- [ ] Task 3: The history panel + tests (AC: 1, 2, 3, 6)
-  - [ ] 3.1: Red first: `ConfigHistoryPanel.test.tsx` and `FileManagerPanel.edit.test.tsx` rows (list, empty, choose and compare, show this version, restore with confirm, refusal message, disabled while not stopped; History button for Admin only, disabled while editing with changes) with `LazyRevisionCompare` stubbed
-  - [ ] 3.2: `features/settings/ConfigHistoryPanel.tsx`; `FileManagerPanel.tsx`: a History button in the viewer's actions (Admin with a read version), `showingHistory` state, the panel in the viewer's place
-  - [ ] 3.3: Commit `feat(story-23.7/task-3): see, compare and restore earlier versions of config files`
+- [x] Task 3: The history panel + tests (AC: 1, 2, 3, 6)
+  - [x] 3.1: Red first: `ConfigHistoryPanel.test.tsx` and `FileManagerPanel.edit.test.tsx` rows (list, empty, choose and compare, show this version, restore with confirm, refusal message, disabled while not stopped; History button for Admin only, disabled while editing with changes) with `LazyRevisionCompare` stubbed
+  - [x] 3.2: `features/settings/ConfigHistoryPanel.tsx`; `FileManagerPanel.tsx`: a History button in the viewer's actions (Admin with a read version), `showingHistory` state, the panel in the viewer's place
+  - [x] 3.3: Commit `feat(story-23.7/task-3): see, compare and restore earlier versions of config files`
 
 - [ ] Task 4: The Config History settings + tests (AC: 4, 6)
   - [ ] 4.1: Red first: `ApiSettingsPanel.test.tsx` rows (the two fields, their bounds and help text, saving); `api/tests/test_api_settings.py`: `WEB_DEFAULT_KEYS` and `WEB_BOUNDS` gain the two settings and the two bounds
