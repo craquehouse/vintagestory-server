@@ -563,6 +563,11 @@ class ConfigFilesService:
             raise ConfigFileNotSupportedError(filename)
         return safe_path
 
+    def target_for_history(self, filename: str) -> Path:
+        """The resolved path whose history a route reads (Story 23.6); the save's path rules,
+        the file need not exist."""
+        return self._target_for_write(filename)
+
     def check_text(self, filename: str, text: str) -> ParseErrorInfo | None:
         """Check a text against the parser rule a save of `filename` would use (Story 23.4).
 

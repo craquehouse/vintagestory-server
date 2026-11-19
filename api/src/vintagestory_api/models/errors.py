@@ -45,6 +45,10 @@ class ErrorCode:
     CONFIG_FILE_SERVER_BUSY = "CONFIG_FILE_SERVER_BUSY"
     CONFIG_FILE_CHANGED = "CONFIG_FILE_CHANGED"
     CONFIG_FILE_WRITE_FAILED = "CONFIG_FILE_WRITE_FAILED"
+    # Story 23.6 (Epic 23 ADR-7): config file history
+    CONFIG_HISTORY_WRITE_FAILED = "CONFIG_HISTORY_WRITE_FAILED"
+    CONFIG_REVISION_INVALID = "CONFIG_REVISION_INVALID"
+    CONFIG_REVISION_NOT_FOUND = "CONFIG_REVISION_NOT_FOUND"
 
     # Game Settings (Epic 6) - serverconfig.json settings managed via console commands
     # These apply to VintageStory game server configuration (Port, ServerName, etc.)
