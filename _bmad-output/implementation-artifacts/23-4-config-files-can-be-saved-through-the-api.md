@@ -68,10 +68,10 @@ so that **the web editor can change configs safely, keeping comments and formatt
   - [x] 1.2: `services/server.py`: `class GameServerNotStoppedError(Exception)` with `reason: Literal["running", "busy"]`; `@asynccontextmanager async def config_write(self) -> AsyncIterator[None]` (Dev Notes "The lock")
   - [x] 1.3: Commit `refactor(story-23.4/task-1): add a lock for writing config files while the game server is stopped`
 
-- [ ] Task 2: `ConfigFilesService.save_file` and `check_text` + tests (AC: 1, 2, 3, 6, 7, 9, 10)
-  - [ ] 2.1: Red first: `api/tests/test_config_files_save.py` with a row per AC case (Dev Notes "API tests")
-  - [ ] 2.2: `services/config_files.py`: exceptions `ConfigFileInvalidError(info: ParseErrorInfo)`, `ConfigFileChangedError`, `ConfigFileWriteError`; `is_root_serverconfig(resolved: Path) -> bool`; `check_text(filename, text) -> ParseErrorInfo | None`; `save_file(filename, text, version) -> SavedConfigFile` (Dev Notes "The save"); `_write_atomically(path, data)`
-  - [ ] 2.3: Commit `refactor(story-23.4/task-2): save a config file's text atomically, with checks`
+- [x] Task 2: `ConfigFilesService.save_file` and `check_text` + tests (AC: 1, 2, 3, 6, 7, 9, 10)
+  - [x] 2.1: Red first: `api/tests/test_config_files_save.py` with a row per AC case (Dev Notes "API tests")
+  - [x] 2.2: `services/config_files.py`: exceptions `ConfigFileInvalidError(info: ParseErrorInfo)`, `ConfigFileChangedError`, `ConfigFileWriteError`; `is_root_serverconfig(resolved: Path) -> bool`; `check_text(filename, text) -> ParseErrorInfo | None`; `save_file(filename, text, version) -> SavedConfigFile` (Dev Notes "The save"); `_write_atomically(path, data)`
+  - [x] 2.3: Commit `refactor(story-23.4/task-2): save a config file's text atomically, with checks`
 
 - [ ] Task 3: Dropping Story 22.7's pending edits a `serverconfig.json` save changes + tests (AC: 8, 10)
   - [ ] 3.1: Red first: `changed_keys(old, new)` unit rows; the drop through `ServerService.drop_pending_edits_changed_by_save(old_bytes, new_value)` with a real `PendingConfigEdits` in `tmp_path`

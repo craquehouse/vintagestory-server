@@ -37,6 +37,10 @@ Security:
 """
 
 import hashlib
+import os
+import secrets
+import stat
+from dataclasses import dataclass
 from pathlib import Path
 
 import structlog
@@ -119,6 +123,47 @@ class ConfigFileReadError(Exception):
         self.filename = filename
         self.message = f"Config file could not be read: {filename}"
         super().__init__(self.message)
+
+
+class ConfigFileInvalidError(Exception):
+    """Raised when a text to save does not parse under the file's rule (Story 23.4)."""
+
+    def __init__(self, info: ParseErrorInfo) -> None:
+        self.info = info
+        self.message = f"The text could not be parsed: {info.message}"
+        super().__init__(self.message)
+
+
+class ConfigFileChangedError(Exception):
+    """Raised when a file changed on disk since the version the save carries (Story 23.4)."""
+
+    def __init__(self, filename: str) -> None:
+        self.filename = filename
+        self.message = f"The file changed on disk since it was read: {filename}"
+        super().__init__(self.message)
+
+
+class ConfigFileWriteError(Exception):
+    """Raised when a config file could not be written; the original is unchanged (Story 23.4)."""
+
+    def __init__(self, filename: str) -> None:
+        self.filename = filename
+        self.message = f"Config file could not be written: {filename}"
+        super().__init__(self.message)
+
+
+@dataclass(frozen=True)
+class SavedConfigFile:
+    """What a save wrote (Story 23.4)."""
+
+    filename: str
+    version: str
+    previous_bytes: bytes
+    value: object
+    is_root_serverconfig: bool
+
+
+_UTF8_BOM = b"\xef\xbb\xbf"
 
 
 def _has_json_suffix(name: str) -> bool:
@@ -434,3 +479,164 @@ class ConfigFilesService:
             result["version"] = content_version(data)
         logger.debug("config_file_read", filename=filename)
         return result
+
+    def is_root_serverconfig(self, resolved: Path) -> bool:
+        """Whether a resolved path is the game's serverconfig.json in the data root.
+
+        That file is read and rewritten as strict JSON by other services, so it is saved
+        as strict JSON (Story 23.4, Epic 23 ADR-1 decision 5).
+        """
+        return (
+            resolved.parent == self.settings.serverdata_dir.resolve()
+            and resolved.name.casefold() == "serverconfig.json"
+        )
+
+    def _encode_and_parse(self, filename: str, text: str, strict: bool) -> tuple[bytes, object]:
+        """The text's UTF-8 bytes and parsed value, or the save's refusal."""
+        try:
+            data = text.encode("utf-8")
+        except UnicodeEncodeError:
+            raise ConfigFileInvalidError(ParseErrorInfo("The text is not valid UTF-8", None, None))
+        if len(data) > CONFIG_FILE_MAX_BYTES:
+            raise ConfigFileTooLargeError(filename)
+        try:
+            value = parse_config_text(text, strict=strict)
+        except ConfigParseError as e:
+            raise ConfigFileInvalidError(e.info)
+        return data, value
+
+    def _target_for_write(self, filename: str) -> Path:
+        """The resolved path a save or check applies to (Story 23.4, ADR-4 decision 2)."""
+        safe_path = self._safe_path(self.settings.serverdata_dir, filename)
+        if not self._role_may_open(safe_path, UserRole.ADMIN, file_request=True):
+            raise ConfigDirectoryForbiddenError(filename)
+        if not _has_json_suffix(filename):
+            raise ConfigFileNotSupportedError(filename)
+        return safe_path
+
+    def check_text(self, filename: str, text: str) -> ParseErrorInfo | None:
+        """Check a text against the parser rule a save of `filename` would use (Story 23.4).
+
+        The path rules of a save apply, except that the file need not exist; nothing is
+        read or written (Epic 23 ADR-4 decision 10).
+
+        Returns:
+            None when the text would be accepted, else why not and where.
+
+        Raises:
+            ConfigPathInvalidError, ConfigFileNotSupportedError, ConfigFileTooLargeError:
+                As for a save.
+        """
+        safe_path = self._target_for_write(filename)
+        try:
+            self._encode_and_parse(filename, text, self.is_root_serverconfig(safe_path))
+        except ConfigFileInvalidError as e:
+            return e.info
+        return None
+
+    def save_file(self, filename: str, text: str, version: str) -> SavedConfigFile:
+        """Replace an existing config file's text, exactly as sent (Story 23.4, FR314).
+
+        The caller holds ServerService.config_write() (the game server is stopped). Checks,
+        in order (Epic 23 ADR-4): the read's path rules for Admin; the file exists and is
+        a regular .json file; the text is UTF-8, at most CONFIG_FILE_MAX_BYTES, and parses
+        (strict JSON for the root serverconfig.json); the file's current bytes still have
+        `version`. Then the text is written atomically, keeping a UTF-8 byte order mark
+        the file had, and the file's mode (and owner, when running as root).
+
+        Raises:
+            ConfigPathInvalidError, ConfigFileNotSupportedError, ConfigFileNotFoundError,
+            ConfigFileTooLargeError, ConfigFileReadError: As for a read.
+            ConfigFileInvalidError: If the text does not parse.
+            ConfigFileChangedError: If the file changed since `version` was read.
+            ConfigFileWriteError: If the file could not be written (it is unchanged).
+        """
+        safe_path = self._target_for_write(filename)
+        if not safe_path.exists():
+            raise ConfigFileNotFoundError(filename)
+        if not (safe_path.is_file() and _has_json_suffix(safe_path.name)):
+            raise ConfigFileNotSupportedError(filename)
+
+        root_serverconfig = self.is_root_serverconfig(safe_path)
+        data, value = self._encode_and_parse(filename, text, root_serverconfig)
+
+        try:
+            current = safe_path.read_bytes()
+        except FileNotFoundError:
+            raise ConfigFileNotFoundError(filename)
+        except OSError as e:
+            logger.error("config_file_read_failed", filename=filename, error_type=type(e).__name__)
+            raise ConfigFileReadError(filename)
+        old_version = content_version(current)
+        if old_version != version:
+            logger.info("config_file_save_refused", filename=filename, reason="changed")
+            raise ConfigFileChangedError(filename)
+
+        if current.startswith(_UTF8_BOM) and not data.startswith(_UTF8_BOM):
+            data = _UTF8_BOM + data
+        self._write_atomically(safe_path, data, filename)
+
+        new_version = content_version(data)
+        logger.info(
+            "config_file_saved",
+            filename=filename,
+            size=len(data),
+            old_version=old_version,
+            new_version=new_version,
+        )
+        return SavedConfigFile(
+            filename=filename,
+            version=new_version,
+            previous_bytes=current,
+            value=value,
+            is_root_serverconfig=root_serverconfig,
+        )
+
+    def _write_atomically(self, path: Path, data: bytes, filename: str) -> None:
+        """Write `data` over `path` through a temporary file in the same directory.
+
+        Epic 23 ADR-4 decision 6: the temporary file is created exclusively, written and
+        fsynced, given the file's mode (and owner when running as root), and moved over the
+        file; then the directory is fsynced. On a failure the temporary file is removed and
+        the file is unchanged. No log line or message holds an absolute path.
+        """
+        temp = path.parent / f".{path.name}.{secrets.token_hex(6)}.tmp"
+        try:
+            original = path.stat()
+            fd = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            try:
+                view = memoryview(data)
+                while view:
+                    written = os.write(fd, view)
+                    view = view[written:]
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+            os.chmod(temp, stat.S_IMODE(original.st_mode))
+            if os.geteuid() == 0:
+                try:
+                    os.chown(temp, original.st_uid, original.st_gid)
+                except OSError as e:
+                    logger.warning("config_file_owner_not_kept", filename=filename, errno=e.errno)
+            os.replace(temp, path)
+        except OSError as e:
+            try:
+                temp.unlink(missing_ok=True)
+            except OSError:
+                pass
+            logger.error(
+                "config_file_write_failed",
+                filename=filename,
+                error_type=type(e).__name__,
+                errno=e.errno,
+                strerror=e.strerror,
+            )
+            raise ConfigFileWriteError(filename)
+        try:
+            directory = os.open(path.parent, os.O_RDONLY)
+            try:
+                os.fsync(directory)
+            finally:
+                os.close(directory)
+        except OSError as e:
+            logger.warning("config_file_directory_not_synced", filename=filename, errno=e.errno)
