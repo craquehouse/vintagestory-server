@@ -238,7 +238,7 @@ describe('useConfigDirectories', () => {
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
-      const { result } = renderHook(() => useConfigDirectories('Cache'), {
+      const { result } = renderHook(() => useConfigDirectories(['Cache']), {
         wrapper: createWrapper(queryClient),
       });
 
@@ -264,7 +264,7 @@ describe('useConfigDirectories', () => {
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
-      const { result } = renderHook(() => useConfigDirectories('Cache/My Folder'), {
+      const { result } = renderHook(() => useConfigDirectories(['Cache', 'My Folder']), {
         wrapper: createWrapper(queryClient),
       });
 
@@ -306,7 +306,7 @@ describe('useConfigFiles with directory parameter', () => {
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
-      const { result } = renderHook(() => useConfigFiles('ModConfigs'), {
+      const { result } = renderHook(() => useConfigFiles(['ModConfigs']), {
         wrapper: createWrapper(queryClient),
       });
 
@@ -332,7 +332,7 @@ describe('useConfigFiles with directory parameter', () => {
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
-      const { result } = renderHook(() => useConfigFiles('My Folder'), {
+      const { result } = renderHook(() => useConfigFiles(['My Folder']), {
         wrapper: createWrapper(queryClient),
       });
 
@@ -370,7 +370,7 @@ describe('useConfigFileContent', () => {
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
-      const { result } = renderHook(() => useConfigFileContent('serverconfig.json'), {
+      const { result } = renderHook(() => useConfigFileContent(['serverconfig.json']), {
         wrapper: createWrapper(queryClient),
       });
 
@@ -412,7 +412,7 @@ describe('useConfigFileContent', () => {
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
-      const { result } = renderHook(() => useConfigFileContent('serverconfig.json'), {
+      const { result } = renderHook(() => useConfigFileContent(['serverconfig.json']), {
         wrapper: createWrapper(queryClient),
       });
 
@@ -430,7 +430,7 @@ describe('useConfigFileContent', () => {
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
-      const { result } = renderHook(() => useConfigFileContent('serverconfig.json'), {
+      const { result } = renderHook(() => useConfigFileContent(['serverconfig.json']), {
         wrapper: createWrapper(queryClient),
       });
 
@@ -460,7 +460,7 @@ describe('useConfigFileContent', () => {
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
-      const { result } = renderHook(() => useConfigFileContent('nonexistent.json'), {
+      const { result } = renderHook(() => useConfigFileContent(['nonexistent.json']), {
         wrapper: createWrapper(queryClient),
       });
 
@@ -484,7 +484,7 @@ describe('useConfigFileContent', () => {
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
-      const { result } = renderHook(() => useConfigFileContent('file with spaces.json'), {
+      const { result } = renderHook(() => useConfigFileContent(['file with spaces.json']), {
         wrapper: createWrapper(queryClient),
       });
 
@@ -520,10 +520,10 @@ describe('useConfigFileContent', () => {
 
       const queryClient = createTestQueryClient();
       const { result, rerender } = renderHook(
-        ({ filename }: { filename: string | null }) => useConfigFileContent(filename),
+        ({ path }: { path: readonly string[] | null }) => useConfigFileContent(path),
         {
           wrapper: createWrapper(queryClient),
-          initialProps: { filename: 'serverconfig.json' },
+          initialProps: { path: ['serverconfig.json'] as readonly string[] | null },
         }
       );
 
@@ -531,7 +531,7 @@ describe('useConfigFileContent', () => {
       expect(result.current.data?.data.filename).toBe('serverconfig.json');
 
       // Change filename
-      rerender({ filename: 'worldconfig.json' });
+      rerender({ path: ['worldconfig.json'] });
 
       await waitFor(() => expect(result.current.data?.data.filename).toBe('worldconfig.json'));
       expect(result.current.data?.data.content).toEqual({

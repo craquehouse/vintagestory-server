@@ -7,6 +7,8 @@ import {
   fetchConfigDirectories,
   fetchConfigFiles,
   fetchConfigFileContent,
+  toConfigPath,
+  InvalidConfigPathError,
   API_SETTING_DEFAULTS,
   INTERVAL_API_SETTINGS,
   MAX_INTERVAL_SECONDS,
@@ -415,7 +417,7 @@ describe('api/config', () => {
 
       vi.mocked(apiClient).mockResolvedValue(mockResponse);
 
-      await fetchConfigDirectories('Mods');
+      await fetchConfigDirectories(['Mods']);
 
       expect(apiClient).toHaveBeenCalledWith('/api/v1alpha1/config/directories?directory=Mods');
     });
@@ -428,7 +430,7 @@ describe('api/config', () => {
 
       vi.mocked(apiClient).mockResolvedValue(mockResponse);
 
-      await fetchConfigDirectories('path/with/slashes');
+      await fetchConfigDirectories(['path', 'with', 'slashes']);
 
       expect(apiClient).toHaveBeenCalledWith(
         '/api/v1alpha1/config/directories?directory=path%2Fwith%2Fslashes'
@@ -453,7 +455,7 @@ describe('api/config', () => {
     it('propagates errors from apiClient', async () => {
       vi.mocked(apiClient).mockRejectedValue(new Error('Directory not found'));
 
-      await expect(fetchConfigDirectories('invalid')).rejects.toThrow('Directory not found');
+      await expect(fetchConfigDirectories(['invalid'])).rejects.toThrow('Directory not found');
     });
   });
 
@@ -484,7 +486,7 @@ describe('api/config', () => {
 
       vi.mocked(apiClient).mockResolvedValue(mockResponse);
 
-      await fetchConfigFiles('ModConfig');
+      await fetchConfigFiles(['ModConfig']);
 
       expect(apiClient).toHaveBeenCalledWith('/api/v1alpha1/config/files?directory=ModConfig');
     });
@@ -497,7 +499,7 @@ describe('api/config', () => {
 
       vi.mocked(apiClient).mockResolvedValue(mockResponse);
 
-      await fetchConfigFiles('dir/with/special chars');
+      await fetchConfigFiles(['dir', 'with', 'special chars']);
 
       expect(apiClient).toHaveBeenCalledWith(
         '/api/v1alpha1/config/files?directory=dir%2Fwith%2Fspecial%20chars'
@@ -522,7 +524,7 @@ describe('api/config', () => {
     it('propagates errors from apiClient', async () => {
       vi.mocked(apiClient).mockRejectedValue(new Error('Access denied'));
 
-      await expect(fetchConfigFiles('restricted')).rejects.toThrow('Access denied');
+      await expect(fetchConfigFiles(['restricted'])).rejects.toThrow('Access denied');
     });
   });
 
@@ -538,7 +540,7 @@ describe('api/config', () => {
 
       vi.mocked(apiClient).mockResolvedValue(mockResponse);
 
-      const result = await fetchConfigFileContent('serverconfig.json');
+      const result = await fetchConfigFileContent(['serverconfig.json']);
 
       expect(apiClient).toHaveBeenCalledWith('/api/v1alpha1/config/files/serverconfig.json', {
         transformResponse: false,
@@ -557,7 +559,7 @@ describe('api/config', () => {
 
       vi.mocked(apiClient).mockResolvedValue(mockResponse);
 
-      await fetchConfigFileContent('file with spaces.json');
+      await fetchConfigFileContent(['file with spaces.json']);
 
       expect(apiClient).toHaveBeenCalledWith(
         '/api/v1alpha1/config/files/file%20with%20spaces.json',
@@ -573,7 +575,7 @@ describe('api/config', () => {
 
       vi.mocked(apiClient).mockResolvedValue(mockResponse);
 
-      await fetchConfigFileContent('path/to/file.json');
+      await fetchConfigFileContent(['path', 'to', 'file.json']);
 
       expect(apiClient).toHaveBeenCalledWith('/api/v1alpha1/config/files/path%2Fto%2Ffile.json', {
         transformResponse: false,
@@ -596,7 +598,7 @@ describe('api/config', () => {
 
       vi.mocked(apiClient).mockResolvedValue(mockResponse);
 
-      const result = await fetchConfigFileContent('config.json');
+      const result = await fetchConfigFileContent(['config.json']);
 
       expect(result.data.content).toHaveProperty('setting1', 'value1');
       expect(result.data.content).toHaveProperty('setting2', 123);
@@ -607,7 +609,7 @@ describe('api/config', () => {
     it('propagates errors from apiClient', async () => {
       vi.mocked(apiClient).mockRejectedValue(new Error('File not found'));
 
-      await expect(fetchConfigFileContent('nonexistent.json')).rejects.toThrow('File not found');
+      await expect(fetchConfigFileContent(['nonexistent.json'])).rejects.toThrow('File not found');
     });
 
     // Story 23.1: content keys are the file's own; the envelope keys are mapped here
@@ -621,7 +623,7 @@ describe('api/config', () => {
         },
       });
 
-      const result = await fetchConfigFileContent('ModConfig/x.json');
+      const result = await fetchConfigFileContent(['ModConfig', 'x.json']);
 
       expect(result.data.content).toEqual({
         spawn_rate: 1,
@@ -643,7 +645,7 @@ describe('api/config', () => {
         },
       });
 
-      const result = await fetchConfigFileContent('x.json');
+      const result = await fetchConfigFileContent(['x.json']);
 
       expect(result.data).toEqual({
         filename: 'x.json',
@@ -660,7 +662,7 @@ describe('api/config', () => {
         data: { filename: 'x.json', content: {}, text: 5 },
       });
 
-      const result = await fetchConfigFileContent('x.json');
+      const result = await fetchConfigFileContent(['x.json']);
 
       expect(result.data.parseError).toBeNull();
       expect(result.data).not.toHaveProperty('text');
@@ -680,7 +682,7 @@ describe('api/config', () => {
       await updateApiSetting('key', 'value');
       await fetchConfigDirectories();
       await fetchConfigFiles();
-      await fetchConfigFileContent('file.json');
+      await fetchConfigFileContent(['file.json']);
 
       // All calls should start with /api/v1alpha1/config
       const calls = vi.mocked(apiClient).mock.calls;
@@ -763,5 +765,44 @@ describe('restart times and the backup limit (Story 22.6)', () => {
     expect(MAX_RESTART_TIMES).toBe(24);
     expect(MIN_RESTART_GAP_MINUTES).toBe(16);
     expect(MAX_BACKUP_KEEP_COUNT).toBe(1000);
+  });
+});
+
+// Story 23.2 (FR312, Epic 23 ADR-3): paths are built from lists of names in one place
+describe('toConfigPath', () => {
+  it('joins the names with slashes', () => {
+    expect(toConfigPath(['ModConfig', 'sub', 'x.json'])).toBe('ModConfig/sub/x.json');
+  });
+
+  it('joins the root to an empty path', () => {
+    expect(toConfigPath([])).toBe('');
+  });
+
+  it('keeps spaces and other characters in a name', () => {
+    expect(toConfigPath(['a b', '100% & #1', 'Ünïcødé'])).toBe('a b/100% & #1/Ünïcødé');
+  });
+
+  it.each(['', '.', '..', 'a/b'])('refuses the name %j', (name) => {
+    expect(() => toConfigPath(['ModConfig', name])).toThrow(InvalidConfigPathError);
+    expect(() => toConfigPath(['ModConfig', name])).toThrow('Invalid name in path');
+  });
+
+  it('refuses a name with a NUL character', () => {
+    expect(() => toConfigPath(['a\u0000b'])).toThrow(InvalidConfigPathError);
+  });
+});
+
+describe('an invalid name sends no request (Story 23.2)', () => {
+  beforeEach(() => {
+    vi.mocked(apiClient).mockReset();
+  });
+
+  it.each([
+    ['fetchConfigDirectories', () => fetchConfigDirectories(['a/b'])],
+    ['fetchConfigFiles', () => fetchConfigFiles(['..'])],
+    ['fetchConfigFileContent', () => fetchConfigFileContent(['ModConfig', ''])],
+  ])('%s rejects without calling the API', async (_name, call) => {
+    await expect(call()).rejects.toThrow(InvalidConfigPathError);
+    expect(apiClient).not.toHaveBeenCalled();
   });
 });

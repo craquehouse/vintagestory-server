@@ -14,7 +14,7 @@ import { fetchConfigDirectories, fetchConfigFiles, fetchConfigFileContent } from
 /**
  * Hook to fetch the list of directories in serverdata or a subdirectory.
  *
- * @param directory - Optional subdirectory to list directories from (Story 9.7)
+ * @param directory - Directory names from the root (Story 9.7, Story 23.2); `[]` is the root
  *
  * Story 9.7: Dynamic File Browser
  *
@@ -34,9 +34,11 @@ import { fetchConfigDirectories, fetchConfigFiles, fetchConfigFileContent } from
  *   );
  * }
  */
-export function useConfigDirectories(directory?: string) {
+export function useConfigDirectories(directory: readonly string[] = []) {
+  // The key only identifies the cache entry; the fetch validates the names (Story 23.2)
+  const key = directory.join('/');
   return useQuery({
-    queryKey: queryKeys.config.directories(directory),
+    queryKey: queryKeys.config.directories(key || undefined),
     queryFn: () => fetchConfigDirectories(directory),
   });
 }
@@ -44,7 +46,7 @@ export function useConfigDirectories(directory?: string) {
 /**
  * Hook to fetch the list of available configuration files.
  *
- * @param directory - Optional subdirectory to list files from (Story 9.7)
+ * @param directory - Directory names from the root (Story 9.7, Story 23.2); `[]` is the root
  *
  * @example
  * function FileList() {
@@ -62,9 +64,10 @@ export function useConfigDirectories(directory?: string) {
  *   );
  * }
  */
-export function useConfigFiles(directory?: string) {
+export function useConfigFiles(directory: readonly string[] = []) {
+  const key = directory.join('/');
   return useQuery({
-    queryKey: queryKeys.config.files(directory),
+    queryKey: queryKeys.config.files(key || undefined),
     queryFn: () => fetchConfigFiles(directory),
   });
 }
@@ -74,7 +77,7 @@ export function useConfigFiles(directory?: string) {
  *
  * Only fetches when a filename is provided (enabled when filename is non-null).
  *
- * @param filename - Name of the config file to fetch, or null to disable query
+ * @param path - Directory names then the file name (Story 23.2), or null to disable the query
  *
  * @example
  * function FileViewer({ filename }: { filename: string | null }) {
@@ -89,10 +92,10 @@ export function useConfigFiles(directory?: string) {
  *   );
  * }
  */
-export function useConfigFileContent(filename: string | null) {
+export function useConfigFileContent(path: readonly string[] | null) {
   return useQuery({
-    queryKey: queryKeys.config.file(filename ?? ''),
-    queryFn: () => fetchConfigFileContent(filename!),
-    enabled: !!filename,
+    queryKey: queryKeys.config.file(path ? path.join('/') : ''),
+    queryFn: () => fetchConfigFileContent(path ?? []),
+    enabled: path !== null && path.length > 0,
   });
 }

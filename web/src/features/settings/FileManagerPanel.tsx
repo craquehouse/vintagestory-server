@@ -60,23 +60,24 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
   const showAdminNote = role !== undefined && role !== 'admin';
 
   // Fetch directories for the current path (Story 9.7 - nested directory support)
-  const { data: directoriesData, isLoading: isLoadingDirectories } = useConfigDirectories(
-    currentDirectory ?? undefined
-  );
+  // Story 23.2 Task 1: the hooks take lists of names; the state becomes lists in Task 2
+  const directorySegments = currentDirectory ? currentDirectory.split('/') : [];
+  const { data: directoriesData, isLoading: isLoadingDirectories } =
+    useConfigDirectories(directorySegments);
 
   // Fetch file list (with directory support - Story 9.7)
   const {
     data: filesData,
     isLoading: isLoadingFiles,
     error: filesError,
-  } = useConfigFiles(currentDirectory ?? undefined);
+  } = useConfigFiles(directorySegments);
 
   // Fetch selected file content
   const {
     data: contentData,
     isLoading: isLoadingContent,
     error: contentError,
-  } = useConfigFileContent(selectedFile);
+  } = useConfigFileContent(selectedFile ? selectedFile.split('/') : null);
 
   // Combine directories and files into items list
   const items = useMemo<FileListItem[]>(() => {
