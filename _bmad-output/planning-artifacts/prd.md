@@ -146,7 +146,7 @@ Two core capabilities define this product:
 - Renovate integration for automated dependency updates
 - SBOM generation (Epic 15) and security scanning in CI
 - Versioned GitHub releases with changelogs and published images (Epic 15)
-- Prometheus metrics endpoint (`/metrics`)
+- Prometheus metrics endpoint (`/metrics`) (Epic 22)
 - Enhanced API documentation (OpenAPI UI)
 
 ### Vision (Future)
@@ -282,7 +282,7 @@ If trivial to implement:
 - Mod update detection and one-click updates (Epic 14)
 - Mod version switching (rollback capability) (Epic 14)
 - Backup management (create, restore, download)
-- Prometheus `/metrics` endpoint
+- Prometheus `/metrics` endpoint (Epic 22)
 - Renovate integration for dependency updates
 - SBOM generation (Epic 15) and security scanning
 - Versioned GitHub releases with changelogs and published images (Epic 15)

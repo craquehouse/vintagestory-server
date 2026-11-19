@@ -110,11 +110,11 @@ so that **I can graph players, CPU, memory and uptime, and alert when the server
   - [x] 4.5: New `api/tests/e2e/test_e2e_metrics.py` (Dev Notes "E2E test"). Run it only through `just test-e2e-ci` (it builds the image from the branch, runs it on port 18080 and removes it; `scripts/e2e-ci.sh:150-158` runs `pytest tests/e2e` against it). Never `just test-e2e-api`, `just test-e2e` or `just test-e2e-web` (they target or restart the dev stack), and never rebuild or restart the dev stack for it
   - [x] 4.6: Commit `feat(story-22.2/task-4): serve game server metrics for Prometheus at /metrics` (body: Story 22.2 / task 4; `GET /metrics` at the root, without an API key, in the Prometheus text format: the game server's version, up, state, uptime, players online and maximum, pending restart, the game process's CPU and memory, and the manager's own process metrics; read live, so it works with metrics collection off; scraped by the API E2E tests)
 
-- [ ] Task 5: Document `/metrics` (AC: 9)
-  - [ ] 5.1: `README.md`: the Features "API" bullet (`:18`) names `/metrics` beside the health endpoints; a new `### Metrics` section after `### Configuration` (`:73-90`), before `## Development` (`:92`), with the content of Dev Notes "Documentation"
-  - [ ] 5.2: `_bmad-output/planning-artifacts/prd.md:149` and `:285`: append ` (Epic 22)` as the other built items on those lists do (`(Epic 14)`, `(Epic 15)`); `_bmad-output/planning-artifacts/architecture/core-architectural-decisions.md:21`: `Prometheus metrics implementation` gains ` (decided in Epic 22: architecture/epic-22-server-operations-and-metrics.md, ADR-3 and ADR-4)`
-  - [ ] 5.3: `just lint` green (the README is not linted; this checks nothing else moved)
-  - [ ] 5.4: Commit `docs(story-22.2/task-5): document /metrics with a Prometheus scrape example`
+- [x] Task 5: Document `/metrics` (AC: 9)
+  - [x] 5.1: `README.md`: the Features "API" bullet (`:18`) names `/metrics` beside the health endpoints; a new `### Metrics` section after `### Configuration` (`:73-90`), before `## Development` (`:92`), with the content of Dev Notes "Documentation"
+  - [x] 5.2: `_bmad-output/planning-artifacts/prd.md:149` and `:285`: append ` (Epic 22)` as the other built items on those lists do (`(Epic 14)`, `(Epic 15)`); `_bmad-output/planning-artifacts/architecture/core-architectural-decisions.md:21`: `Prometheus metrics implementation` gains ` (decided in Epic 22: architecture/epic-22-server-operations-and-metrics.md, ADR-3 and ADR-4)`
+  - [x] 5.3: `just lint` green (the README is not linted; this checks nothing else moved)
+  - [x] 5.4: Commit `docs(story-22.2/task-5): document /metrics with a Prometheus scrape example`
 
 - [ ] Task 6: Validate and move the story to review (AC: all)
   - [ ] 6.1: `just check` green: API tests, pyright 0 errors and 0 warnings, ruff; web tests with 0 skipped, tsc, Prettier. The diff adds no lint or type suppression (`# type: ignore`, `# pyright: ignore`, `noqa`), no `cast`, no skipped or `.only` test. `git status --short dev/` is empty after the runs
@@ -458,6 +458,9 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive
 - `api/src/vintagestory_api/main.py` (modified: `prometheus` router imported and included after `health.router`)
 - `api/tests/test_prometheus_router.py` (new)
 - `api/tests/e2e/test_e2e_metrics.py` (new)
+- `README.md` (modified: Features API bullet names `/metrics`; new `### Metrics` section)
+- `_bmad-output/planning-artifacts/prd.md` (modified: the two Prometheus post-MVP lines say Epic 22)
+- `_bmad-output/planning-artifacts/architecture/core-architectural-decisions.md` (modified: Prometheus deferred decision points to Epic 22 ADR-3 and ADR-4)
 
 ## Change Log
 
