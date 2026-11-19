@@ -86,11 +86,11 @@ so that **I can schedule restarts and control disk use without calling the API**
   - [x] 3.2: Tests (Dev Notes "Web tests", Task 3 rows), red first
   - [x] 3.3: `just test-web src/features/settings`, `just typecheck`, Prettier on the changed files, `just lint-web`. Commit `feat(story-22.6/task-3): set the backup limit in API Settings` (body: Settings > API Settings > Backup Cleanup sets how many of the newest files in `serverdata/Backups` the daily 03:00 cleanup keeps (server time); 0, the default, keeps all; older files are deleted permanently; `BackupSaves` and the world are never touched)
 
-- [ ] Task 4: E2E for both groups, at 320px and desktop, with snapshot and restore + tests (AC: 2, 3, 5, 6, 7, 8, 9)
-  - [ ] 4.1: `web/e2e/settings-as-saved.spec.ts`: the tests of Dev Notes "E2E" in a new serial describe with its own snapshot and restore of `scheduled_restart_times` and `backup_keep_count`; update the spec's header comment (`:4-36`) with this story's lines and its residue (none: both values are restored exactly; Dev Notes "E2E")
-  - [ ] 4.2: `web/e2e/README.md`: recount (`cd web && bunx playwright test --list | tail -1`, and with `--grep-invert "@moddb|@moddb-live|@install|@game-server"`) and update every count it states (`:50` at 34a19a1b: 267 tests, CI 263: 236 untagged and 27 `@moddb`)
-  - [ ] 4.3: `just test-e2e-ci e2e/settings-as-saved.spec.ts` passes with 0 skipped in this file. Never against the dev stack
-  - [ ] 4.4: Commit `test(story-22.6/task-4): check the restart times and the backup limit in API Settings`
+- [x] Task 4: E2E for both groups, at 320px and desktop, with snapshot and restore + tests (AC: 2, 3, 5, 6, 7, 8, 9)
+  - [x] 4.1: `web/e2e/settings-as-saved.spec.ts`: the tests of Dev Notes "E2E" in a new serial describe with its own snapshot and restore of `scheduled_restart_times` and `backup_keep_count`; update the spec's header comment (`:4-36`) with this story's lines and its residue (none: both values are restored exactly; Dev Notes "E2E")
+  - [x] 4.2: `web/e2e/README.md`: recount (`cd web && bunx playwright test --list | tail -1`, and with `--grep-invert "@moddb|@moddb-live|@install|@game-server"`) and update every count it states (`:50` at 34a19a1b: 267 tests, CI 263: 236 untagged and 27 `@moddb`)
+  - [x] 4.3: `just test-e2e-ci e2e/settings-as-saved.spec.ts` passes with 0 skipped in this file. Never against the dev stack
+  - [x] 4.4: Commit `test(story-22.6/task-4): check the restart times and the backup limit in API Settings`
 
 - [ ] Task 5: Quality gate, review hand-off and the maintainer's check (AC: all)
   - [ ] 5.1: `just check` passes (lint, typecheck with the E2E project, all API and web tests) with 0 skipped web tests; `just test-e2e-ci` (both passes) passes. `git status --short` shows nothing under `dev/` or `data/`. The diff has no `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, `nosemgrep`, `# type: ignore`, `.skip`/`.only` in unit tests, and no new `as` type assertion (`as const` is not one)
@@ -302,6 +302,8 @@ Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive.
 
 - Task 3: the Backup Cleanup panel tests were red (12 of 13; "no field for log archives" passes before as well) before the group. Adding the group broke Task 2's order test, which had checked Environment Variables *directly* after Scheduled Restarts (stricter than the story's "before"); relaxed to document order. The "a 400 ... under the field" test then passed in the full file but failed alone: `useSettingField` clears its error on every change of its value prop (`use-setting-field.ts:255-258` at 34a19a1b), and `useUpdateApiSetting`'s rollback reaches the field (TanStack's `setTimeout(0)` notification) after the field's `catch` set the API's message, so the message vanished. Fixed in `use-setting-field.ts` (deviation 2), red first in `use-setting-field.test.ts`.
 
+- Task 4: `just test-e2e-ci e2e/settings-as-saved.spec.ts`: 11 passed, 0 skipped (the Monitor check ran: the script sets the key), first try; `git status --short dev/ data/` empty after. Recount: 270 tests (was 267), CI 266: 239 untagged and 27 `@moddb`.
+
 ### Completion Notes List
 
 ### File List
@@ -324,6 +326,8 @@ Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive.
 - `web/src/features/settings/SettingsPage.test.tsx` (Task 2)
 - `web/src/hooks/use-setting-field.ts` (Task 3, deviation 2)
 - `web/src/hooks/use-setting-field.test.ts` (Task 3, deviation 2)
+- `web/e2e/settings-as-saved.spec.ts` (Task 4)
+- `web/e2e/README.md` (Task 4)
 
 ## Change Log
 
