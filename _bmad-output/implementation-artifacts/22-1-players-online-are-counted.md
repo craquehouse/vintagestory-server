@@ -1,6 +1,6 @@
 # Story 22.1: Players Online Are Counted
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR287-FR288, Epic 22 ADR-1, ADR-2 and ADR-14. Bead: VSS-bhw (API-023), first half; Story 22.2 closes it. Maintainer answers 1 and 4 (Matt, 2026-11-18). Stories run in order 22.1 to 22.6; this is the first, branched from planning/epic-22-server-operations-and-metrics (3b15aa21, main e16a7932 plus the planning commit). The PR targets main. Line references were verified at 3b15aa21 (api/ and web/ identical to e16a7932, the commit the ADRs cite) and must be re-checked at implementation time. API and web change; one new service module, one new web component, one E2E test. No new dependency. -->
 
@@ -105,12 +105,12 @@ so that **I know whether anyone is playing before I restart or change something,
   - [x] 5.3: Commit `test(story-22.1/task-5): check the Players card at every dashboard width`
 
 - [ ] Task 6: Validate and move the story to review (AC: all)
-  - [ ] 6.1: `just check` green: API tests, pyright 0 errors and 0 warnings, ruff; web tests with 0 skipped, tsc 0 errors, Prettier. The diff adds no lint or type suppression (`# type: ignore`, `# pyright: ignore`, `eslint-disable`, `@ts-expect-error`), no `cast`, no skipped or `.only` test. `git status --short dev/` is empty after the runs
-  - [ ] 6.2: `rg -n "ExamplePlayer|AnotherPlayer|203\.0\.113|198\.51\.100" api/src web/src --glob '!*.test.*'` finds nothing (placeholders live in tests only)
+  - [x] 6.1: `just check` green: API tests, pyright 0 errors and 0 warnings, ruff; web tests with 0 skipped, tsc 0 errors, Prettier. The diff adds no lint or type suppression (`# type: ignore`, `# pyright: ignore`, `eslint-disable`, `@ts-expect-error`), no `cast`, no skipped or `.only` test. `git status --short dev/` is empty after the runs
+  - [x] 6.2: `rg -n "ExamplePlayer|AnotherPlayer|203\.0\.113|198\.51\.100" api/src web/src --glob '!*.test.*'` finds nothing (placeholders live in tests only)
   - [ ] 6.3: Ask the maintainer, in the hand-off and the PR description, for one anonymised join line and one leave line copied from a real server's console (name replaced by `ExamplePlayer`, address by `203.0.113.5:42420`, timestamp kept as printed)
   - [ ] 6.4: Manual check (maintainer only; leave unticked until he confirms): his two sample lines are added to `test_players.py` as test cases and counted; if the provisional `_EVENT_PREFIX` does not match them it is corrected from them in the same commit (Dev Notes "When the sample arrives"); the Players card shows the count with a real client joining and leaving
-  - [ ] 6.5: Story status `review` in this file; `just sprint set 22-1-players-online-are-counted review`; Dev Agent Record and File List filled in, every statement true of the code
-  - [ ] 6.6: Commit `chore(story-22.1/task-6): validate and move story 22.1 to review`
+  - [x] 6.5: Story status `review` in this file; `just sprint set 22-1-players-online-are-counted review`; Dev Agent Record and File List filled in, every statement true of the code
+  - [x] 6.6: Commit `chore(story-22.1/task-6): validate and move story 22.1 to review`
   - [ ] 6.7: PR against `main` with "API contract changes" from this story; PR link as a comment on `VSS-bhw` (`bd comments add`; the bead stays open: Story 22.2 closes it). Pushing and opening the PR only with the maintainer's or orchestrator's go-ahead
 
 ## Dev Notes
@@ -405,6 +405,14 @@ Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive
 - Task 4: `playersOnline: number | null` on the web `MetricsSnapshot`; new `PlayersCard` (memo, `isRunning` prop, `useCurrentMetrics()`, lucide `Users`, `testId="players-card"`) with the states of the card table in the order loading, stopped, error, N/A, count; rendered in a `StatCardErrorBoundary` directly after Uptime in `Dashboard.tsx` (grid classes unchanged). Tests: 11 in `PlayersCard.test.tsx` (every row of the table, Stopped with a lagging snapshot of 3, NaN, fetch URLs are only `/api/v1alpha1/metrics/current`; uses `vi.stubGlobal`/`vi.unstubAllGlobals`), the Dashboard grid test now expects 5 cards, 2 new Dashboard tests (Players right after Uptime in the grid's children, Stopped when installed), 1 new `use-metrics` test (`playersOnline` passes through). `playersOnline` added to the typed fixtures of `Dashboard.test.tsx` and `MetricsChart.test.tsx` and to the fetch bodies of `use-metrics.test.tsx` (null where the game fields are null). `just format-web` changed no file outside this task; `just lint-web`, `just typecheck-web` clean; `just test-web` 3567 passed in 137 files.
 - Commit subject: `feat(story-22.1/task-4): show the players online on the dashboard` instead of the story's `feat(web): ...` (same reason as Task 3).
 - Task 5: `layout-widths.spec.ts` gains `runningWithPlayers(page)` (status GET rewritten to running, version `FIXTURE_GAME_VERSION`, `uptimeSeconds: 3600`; `/metrics/current` GET fulfilled with `playersOnline: 2`), registered inside `openPage` through a new `players` option, and the describe `Players card at every width (Story 22.1, AC 8)`: 12 tests (6 widths x 2 sidebar states) checking the card is visible, reads 2, is inside the viewport, the document has no sideways overflow, and the grid child after `uptime-card` is `players-card`. The describe drops in-flight routes in `afterEach`, as the Story 21.8 width describe does. `just test-e2e-ci e2e/layout-widths.spec.ts`: first pass 148 passed (the file's tests, 12 new), API E2E 3 passed, the @moddb pass found no test in the file; exit 0, the throwaway containers removed by the script. Not run against the dev stack.
+- Task 6: `just check` exit 0: API 3503 passed, pyright 0 errors 0 warnings (twice in the run), ruff clean; web 3567 passed in 137 files (0 skipped), tsc clean, Prettier clean; script tests all passed. `git status --short dev/` empty. The diff adds no suppression, `cast`, skipped or `.only` test (grep of the added lines: only the story text names them). 6.2: `rg` finds no placeholder in `api/src` or `web/src` outside tests. `just changelog` lists exactly the two story release notes. Story status `review`; `just sprint set 22-1-players-online-are-counted review`.
+- Left open: 6.3 (the request for the maintainer's sample lines is in the hand-off; the PR description half waits for 6.7), 6.4 (maintainer's manual check, AC 10), 6.7 (push, PR and the bead comment wait for the go-ahead). Task 6 stays unticked for those.
+- Deviation from the story text: the two user-visible commits use `feat(story-22.1/task-3)` and `feat(story-22.1/task-4)` instead of `feat(api)` / `feat(web)` (orchestrator's instruction); `just changelog` shows the same subjects.
+- Drawdown items (noticed, not changed):
+  - `just format-api` takes no file arguments and formats the whole API tree; the story's `cd api && uv run ruff format <files>` was used instead. A file-argument form of the recipe (as `test-api` has) would let agents keep to `just`.
+  - `just format-web` takes no file arguments either (as the story says); it changed no other file here.
+  - `MetricsService` tests with a bare `MagicMock` server service that does not set `players_online` (the graceful-degradation tests) now put a `MagicMock` into the snapshot's `players_online` and the DEBUG log; harmless for their assertions, but a `spec=ServerService` mock would make such gaps visible.
+  - Dashboard.test.tsx's file comment still lists the cards of Story 12.4 (no Players); its test names it.
 
 ### File List
 
@@ -425,8 +433,11 @@ Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive
 - `web/src/features/dashboard/MetricsChart.test.tsx` (modified)
 - `web/src/hooks/use-metrics.test.tsx` (modified)
 - `web/e2e/layout-widths.spec.ts` (modified)
+- `_bmad-output/implementation-artifacts/22-1-players-online-are-counted.md` (modified)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (modified, through `just sprint`)
 
 ## Change Log
 
 - 2026-11-18: Story 22.1 created (ready-for-dev).
+- 2026-11-18: Implemented Tasks 1-5 and validated (Task 6); status review. Maintainer items 6.3 (PR half), 6.4 and 6.7 open.
 - 2026-11-18: Validated against the create-story checklist: AC 5 scoped to exclude the unchanged console and log-file routes; tracker snippet wrapped to the 100-column ruff limit; lifecycle test rows account for `mock_subprocess` (early monitor reset, `returncode` never set); web fixture list corrected to the files tsc checks; E2E route order (register the stub inside `openPage`); file comment range `:4-65`.
