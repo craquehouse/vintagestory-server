@@ -1,6 +1,6 @@
 # Story 22.2: A Prometheus `/metrics` Endpoint
 
-Status: in-progress
+Status: review
 
 <!-- Implements FR289-FR291 and FR306, Epic 22 ADR-3, ADR-4 and ADR-14. Bead: VSS-bhw (API-023), closes here (Story 22.1 carried its first half). Maintainer answers 1, 2 and 3 (Matt, 2026-11-18). Stories run in order 22.1 to 22.6; this branch, story/22-2-prometheus-metrics-endpoint, is stacked on story/22-1-players-online-are-counted at 7672fc90 (22.1 in review: it adds ServerService.players_online and the PlayerTracker). The PR targets main and merges after 22.1's. Line references were verified at 7672fc90 (re-checked in validation at e2b55388) and must be re-checked at implementation time. API and documentation only; no web source change. One new runtime dependency (prometheus-client), one new open route, two new modules, one API E2E test, and one fix pulled in by the controller during validation (backlog drawdown, FR306): game settings and mods share one pending-restart state ("ADR against the code" 8). -->
 
@@ -117,11 +117,11 @@ so that **I can graph players, CPU, memory and uptime, and alert when the server
   - [x] 5.4: Commit `docs(story-22.2/task-5): document /metrics with a Prometheus scrape example`
 
 - [ ] Task 6: Validate and move the story to review (AC: all)
-  - [ ] 6.1: `just check` green: API tests, pyright 0 errors and 0 warnings, ruff; web tests with 0 skipped, tsc, Prettier. The diff adds no lint or type suppression (`# type: ignore`, `# pyright: ignore`, `noqa`), no `cast`, no skipped or `.only` test. `git status --short dev/` is empty after the runs
-  - [ ] 6.2: `rg -n "ExamplePlayer|AnotherPlayer|203\.0\.113|198\.51\.100" api/src` finds nothing; `just changelog` lists exactly two new entries from this story (Task 2's fix and Task 4's feature subjects)
+  - [x] 6.1: `just check` green: API tests, pyright 0 errors and 0 warnings, ruff; web tests with 0 skipped, tsc, Prettier. The diff adds no lint or type suppression (`# type: ignore`, `# pyright: ignore`, `noqa`), no `cast`, no skipped or `.only` test. `git status --short dev/` is empty after the runs
+  - [x] 6.2: `rg -n "ExamplePlayer|AnotherPlayer|203\.0\.113|198\.51\.100" api/src` finds nothing; `just changelog` lists exactly two new entries from this story (Task 2's fix and Task 4's feature subjects)
   - [ ] 6.3: Manual check (maintainer only; leave unticked until he confirms): scrape `http://localhost:9080/metrics` with a real Prometheus or `curl -s http://localhost:9080/metrics`, read-only, and see the series of AC 2 to 4 for the stack's state. Nobody starts, stops or rebuilds the dev stack for it; if the dev stack runs an older image, the check waits until the maintainer has rebuilt it himself
-  - [ ] 6.4: Story status `review` in this file; `just sprint set 22-2-prometheus-metrics-endpoint review`; Dev Agent Record and File List filled in, every statement true of the code
-  - [ ] 6.5: Commit `chore(story-22.2/task-6): validate and move story 22.2 to review`
+  - [x] 6.4: Story status `review` in this file; `just sprint set 22-2-prometheus-metrics-endpoint review`; Dev Agent Record and File List filled in, every statement true of the code
+  - [x] 6.5: Commit `chore(story-22.2/task-6): validate and move story 22.2 to review`
   - [ ] 6.6: After merge, with the maintainer's go-ahead only: AAR comment on `VSS-bhw` and close it (`bd comments add`, `bd close`, `bd sync`; CLAUDE.md "Completing Issues"). Pushing, the PR and the bead wait for that go-ahead
 
 ## Dev Notes
@@ -436,10 +436,32 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive
 
 ### Debug Log References
 
+- `just test-e2e-ci` (Task 4.5): API E2E 4 passed (`test_e2e_metrics.py` among them), web E2E 231 passed and 27 @moddb passed, exit 0; the throwaway `vintagestory-manager-e2e` container was removed by the script. The dev stack was not touched.
+- `just check` (Task 6.1): exit 0.
+
 ### Completion Notes List
 
 - 2026-11-18: Story created (create-story, non-interactive) and checked against the create-story checklist: 6 tasks; every code task carries its tests (Task 5 is documentation only, Task 6 validation); every AC is mapped to a task (AC 11 to Task 6 and every task's test run, AC 12 to Task 6.3). Ultimate context engine analysis completed - comprehensive developer guide created.
 - 2026-11-18: Validated against the create-story checklist, the epic, ADR-3, ADR-4, ADR-14, project-context.md, CLAUDE.md and the code at e2b55388; prometheus-client 0.26.0 re-checked on Python 3.14 in a scratch environment (pyright strict 0/0 on the collector shape). Pulled in by the controller during validation (backlog drawdown): one pending-restart state for game settings and mods (new Task 2, AC 13, FR306, "ADR against the code" 8); the route and the E2E test merged into Task 4 to stay at 6 tasks. Corrected: the exception `generate_latest` lets through, the counter's `# HELP`/`# TYPE` lines, the README Features line, `register_frontend`'s call lines, the disk-space patch in the router tests, a players-failure seam that type-checks.
+
+- Task 1: `cd api && uv add "prometheus-client>=0.26.0,<1"`: `api/pyproject.toml` gains that one line (alphabetical, after `httpx`), `api/uv.lock` gains `prometheus-client` 0.26.0 and no other version changes. `test_plain_text_content_type_is_version_0_0_4` failed at import first, then passed; pyright 0/0.
+- Task 2: `routers/config.py`'s own singleton is gone; `get_pending_restart_state()` keeps its name and returns `services.mods.get_restart_state()`. New `tests/test_shared_pending_restart.py` (5 tests, through the routes with a temp-dir `ServerService` and `ModService`, no `with` block): the identity; `Port` saved -> `/healthz` and the mods list true -> restart (start mocked) -> false (AC 13). `test_get_pending_restart_state_singleton_initialization` rewritten for the shared state (monkeypatched reset of `services.mods._restart_state`).
+- Task 2, controller decision during validation: a successful start of any kind clears the shared state. Implemented in `ServerService.start_server` (the path of the Start button, `routers/server.py:214`, and auto-start, `main.py:199`): after `_start_server_locked()` returns, `_clear_pending_restart()` runs inside the lifecycle lock; a start that raises skips it. `_restart_server_locked` keeps its own clear unchanged, so a restart clears exactly once as before (the existing `test_restart_server_clears_pending_restart` asserts `assert_called_once`, and `test_failed_restart_keeps_pending_restart` still holds). Placing the clear in `start_server` rather than inside `_start_server_locked` is what keeps restart identical (one clear) and keeps the story's mocked-`_start_server_locked` tests meaningful. Tests: `Port` while stopped -> Start -> clear; mod disabled while running -> Stop (still set) -> Start -> clear; a real start whose spawn raises `OSError` -> 500 and the flag stays. Recorded as AC 13's added line and Task 2.5. API suite after Task 2: 3509 passed.
+- Task 3: `GameConfigService.get_max_clients()` (missing file -> `None`; non-int or bool -> `None`; JSON and OS errors propagate; no log line). New `services/prometheus_metrics.py` with the binding names: five sources, each through `_guarded` (WARNING `prometheus_source_failed` with `source`, `error_type`, `error`), `NoSuchProcess` handled inside `game_process` (DEBUG `prometheus_game_process_gone`), plain labelled `GaugeMetricFamily` for info and state, `CounterMetricFamily` for CPU, no `describe()`, `build_registry` with Process, Platform and GC collectors on a new `CollectorRegistry`, lazy `get_metrics_registry()`. Tests: 8 in `TestGetMaxClients`; `test_prometheus_metrics.py` covers every row of Dev Notes "API tests" for Task 3 (running with the exact `# HELP`/`# TYPE` lines, installed, not installed with and without `serverconfig.json`, stopping with a live process, pending, pending from a game setting until a restart, players_max non-integers without WARNING, failure isolation for all five sources, NoSuchProcess, live values with a spy on `MetricsService.collect` that records no call, labels and no personal data, registry, two registries, the singleton not scraped). On macOS the `process_*` assertion takes the non-Linux branch (one assertion on `sys.platform`, no skip); the Linux branch ran in the E2E container.
+- Task 4: `routers/prometheus.py` as Dev Notes "The route"; `main.py` imports `prometheus` after `mods` and includes it right after `health.router` under the extended comment. `tests/test_prometheus_router.py` (6 tests): no key and wrong key 200 with the exact content type and a parsable body; not the SPA and no CSP/XFO headers; `/` still the SPA with its CSP; `POST /metrics` 405; a scrape logs nothing above DEBUG. They failed first (the SPA answered `text/html`). `tests/e2e/test_e2e_metrics.py` as Dev Notes "E2E test", run only through `just test-e2e-ci`.
+- Task 5: README Features bullet names `/metrics`; new `### Metrics` section between Configuration and Development with the series table, the open-endpoint note, the alert series and the `scrape_configs` example; PRD `:149`, `:285` and `core-architectural-decisions.md:21` updated. `just lint` exit 0.
+- Task 6: `just check` exit 0: API 3546 passed, pyright 0 errors 0 warnings (src and tests, and scripts), ruff clean; web 3567 passed in 137 files, 0 skipped, tsc and Prettier clean; script tests all passed. `git status --short dev/` empty. The added lines in `api/src` and `api/tests` hold no `type: ignore`, `noqa`, `pyright:`, `cast(`, skip, `xfail` or `.only`. 6.2: `rg` finds no placeholder in `api/src`; `just changelog` lists exactly two entries from this story (Task 2's fix and Task 4's feature). Story status `review`; `just sprint set 22-2-prometheus-metrics-endpoint review`.
+- Left open: 6.3 (maintainer's read-only scrape of the dev stack, AC 12) and 6.6 (AAR and closing `VSS-bhw` after merge, with the go-ahead). Task 6 stays unticked for those. Not pushed.
+- Deviations from the story text:
+  - Controller decision during validation (above): a plain successful start now clears the pending restart. This supersedes "Not changed" (second bullet) and the "Known consequence" in "ADR against the code" 8; both carry a note saying so. The README's pending-restart row says "until the game server is next started or restarted" instead of "until the next restart" to match.
+  - Story sections outside the dev-story workflow's usual list (AC 13, Task 2.5, the two notes above) were edited because the controller asked for the decision to be recorded there.
+  - Formatting with `cd api && uv run ruff format <files>` (as the story says), not `just format-api`.
+- Drawdown items (noticed, not changed):
+  - The web's start and restart mutations (`useStartServer`, `useRestartServer`) invalidate only the server status, so after a start the "Restart required" banner goes at the next mods poll (within 10 s), not at once. Invalidating the mods query there would make it immediate.
+  - `ServerService._clear_pending_restart` and `_update_mod_service_server_state` catch every exception and log at DEBUG only; a failing clear would leave a stale banner with no WARNING. It predates this story.
+  - `PendingRestartBanner.tsx`'s doc comment still says "mod changes" (the story already leaves it).
+  - Epic 22 ADR-3 decision 2 still says `CONTENT_TYPE_LATEST` (the story records the deviation and leaves the ADR alone).
+  - `just changelog` prints the whole history since the first commit with 211 parse-skipped commits, so "exactly two new entries" was checked by grepping this branch's hashes.
 
 ### File List
 
@@ -461,8 +483,11 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive
 - `README.md` (modified: Features API bullet names `/metrics`; new `### Metrics` section)
 - `_bmad-output/planning-artifacts/prd.md` (modified: the two Prometheus post-MVP lines say Epic 22)
 - `_bmad-output/planning-artifacts/architecture/core-architectural-decisions.md` (modified: Prometheus deferred decision points to Epic 22 ADR-3 and ADR-4)
+- `_bmad-output/implementation-artifacts/22-2-prometheus-metrics-endpoint.md` (this story)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
 
 ## Change Log
 
 - 2026-11-18: Story 22.2 created (ready-for-dev).
 - 2026-11-18: Validated; the shared pending-restart fix pulled in by the controller (backlog drawdown), tasks restructured to 6.
+- 2026-11-18: Implemented (dev-story): Tasks 1-5 and the automated part of Task 6; controller decision during validation added to Task 2 (a successful start clears the pending restart); status review.
