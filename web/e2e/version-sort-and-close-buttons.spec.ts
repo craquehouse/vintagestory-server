@@ -24,7 +24,7 @@ import { FIXTURE_GAME_VERSION, fetchOnNewConnection, serveConfigKey } from './co
  * no screenshot is taken. Untagged: it needs no mod database and no game server.
  *
  * Requirements:
- * - Docker stack on E2E_BASE_URL (default http://localhost:8080), rebuilt from this
+ * - Docker stack on E2E_BASE_URL (default http://localhost:9080), rebuilt from this
  *   branch: `just test-e2e-ci`, or `just docker restart`, then
  *   `cd web && bunx playwright test e2e/version-sort-and-close-buttons.spec.ts` with
  *   VS_API_KEY_ADMIN exported.

@@ -8,7 +8,7 @@ services:
       dockerfile: Dockerfile
     container_name: vintagestory-manager-dev
     ports:
-      - "8080:8080"       # Web UI + API
+      - "${DOCKER_PORT:-9080}:8080" # Web UI + API (host port: DOCKER_PORT, default 9080)
       - "42420:42420/tcp" # Game server
       - "42420:42420/udp" # Game server
     volumes:

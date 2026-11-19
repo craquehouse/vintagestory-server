@@ -21,7 +21,7 @@ import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } fro
  * server is neither started nor stopped; no screenshot is taken.
  *
  * Requirements:
- * - Docker stack on E2E_BASE_URL (default http://localhost:8080), rebuilt from this branch:
+ * - Docker stack on E2E_BASE_URL (default http://localhost:9080), rebuilt from this branch:
  *   `just docker restart`, then `cd web && bunx playwright test e2e/mod-detail-media.spec.ts`
  *   with VS_API_KEY_ADMIN exported.
  * - Network access to the public mod database for the `betterruins` test.

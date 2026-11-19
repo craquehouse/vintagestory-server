@@ -26,7 +26,7 @@ Playwright tests against a running Docker stack (the API serving the built web U
   mod database request that did not go to the replay. Pass Playwright arguments through,
   for example `just test-e2e-ci e2e/settings-as-saved.spec.ts`; they go to both passes,
   and a pass that then finds no test passes.
-- `just test-e2e-web` runs every spec, tagged or not, against the dev stack on port 8080
+- `just test-e2e-web` runs every spec, tagged or not, against the dev stack on port 9080 (DOCKER_PORT)
   (`./data`, usually with a game server installed). It starts and stops the stack itself.
   Every `@moddb` test runs against the live mod database here, with no recordings and no
   `VS_MOD_DB_URL`. No workflow runs the tests against the live service on a schedule.

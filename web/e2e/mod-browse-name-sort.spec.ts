@@ -10,7 +10,7 @@ import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } fro
  * the grid stayed empty.
  *
  * Reads only. Requirements:
- * - Docker stack on E2E_BASE_URL (default http://localhost:8080) that can reach the mod
+ * - Docker stack on E2E_BASE_URL (default http://localhost:9080) that can reach the mod
  *   database: `just test-e2e-web`, or `just docker restart` then
  *   `cd web && bunx playwright test e2e/mod-browse-name-sort.spec.ts`
  *   In CI the `@moddb` tests run on recorded answers instead (e2e/README.md).

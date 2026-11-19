@@ -10,7 +10,7 @@ import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } fro
  * that was opened.
  *
  * Requirements:
- * - Docker stack on E2E_BASE_URL (default http://localhost:8080) with a game version
+ * - Docker stack on E2E_BASE_URL (default http://localhost:9080) with a game version
  *   installed: `just test-e2e-web`, or `just docker restart` then
  *   `cd web && bunx playwright test e2e/mod-browse-state.spec.ts`
  * - Network access to the public mod database. Cards are picked from the rendered

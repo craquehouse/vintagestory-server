@@ -20,7 +20,7 @@ import { pretendServerInstalled, serveConfigKey } from './config-js';
  * the game server and takes no screenshot.
  *
  * Requirements:
- * - Docker stack on E2E_BASE_URL (default http://localhost:8080) rebuilt from this branch:
+ * - Docker stack on E2E_BASE_URL (default http://localhost:9080) rebuilt from this branch:
  *   `just test-e2e-ci e2e/mod-remove-dialog.spec.ts`, or `just docker restart` then
  *   `cd web && bunx playwright test e2e/mod-remove-dialog.spec.ts`
  */

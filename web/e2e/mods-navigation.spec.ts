@@ -10,7 +10,7 @@ import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } fro
  * last page, without a new history entry and without a second request.
  *
  * Requirements:
- * - Docker stack on E2E_BASE_URL (default http://localhost:8080): `just docker restart`
+ * - Docker stack on E2E_BASE_URL (default http://localhost:9080): `just docker restart`
  *   then `cd web && bunx playwright test e2e/mods-navigation.spec.ts`
  * - Network access to the public mod database. Cards are picked from the rendered
  *   grid, not hard-coded, because the database changes daily.

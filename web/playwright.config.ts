@@ -5,14 +5,14 @@ import { defineConfig, devices } from '@playwright/test';
  *
  * Tests run against a Docker stack that serves the full application (API and web UI).
  * The stack may have no game server installed.
- * - `just test-e2e-web`: every spec against the dev stack on port 8080.
+ * - `just test-e2e-web`: every spec against the dev stack on port 9080 (DOCKER_PORT).
  * - `just test-e2e-ci`: the untagged specs against a throwaway container seeded with
  *   e2e/fixtures/serverconfig.json and no game server, then the `@moddb` specs on recorded
  *   mod database answers (e2e/fixtures/moddb/) against a second one (what CI runs; see
  *   e2e/README.md).
  *
  * Environment variables:
- * - E2E_BASE_URL: Override base URL (default: http://localhost:8080)
+ * - E2E_BASE_URL: Override base URL (default: http://localhost:9080)
  */
 export default defineConfig({
   testDir: './e2e',
@@ -25,7 +25,7 @@ export default defineConfig({
   timeout: 30000,
 
   use: {
-    baseURL: process.env.E2E_BASE_URL || 'http://localhost:8080',
+    baseURL: process.env.E2E_BASE_URL || 'http://localhost:9080',
     trace: 'on-first-retry',
   },
 

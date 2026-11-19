@@ -56,7 +56,7 @@ import { fetchOnNewConnection, pretendServerInstalled, serveConfigKey } from './
  * (Story 21.8; with no choice the sidebar is collapsed below 1024px).
  *
  * Requirements:
- * - Docker stack on E2E_BASE_URL (default http://localhost:8080) with a serverconfig.json
+ * - Docker stack on E2E_BASE_URL (default http://localhost:9080) with a serverconfig.json
  *   (for the Game Settings header), which the seeded stack and a stack with a game server
  *   both have (the pages are shown as installed by `pretendServerInstalled`), rebuilt
  *   from this branch: `just test-e2e-ci`, or `just docker restart`, then
@@ -66,7 +66,7 @@ import { fetchOnNewConnection, pretendServerInstalled, serveConfigKey } from './
 
 // API key from environment or default from docker-compose.dev.yaml
 const API_KEY = process.env.VS_API_KEY_ADMIN || 'changeme';
-const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:8080';
+const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:9080';
 
 const INSTALLED = '/game-server/mods/installed';
 const HEIGHT = 900;

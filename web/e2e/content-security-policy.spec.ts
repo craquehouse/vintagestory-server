@@ -31,14 +31,14 @@ import { serveConfigKey } from './config-js';
  *   is answered with a 1x1 PNG.
  *
  * Requirements:
- * - Docker stack on E2E_BASE_URL (default http://localhost:8080), rebuilt from this branch:
+ * - Docker stack on E2E_BASE_URL (default http://localhost:9080), rebuilt from this branch:
  *   `just docker restart`, then `cd web && bunx playwright test e2e/content-security-policy.spec.ts`
  *   with VS_API_KEY_ADMIN exported.
  */
 
 // API key from environment or default from docker-compose.dev.yaml
 const API_KEY = process.env.VS_API_KEY_ADMIN || 'changeme';
-const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:8080';
+const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:9080';
 
 // Written out, not imported: a changed directive is a deliberate edit in two places
 const POLICY =

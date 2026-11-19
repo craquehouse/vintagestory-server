@@ -24,7 +24,7 @@ import { pretendServerInstalled, serveConfigKey } from './config-js';
  * image is a `data:` URL and no link is clicked); no screenshot is taken.
  *
  * Requirements:
- * - Docker stack on E2E_BASE_URL (default http://localhost:8080), rebuilt from this branch:
+ * - Docker stack on E2E_BASE_URL (default http://localhost:9080), rebuilt from this branch:
  *   `just docker restart`, then `cd web && bunx playwright test e2e/mod-detail-layout.spec.ts`
  *   with VS_API_KEY_ADMIN exported.
  */
@@ -120,7 +120,7 @@ function lookupBody() {
 /** The hosts of the manager under test: the E2E base URL's and the loopback names. */
 function managerHosts(): Set<string> {
   const hosts = new Set(['127.0.0.1', 'localhost']);
-  hosts.add(new URL(process.env.E2E_BASE_URL || 'http://localhost:8080').hostname);
+  hosts.add(new URL(process.env.E2E_BASE_URL || 'http://localhost:9080').hostname);
   return hosts;
 }
 

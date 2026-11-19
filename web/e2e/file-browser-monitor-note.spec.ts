@@ -19,7 +19,7 @@ import { serveConfigKey } from './config-js';
  * game server, takes no screenshots, and asserts no instance data in its messages.
  *
  * Requirements:
- * - Docker stack on E2E_BASE_URL (default http://localhost:8080) built from this branch:
+ * - Docker stack on E2E_BASE_URL (default http://localhost:9080) built from this branch:
  *   `just docker restart` then `cd web && bunx playwright test e2e/file-browser-monitor-note.spec.ts`
  * - VS_API_KEY_ADMIN exported (default from docker-compose.dev.yaml); the tests that
  *   need a real Monitor key are skipped, with the reason, when VS_API_KEY_MONITOR is not

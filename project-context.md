@@ -595,7 +595,7 @@ Run `just` with no arguments to see all available commands.
 # Start the stack (rebuilds and restarts fresh)
 just docker restart
 
-# Navigate to http://localhost:8080 in browser
+# Navigate to http://localhost:9080 in browser
 # Test the feature manually
 
 # Stop when complete

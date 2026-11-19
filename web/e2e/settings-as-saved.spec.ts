@@ -15,7 +15,7 @@ import { fetchOnNewConnection, pretendServerInstalled, serveConfigKey } from './
  *   not the time it had before the run (an API restart would do the same).
  *
  * Requirements:
- * - Docker stack on E2E_BASE_URL (default http://localhost:8080), rebuilt from this
+ * - Docker stack on E2E_BASE_URL (default http://localhost:9080), rebuilt from this
  *   branch: `just docker restart`, then
  *   `cd web && bunx playwright test e2e/settings-as-saved.spec.ts`
  *   with VS_API_KEY_ADMIN exported. The game server is neither started nor stopped.
