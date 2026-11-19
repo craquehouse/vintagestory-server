@@ -58,11 +58,11 @@ so that **I can change mod and server configs without a shell on the host**.
 
 <!-- Red first. Subjects: type(story-23.5/task-N): ... User-visible: Task 4 (feat(web)) and Task 5 (feat(web)). -->
 
-- [ ] Task 1: CodeMirror and the `CodeView` component + tests (AC: 1, 6, 7, 9)
-  - [ ] 1.1: `cd web && bun add @codemirror/state@^6.7.6 @codemirror/view@^6.43.15 @codemirror/commands@^6.11.1 @codemirror/language@^6.13.1 @codemirror/search@^6.7.2` (check `package.json` and `bun.lock` gain only these and their own dependencies, e.g. `@lezer/*`, `style-mod`, `w3c-keyname`, `crelt`)
-  - [ ] 1.2: Red first: `web/src/components/code-view/json5-language.test.ts` (the tokenizer: line and block comments, double- and single-quoted strings with escapes, numbers incl. hex, `Infinity`/`NaN`, `true`/`false`/`null`, property names before `:`, punctuation); `CodeView.test.tsx` (renders the text; read-only does not change on typing; `onChange` fires with the new text; `goTo(line, column)` moves the selection; `wordWrap` toggles `cm-lineWrapping`)
-  - [ ] 1.3: `json5-language.ts` (Dev Notes "JSON5 highlighting") and `CodeView.tsx` (Dev Notes "CodeView"); `LazyCodeView.tsx` (`React.lazy` + `Suspense` with a skeleton)
-  - [ ] 1.4: Commit `build(story-23.5/task-1): add CodeMirror for viewing and editing config files`
+- [x] Task 1: CodeMirror and the `CodeView` component + tests (AC: 1, 6, 7, 9)
+  - [x] 1.1: `cd web && bun add @codemirror/state@^6.7.6 @codemirror/view@^6.43.15 @codemirror/commands@^6.11.1 @codemirror/language@^6.13.1 @codemirror/search@^6.7.2` (check `package.json` and `bun.lock` gain only these and their own dependencies, e.g. `@lezer/*`, `style-mod`, `w3c-keyname`, `crelt`)
+  - [x] 1.2: Red first: `web/src/components/code-view/json5-language.test.ts` (the tokenizer: line and block comments, double- and single-quoted strings with escapes, numbers incl. hex, `Infinity`/`NaN`, `true`/`false`/`null`, property names before `:`, punctuation); `CodeView.test.tsx` (renders the text; read-only does not change on typing; `onChange` fires with the new text; `goTo(line, column)` moves the selection; `wordWrap` toggles `cm-lineWrapping`)
+  - [x] 1.3: `json5-language.ts` (Dev Notes "JSON5 highlighting") and `CodeView.tsx` (Dev Notes "CodeView"); `LazyCodeView.tsx` (`React.lazy` + `Suspense` with a skeleton)
+  - [x] 1.4: Commit `build(story-23.5/task-1): add CodeMirror for viewing and editing config files`
 
 - [ ] Task 2: API functions, error details and hooks + tests (AC: 1, 2, 3, 9)
   - [ ] 2.1: Red first: `client.test.ts` (an error detail's keys other than `code`/`message`/`details` reach `ApiError.details`); `config.test.ts` (`saveConfigFile(path, text, version)` sends `PUT` with `{text, version}` and returns `{filename, version}`; `checkConfigText(path, text)` sends `POST /files/validate` with `{filename, text}` and maps `{valid, parse_error}`; both refuse an invalid name without a request); hook tests for `useSaveConfigFile` (invalidates the file's read on success) and `useConfigTextCheck` (debounce 500 ms with fake timers; latest text wins; disabled when `path` is null)
