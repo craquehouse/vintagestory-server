@@ -1,6 +1,6 @@
 # Story 22.7: Restart-Required Settings Survive a Live Change
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Implements FR307, Epic 22 ADR-15 and ADR-14. Bead: VSS-zws (API-073), closes here (Story 22.3 confirmed it in its Task 1; maintainer answer 12, Matt, 2026-11-18). ADR-15 decisions 1 to 8 are the planner's and not reviewed yet. Order: 22.1, 22.2, 22.3, 22.4, 22.7, 22.5, 22.6. This branch, story/22-7-restart-required-settings-survive-a-live-change, is stacked on story/22-4-log-archive-and-backup-cleanup (22.4 in review) at 5c35b7e7 (22.3's review merged in). The PR targets main and merges after 22.4's. Line references were verified at 5c35b7e7; services/game_config.py, services/server.py, main.py, routers/config.py, config.py and services/pending_restart.py are unchanged since 36dd18cf, where ADR-15's facts were checked. Re-check them at implementation time. API and documentation only: one new service module, no new route, no response change, no web change, no new dependency. -->
 
@@ -73,11 +73,11 @@ so that **a later live setting change cannot quietly undo it while "Restart requ
 
 <!-- Each code task includes its tests in the same commit, red first (write the new tests, run them, see them fail, then implement). Subjects: type(story-22.7/task-N): ..., the type chosen by what an admin notices. One commit is user-visible: Task 3 (fix), the commit that makes the edit survive; its subject is written for admins and its body names Story 22.7 and the task. -->
 
-- [ ] Task 1: The `PendingConfigEdits` store + tests (AC: 7, 11)
-  - [ ] 1.1: Red first: new `api/tests/test_pending_config_edits.py` with the Task 1 rows of Dev Notes "API tests"; see them fail (an `ImportError` at collection is the expected first red)
-  - [ ] 1.2: New `api/src/vintagestory_api/services/pending_config_edits.py` (Dev Notes "The store"): the Pydantic file model, `PendingConfigEdits` with `edits`, `record`, `drop`, `drop_if_unchanged`, the load rules and the atomic save, and the pure function `reapply_edits(config_path, edits)` that does the read-set-write of ADR-15 decision 3 and returns what it changed. Nothing calls it yet
-  - [ ] 1.3: `cd api && uv run ruff format <changed files>`; `just test-api tests/test_pending_config_edits.py` green; `just typecheck-api` 0 errors, 0 warnings
-  - [ ] 1.4: Commit `refactor(story-22.7/task-1): add a store for restart-required game settings saved while the server runs`
+- [x] Task 1: The `PendingConfigEdits` store + tests (AC: 7, 11)
+  - [x] 1.1: Red first: new `api/tests/test_pending_config_edits.py` with the Task 1 rows of Dev Notes "API tests"; see them fail (an `ImportError` at collection is the expected first red)
+  - [x] 1.2: New `api/src/vintagestory_api/services/pending_config_edits.py` (Dev Notes "The store"): the Pydantic file model, `PendingConfigEdits` with `edits`, `record`, `drop`, `drop_if_unchanged`, the load rules and the atomic save, and the pure function `reapply_edits(config_path, edits)` that does the read-set-write of ADR-15 decision 3 and returns what it changed. Nothing calls it yet
+  - [x] 1.3: `cd api && uv run ruff format <changed files>`; `just test-api tests/test_pending_config_edits.py` green; `just typecheck-api` 0 errors, 0 warnings
+  - [x] 1.4: Commit `refactor(story-22.7/task-1): add a store for restart-required game settings saved while the server runs`
 
 - [ ] Task 2: Record and drop edits in `GameConfigService.update_setting` + tests (AC: 4, 5, 8, 11)
   - [ ] 2.1: Red first: the Task 2 rows of Dev Notes "API tests" in `api/tests/test_game_config.py` (new class `TestPendingConfigEditTracking`) and `api/tests/test_shared_pending_restart.py`; see them fail
@@ -402,6 +402,8 @@ All three are settled by a controller decision during validation (2026-11-19), f
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive
+
 ### Throwaway-container results
 
 <!-- Task 4.4: host architecture, game version, a table per run (Port, ServerName, state file at each read), the log lines, the commands. -->
@@ -411,8 +413,15 @@ All three are settled by a controller decision during validation (2026-11-19), f
 ### Completion Notes List
 
 - 2026-11-19: Story created (create-story, non-interactive) and checked against the create-story checklist: 6 tasks; every code task carries its tests (Task 4 is a container check, Task 5 documentation, Task 6 validation); every AC is mapped to a task (AC 11 to every code task and Task 6, the maintainer check to Task 6.3). Line references verified at 5c35b7e7. Ultimate context engine analysis completed - comprehensive developer guide created.
+- 2026-11-19, controller decision (judgement call 1 of the validation): the store reads its state file lazily, on first use (`edits`, `record`, `drop`, `drop_if_unchanged`), not when it or the `ServerService` singleton is built, so a test that builds the singleton with default settings (`dev/` under `just test-api`) never reads `dev/vsmanager/state/pending-config-edits.json`. This replaces Dev Notes "The store" ("loaded at construction") and the "Test safety" note that construction reads the file. Tested: `TestLoad.test_construction_reads_nothing` and `test_file_is_read_once` (Task 1), and that building a `ServerService` reads nothing (Task 2).
+- Task 1: `services/pending_config_edits.py` holds `PendingConfigEdit`/`PendingConfigEditsFile` (Pydantic), `PendingConfigEdits` (`edits` copy, `record`, `drop`, `drop_if_unchanged`, lazy load with the WARNING rules, atomic save that logs `pending_config_edits_save_failed` with `error_type`/`errno`/`strerror` and keeps the edit in memory) and `reapply_edits` (narrows parsed JSON with a module-level `TypeAdapter(dict[str, object])`; an absent key is added; no write when every value is equal). 30 tests in `tests/test_pending_config_edits.py`, red first (`ModuleNotFoundError` at collection), then green; Pyright 0/0. Nothing calls the store yet.
 
 ### File List
+
+- `api/src/vintagestory_api/services/pending_config_edits.py` (new, Task 1)
+- `api/tests/test_pending_config_edits.py` (new, Task 1)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (`just sprint set`: in-progress in Task 1)
+- `_bmad-output/implementation-artifacts/22-7-restart-required-settings-survive-a-live-change.md` (this file)
 
 ## Change Log
 
