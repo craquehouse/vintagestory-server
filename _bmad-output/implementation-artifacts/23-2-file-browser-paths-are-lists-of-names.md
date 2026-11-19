@@ -1,6 +1,6 @@
 # Story 23.2: File Browser Paths Are Lists of Names
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR312, Epic 23 ADR-3. Bead: VSS-o8s (UI-081), closed by this story after merge. Branch story/23-2-file-browser-paths-are-lists-of-names, stacked on story/23-1-configs-with-comments-can-be-viewed at 03218c12 (23.1 in review); the PR targets main and merges after 23.1's. Web only: no API change, no new dependency. Line references verified at 03218c12. -->
 
@@ -58,11 +58,11 @@ so that **a name is never split or joined by mistake, and the editor and history
   - [x] 3.2: `FileManagerPanel.tsx`: pass `FileList` the selected file's `name` when its `directory` equals `currentDirectory` (element by element), else `null`
   - [x] 3.3: Commit `fix(story-23.2/task-3): highlight the selected file in a subfolder of the file browser`
 
-- [ ] Task 4: Validate and move the story to review (AC: all)
-  - [ ] 4.1: `just check` green (web 0 skipped); `git diff 03218c12 -- api` empty; added lines hold no suppression, `cast`, skip or `.only`
-  - [ ] 4.2: `just changelog` lists exactly one entry from this story (Task 3)
-  - [ ] 4.3: Status `review`; `just sprint set 23-2-file-browser-paths-are-lists-of-names review`; Dev Agent Record and File List
-  - [ ] 4.4: Commit `chore(story-23.2/task-4): validate and move story 23.2 to review`
+- [x] Task 4: Validate and move the story to review (AC: all)
+  - [x] 4.1: `just check` green (web 0 skipped); `git diff 03218c12 -- api` empty; added lines hold no suppression, `cast`, skip or `.only`
+  - [x] 4.2: `just changelog` lists exactly one entry from this story (Task 3)
+  - [x] 4.3: Status `review`; `just sprint set 23-2-file-browser-paths-are-lists-of-names review`; Dev Agent Record and File List
+  - [x] 4.4: Commit `chore(story-23.2/task-4): validate and move story 23.2 to review`
 
 ## Dev Notes
 
@@ -96,8 +96,31 @@ so that **a name is never split or joined by mistake, and the editor and history
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5), as the epic's controller.
+
 ### Debug Log References
+
+- `just check` (2026-11-19): API 3866 passed, web 3744 passed (139 files), 0 skipped; Pyright 0/0; lints green.
 
 ### Completion Notes List
 
+- 2026-11-19 (create-story): created from Epic 23's Story 23.2 and ADR-3. Found in creation and folded in (backlog drawdown, no bead): the list never highlighted a file selected in a subfolder (AC 4, Task 3).
+- 2026-11-19 (dev-story): Tasks 1 to 4 done.
+- **What changed.** `web/src/api/config.ts`: `InvalidConfigPathError`, `toConfigPath` (refuses `''`, `.`, `..`, `/` and NUL), the three fetch functions take `readonly string[]` and build their path through it before calling `apiClient`. `web/src/hooks/use-config-files.ts`: the hooks take lists; keys use `join('/')` (no throw during render); `useConfigFileContent` is disabled for `null` and `[]`. `PathBreadcrumb`: `segments` and `onNavigate(string[])`; the focus key is `JSON.stringify(segments)`. `FileManagerPanel`: `string[]` directory, `{ directory, name }` selection, `displayPath` for the viewer header, and the list gets the selected name only in its own directory.
+- **Tests.** New: 6 `toConfigPath` rows, 3 "no request" rows (config.test.ts), 2 panel rows (invalid listed name; selection in a subfolder). Changed: every existing call with a path string now passes a list (config.test.ts, use-config-files.test.tsx, PathBreadcrumb.test.tsx). Removed: two breadcrumb rows that tested splitting a string ("treats an empty path as the root", "ignores empty segments from stray slashes"); the second is replaced by "shows each name as given".
+- **Deviation.** The query keys use `join('/')`, not `toConfigPath` (the story's Task 1.3 already said so; ADR-3 decision 3 says `toConfigPath`): a key must not throw during render, and the fetch refuses an invalid name anyway.
+- `git diff 03218c12 -- api` empty; no suppression, `as unknown as`, skip or `.only` added. `just changelog`: exactly one entry from this story, f5c8132 (Task 3).
+
 ### File List
+
+- `web/src/api/config.ts`, `web/src/api/config.test.ts` (modified)
+- `web/src/hooks/use-config-files.ts`, `web/src/hooks/use-config-files.test.tsx` (modified)
+- `web/src/components/PathBreadcrumb.tsx`, `web/src/components/PathBreadcrumb.test.tsx` (modified)
+- `web/src/features/settings/FileManagerPanel.tsx`, `web/src/features/settings/FileManagerPanel.test.tsx` (modified)
+- `_bmad-output/implementation-artifacts/23-2-file-browser-paths-are-lists-of-names.md` (this file)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
+
+## Change Log
+
+- 2026-11-19: Story 23.2 created (ready-for-dev).
+- 2026-11-19: Implemented (dev-story): Tasks 1 to 4; status review.
