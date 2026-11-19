@@ -1,6 +1,6 @@
 # Story 23.5: Config Files Are Edited in the File Browser
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR319, FR320, FR326 (editing part), Epic 23 ADR-5, ADR-6 decision 3, ADR-9. Bead: VSS-glz (UI-025), closed by this story after merge (23.4 carried its API half). Branch story/23-5-config-files-are-edited-in-the-file-browser, stacked on story/23-4-config-files-can-be-saved-through-the-api at 9a6e5e9c (23.4 in review); the PR targets main and merges after 23.4's. Web, README, and one line of the API error handling in the web client. Line references verified at 9a6e5e9c. -->
 
@@ -84,11 +84,11 @@ so that **I can change mod and server configs without a shell on the host**.
   - [x] 5.2: `web/e2e/config-file-editor.spec.ts` (Dev Notes "E2E"): runs only when `E2E_CONTAINER` is the throwaway container (as `file-browser-new-directory.spec.ts`); creates `ModConfig/e2e-edit-<random>.json` with `docker exec`, edits, saves, reloads, checks the file's content through the API, removes the file; checks no `securitypolicyviolation` event fired and that Monitor (stubbed role) sees no Edit button. `just test-e2e-ci e2e/config-file-editor.spec.ts e2e/content-security-policy.spec.ts e2e/file-browser-*.spec.ts`
   - [x] 5.3: Commit `test(story-23.5/task-5): check editing a config file end to end, and document editing`
 
-- [ ] Task 6: Validate and move the story to review (AC: all)
-  - [ ] 6.1: `just check` green; `just build-web` and record the chunk sizes (main chunk vs the CodeMirror chunk) in the completion notes; `git diff 9a6e5e9c -- api` empty
-  - [ ] 6.2: `just changelog` lists exactly two entries from this story (Tasks 3 and 4)
-  - [ ] 6.3: Status `review`; `just sprint set 23-5-config-files-are-edited-in-the-file-browser review`; Dev Agent Record and File List
-  - [ ] 6.4: Commit `chore(story-23.5/task-6): validate and move story 23.5 to review`
+- [x] Task 6: Validate and move the story to review (AC: all)
+  - [x] 6.1: `just check` green; `just build-web` and record the chunk sizes (main chunk vs the CodeMirror chunk) in the completion notes; `git diff 9a6e5e9c -- api` empty
+  - [x] 6.2: `just changelog` lists exactly two entries from this story (Tasks 3 and 4)
+  - [x] 6.3: Status `review`; `just sprint set 23-5-config-files-are-edited-in-the-file-browser review`; Dev Agent Record and File List
+  - [x] 6.4: Commit `chore(story-23.5/task-6): validate and move story 23.5 to review`
 
 ## Dev Notes
 
@@ -161,8 +161,38 @@ Append to README `### Config files`: An Admin key can edit a file: open it and p
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5), as the epic's controller.
+
 ### Debug Log References
+
+- `just check` (2026-11-19, with Story 23.3's review fix and 23.4 merged in): API 3932 passed, web 3818 passed, 0 skipped; Pyright 0/0; lints green.
+- `just test-e2e-ci e2e/config-file-editor.spec.ts e2e/content-security-policy.spec.ts e2e/file-browser-navigation.spec.ts e2e/file-browser-monitor-note.spec.ts e2e/file-browser-new-directory.spec.ts e2e/monitor-password-redaction.spec.ts`: 24 passed (the editor's save test ran in the throwaway container); API E2E 4 passed.
+- `just build-web`: `CodeView-*.js` 320.95 kB (103.73 kB gzip), its own chunk; `index-*.js` 369.12 kB (118.80 kB gzip).
 
 ### Completion Notes List
 
+- 2026-11-19 (create-story, dev-story): Tasks 1 to 6 done.
+- **What changed.** Dependencies: `@codemirror/state`, `view`, `commands`, `language`, `search`, and `@lezer/highlight` (imported directly by the highlighter, so declared). `components/code-view/`: `json5-language.ts` (a `StreamLanguage` tokenizer and a `HighlightStyle` on the JSON viewer's CSS variables), `CodeView.tsx` (one `EditorView` per mount; compartments for read-only and wrapping; `goTo`), `LazyCodeView.tsx`. `api/client.ts`: an error detail's other keys reach `ApiError.details`; `types.ts`: `ApiErrorDetail` index signature, `ConfigFileSaveData`, `ConfigTextCheck`. `api/config.ts`: `saveConfigFile`, `checkConfigText`, `parseErrorFromApiError`. `hooks/use-config-files.ts`: `useSaveConfigFile`, `useConfigTextCheck` (reuses `useDebounce`). `FileViewer`: `actions` slot; Admin's read-only code view. `features/settings/`: `config-drafts.ts`, `ConfirmDialog.tsx`, `ConfigFileEditor.tsx` (editor, `EditFileButton`, `ServerNotStoppedNote`), `FileManagerPanel.tsx` (edit state pinned to the text and version it started from, the guard, the discard dialog, the Edit button and server note), `SettingsPage.tsx` (`forceMount` on the File Manager tab). README editing paragraph. `src/test/mocks/lazy-code-view.tsx` (a textarea stub for flow tests).
+- **Tests.** 12 tokenizer, 6 CodeView (real CodeMirror in jsdom), 3 client, 6 config API, 4 hooks, 4 FileViewer, 12 ConfigFileEditor, 10 panel editing (`FileManagerPanel.edit.test.tsx`), 1 SettingsPage; one Story 23.1 FileViewer row now omits `text` (with `text` an Admin sees the code view). E2E `e2e/config-file-editor.spec.ts` (2).
+- **Deviations, for the maintainer.** (1) **Leaving the Settings page with unsaved changes does not ask** (ADR-5 decision 6 says it asks): `App.tsx` uses `BrowserRouter`, where React Router's `useBlocker` is not available, and moving to a data router is out of scope. The edit is kept in memory instead (`config-drafts.ts`, never in storage) and Edit reads "Resume editing" while the file's version is unchanged; switching Settings tabs keeps the editor mounted (`forceMount`); closing or reloading the tab asks (`beforeunload`). (2) A file that does not parse can be edited too (Admin has its text), so an Admin can fix it. (3) No `@codemirror/lang-*` package: a 60-line JSON5 tokenizer (ADR-5 decision 1 allowed the choice; lang-json has no comments, and JSON5 is not JavaScript at the top level). (4) The File Manager now mounts with the Settings page (hidden until its tab is opened), so its first listing and the server status are fetched when the page opens.
+- `git diff 9a6e5e9c -- api` empty. No suppression added (an `eslint-disable` comment in the first draft of `CodeView.tsx` was replaced by an explanation before any commit; the project has no ESLint). `just changelog`: two entries from this story, d422651 (Task 3) and a729ebb (Task 4).
+
 ### File List
+
+- `web/package.json`, `web/bun.lock` (modified)
+- `web/src/components/code-view/json5-language.ts`, `json5-language.test.ts`, `CodeView.tsx`, `CodeView.test.tsx`, `LazyCodeView.tsx` (new)
+- `web/src/test/mocks/lazy-code-view.tsx` (new)
+- `web/src/api/client.ts`, `client.test.ts`, `config.ts`, `config.test.ts`, `types.ts` (modified)
+- `web/src/hooks/use-config-files.ts`, `use-config-files.test.tsx` (modified)
+- `web/src/components/FileViewer.tsx`, `FileViewer.test.tsx` (modified)
+- `web/src/features/settings/config-drafts.ts`, `ConfirmDialog.tsx`, `ConfigFileEditor.tsx`, `ConfigFileEditor.test.tsx`, `FileManagerPanel.edit.test.tsx` (new)
+- `web/src/features/settings/FileManagerPanel.tsx`, `SettingsPage.tsx`, `SettingsPage.test.tsx` (modified)
+- `web/e2e/config-file-editor.spec.ts` (new)
+- `README.md` (modified)
+- `_bmad-output/implementation-artifacts/23-5-config-files-are-edited-in-the-file-browser.md` (this file)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
+
+## Change Log
+
+- 2026-11-19: Story 23.5 created (ready-for-dev).
+- 2026-11-19: Implemented (dev-story): Tasks 1 to 6; status review.
