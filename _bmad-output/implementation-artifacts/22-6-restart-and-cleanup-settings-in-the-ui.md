@@ -1,0 +1,297 @@
+# Story 22.6: Restart and Cleanup Settings in the UI
+
+Status: ready-for-dev
+
+<!-- Implements FR304 and FR305 (FR305 as amended 2026-11-19), Epic 22 ADR-13 (as amended 2026-11-19), with ADR-5, ADR-6, ADR-9, ADR-10, ADR-11 and ADR-14 as the rules it shows. No bead: the web half of VSS-29p's settings, which Story 22.4 closes. The maintainer's "Backups only + docs" decision (Matt, 2026-11-19; Story 22.4, ADR-9 and ADR-10) dropped log_archive_retention_days and log_archive_keep_min: this story shows backup_keep_count only (planning corrected in 34a19a1b). ADR-13 is the planner's and not reviewed yet. Order: 22.1, 22.2, 22.3, 22.4, 22.7, 22.8, 22.5, 22.6 (last story of the epic). This branch, story/22-6-restart-and-cleanup-settings-in-the-ui, starts from story/22-5-interval-fields-can-turn-jobs-off (22.5 in review) at 34a19a1b; main is e16a7932 and none of Epic 22 is merged. The PR targets main and merges after 22.5's. Line references were verified at 34a19a1b; re-check every cited line before editing. Web, one API test file and E2E: no API source change, no new route, no response change, no new dependency. -->
+
+## Story
+
+As an **administrator**,
+I want **to set the daily restart times and the backup limit in the API Settings tab**,
+so that **I can schedule restarts and control disk use without calling the API**.
+
+## Acceptance Criteria
+
+1. **Given** no restart time is set (`scheduled_restart_times` is `[]`)
+   **When** I open Settings > API Settings
+   **Then** a Scheduled Restarts group, directly below Server Behavior, says "No restart is scheduled." and offers an Add time button; its help text says that the times are server time (the container's time zone, `TZ`, UTC unless set), that players are warned in chat 15, 5 and 1 minutes before each restart, that a stopped server is not started, that a time less than 15 minutes from now first runs the next day, and that there can be up to 24 times at least 16 minutes apart
+   *(FR304; ADR-13 decision 1, ADR-5 decision 4, ADR-6 decisions 2, 3 and 6; refined, see "ADR against the code" 1)*
+
+2. **Given** the Scheduled Restarts group
+   **When** I add 04:00, add 16:00, change 16:00 to 18:30, and remove 04:00 (a time is committed when its input loses focus or I press Enter; Remove commits at once)
+   **Then** each step saves the whole list once, in this order: `["04:00"]`, `["04:00", "16:00"]`, `["04:00", "18:30"]`, `["18:30"]` (`POST /api/v1alpha1/config/api/settings/scheduled_restart_times` with `{"value": [...]}`), with exactly one success toast per save; the list is shown sorted as the API stores it; Scheduled Jobs then lists `scheduled_restart_1830` only
+   *(FR304; ADR-13 decision 1; refined, see "ADR against the code" 2)*
+
+3. **Given** an edited list that breaks one of the API's rules: a time 10 minutes from another (`04:00` and `04:10`), two times 10 minutes apart across midnight (`23:55` and `00:05`), the same time twice, or a saved time cleared to empty
+   **When** I commit it
+   **Then** nothing is sent, the list stays as I edited it, and a message under it (`role="alert"`, the time inputs `aria-invalid` and described by it) says why, in the API's words for the gap (`'04:00' and '04:10' are 10 minutes apart; restart times must be at least 16 minutes apart`); Add time is disabled while 24 times are listed, with text saying so, so a 25th cannot be entered (the client check still carries the API's count rule, `at most 24 times, got N`)
+   *(FR304; ADR-5 decision 2, ADR-6 decision 6; refined, see "ADR against the code" 3)*
+
+4. **Given** the API answers 400 `API_SETTING_INVALID` for a list the client let through (simulated in tests), or 500
+   **When** I commit it
+   **Then** the edited list stays on screen with the API's message under it, exactly one error toast ("Update failed" with the message) is shown, and the saved list is unchanged; the next successful save, or opening the tab again, shows the saved list. A 500 `API_SETTING_NOT_APPLIED` shows the warning toast "Saved, not applied yet" once and its message, and the list shown is the one saved
+   *(FR304; ADR-13 decision 1, ADR-11 decision 6, project-context.md "Mutation errors")*
+
+5. **Given** a restart time is listed
+   **When** I remove the last one
+   **Then** `[]` is saved once, "No restart is scheduled." is shown again, and no `scheduled_restart_*` job is listed in Scheduled Jobs
+   *(FR304; ADR-5 decision 1)*
+
+6. **Given** the API Settings tab
+   **When** I look at the Backup Cleanup group (directly below Scheduled Restarts)
+   **Then** it has one number field, Backups kept (`backup_keep_count`), showing the saved value (0 when none is loaded, the API's default from `API_SETTING_DEFAULTS`); its help text says that 0 keeps all, that older backup files are deleted permanently, that this runs every day at 03:00 server time (`TZ`, UTC unless set), and that only `serverdata/Backups` is cleaned (never `BackupSaves` or the world); there is no field for log archives
+   *(FR305 as amended; ADR-13 decision 2 as amended, ADR-9 as amended, ADR-10 as amended)*
+
+7. **Given** the Backups kept field
+   **When** I enter 3, then -1, then 1001
+   **Then** 3 is saved once (`{"value": 3}`) with exactly one success toast; -1 and 1001 are refused before sending with the field's message ("Must be between 0 and 1000", the API's bounds) and nothing is sent; a failed save shows exactly one error toast and the API's message under the field
+   *(FR305; ADR-13 decision 2, ADR-11 decision 6)*
+
+8. **Given** a phone width (320px) and a desktop width (1440px)
+   **When** I use the two groups
+   **Then** nothing scrolls sideways; below 1024px each time input, each Remove button and the Add time button is at least 44px tall; every time input has an accessible name ("Restart time 1", "Restart time 2", ...), every Remove button names its time ("Remove restart time 04:00", or "Remove restart time 2" while empty); Tab reaches each input, its Remove button and Add time in order; after Add time the new input has focus, after Remove the focus moves to the next row's input, or to Add time when none is left. The Backups kept input keeps `SettingField`'s height (as Story 22.5 kept the duration inputs)
+   *(Epic 21 ADR-12 decision 1 pattern; accessibility; refined, see "ADR against the code" 5)*
+
+9. **Given** a Monitor key
+   **When** I open Settings
+   **Then** neither group is shown, and no request is made to `GET /api/v1alpha1/config/api` (the API Settings tab is Admin only since Story 22.5)
+   *(ADR-12)*
+
+10. **Given** the story's commits
+    **When** `just check` runs
+    **Then** it passes with 0 skipped web tests, and the branch has exactly two release-note commits: `feat: set restart times in API Settings` and `feat: set the backup limit in API Settings` (the change proposal's draft, section 2, as amended)
+
+## Tasks / Subtasks
+
+<!-- Each functional task includes its tests in the same commit, red first (Vitest + Testing Library). One commit per task: type(story-22.6/task-N): ... ; feat only for what an admin notices, subject written for admins. Exactly two release notes: Tasks 2 and 3. No .skip/.only in unit tests; a precondition skip inside an E2E test body is allowed. E2E runs only through `just test-e2e-ci` (throwaway container on 127.0.0.1:18080); never write to the dev stack at http://localhost:9080. -->
+
+- [ ] Task 1: Accept a list-valued API setting in the web client, and pin the new defaults and bounds to the API + tests (AC: 2, 4, 6, 7)
+  - [ ] 1.1: `web/src/api/types.ts`: a new exported `type ApiSettingValue = string | number | boolean | string[]` (doc comment: the value of an API setting; a list only for `scheduled_restart_times`, Story 22.6). `ApiSettingsData.settings` (`:304-316`) gains `scheduledRestartTimes: string[]` (comment: Story 22.6, daily `HH:MM` restart times in server time, sorted; `[]`: none) and `backupKeepCount: number` (Story 22.6, newest backup files kept; 0: keep all). `ApiSettingUpdateData.value` (`:330-333`) becomes `ApiSettingValue`
+  - [ ] 1.2: `web/src/api/config.ts`: `updateApiSetting`'s `value` (`:139-142`) becomes `ApiSettingValue`. Next to `INTERVAL_API_SETTINGS` (`:76-86`, unchanged): `SCHEDULED_API_SETTINGS`, the three interval keys plus `scheduled_restart_times`, with a doc comment that it mirrors the API's `SCHEDULED_SETTINGS` (`api/src/vintagestory_api/services/api_settings.py:176-189`): a save of one of these changes the jobs. `API_SETTING_DEFAULTS` (`:103-110`) gains `scheduled_restart_times: [],` and `backup_keep_count: 0,` (doc comment updated: Story 22.6). New constants, each with a doc comment naming its API source and `TestWebDefaults`: `MAX_RESTART_TIMES = 24`, `MIN_RESTART_GAP_MINUTES = 16`, `MAX_BACKUP_KEEP_COUNT = 1000`
+  - [ ] 1.3: `web/src/hooks/use-api-settings.ts`: `mutationFn`'s `value` (`:89-90`) becomes `ApiSettingValue`; `onSettled` (`:125-133`) invalidates `queryKeys.jobs.all` for `SCHEDULED_API_SETTINGS` instead of `INTERVAL_API_SETTINGS` (saving restart times adds or removes `scheduled_restart_*` jobs, Story 22.3), comment updated. The import of `INTERVAL_API_SETTINGS` goes if nothing else in the file uses it. The optimistic write (`:103-112`) already writes any value under the camelCase key: unchanged. Header comment: `Story 22.6: a list-valued setting (restart times) and its jobs`
+  - [ ] 1.4: `api/tests/test_api_settings.py` `TestWebDefaults` (`:1308-1327`) and its helpers (`:1270-1305`): `WEB_DEFAULT_LINE` (`:1270`) also accepts the empty list literal `[]` (and only that list), parsed to `[]`; `WEB_DEFAULT_KEYS` (`:1272-1279`) gains `scheduled_restart_times` and `backup_keep_count`; `_web_defaults`' return type widens to `dict[str, bool | int | list[str]]` (pyright strict, no suppression); a new parametrised test reads `MAX_RESTART_TIMES`, `MIN_RESTART_GAP_MINUTES` and `MAX_BACKUP_KEEP_COUNT` from `config.ts` with one regex in the style of `WEB_MAX_INTERVAL` (`:1271`) and compares them with `api_settings.MAX_RESTART_TIMES`, `MIN_RESTART_GAP_MINUTES` and `MAX_BACKUP_KEEP_COUNT` (`api_settings.py:36`, `:40-41`); a missing constant fails (never skips). Seen failing first (before 1.2), then green
+  - [ ] 1.5: Web tests (Dev Notes "Web tests", Task 1 rows), red first
+  - [ ] 1.6: `just test-web src/api src/hooks/use-api-settings.test.tsx`, `just test-api tests/test_api_settings.py`, `just typecheck`, Prettier on the changed files, `just lint`. Commit `refactor(story-22.6/task-1): accept list-valued API settings in the web client` (body: no visible change yet; the API Settings tab can now send a list, and saving restart times refreshes Scheduled Jobs; the new defaults and bounds are pinned to the API by `TestWebDefaults`)
+
+- [ ] Task 2: The Scheduled Restarts group + tests (AC: 1, 2, 3, 4, 5, 8, 10)
+  - [ ] 2.1: `web/src/lib/restart-times.ts` (new): `RESTART_TIME_PATTERN` (`/^([01][0-9]|2[0-3]):[0-5][0-9]$/`, the API's `_RESTART_TIME`, `api_settings.py:45`, full match); `sortRestartTimes(times)` (sorted copy; zero-padded `HH:MM` sorts as text, as the API does at `:149-150`); `restartTimesError(times: string[]): string | null` with the rules and messages of Dev Notes "Client-side rules"; each function with a doc comment naming the API validator (`api_settings.py:137-164`)
+  - [ ] 2.2: `web/src/features/settings/ScheduledRestartsSetting.tsx` (new, next to `ModUpdateWebhookSetting.tsx`): the editor of Dev Notes "The editor", props `{ times: readonly string[]; onSave: (params: { key: string; value: string[] }) => Promise<unknown> }`. Header comment `Story 22.6: daily restart times (Epic 22 ADR-13 decision 1)`
+  - [ ] 2.3: `web/src/features/settings/ApiSettingsPanel.tsx`: `handleSave` (`:51-66`) takes `{ key: string; value: ApiSettingValue }` (the `SettingValue` import at `:27` goes if unused; `SettingField` and `DurationSettingField` still accept it, since a function taking a wider value is assignable); a new `SettingGroup title="Scheduled Restarts" description="Restart the game server every day at these times"` directly after Server Behavior (`:117-130`), holding `<ScheduledRestartsSetting times={settings?.scheduledRestartTimes ?? API_SETTING_DEFAULTS.scheduled_restart_times} onSave={handleSave} />`. Header comment: `Story 22.6: Scheduled Restarts and Backup Cleanup groups`
+  - [ ] 2.4: Tests (Dev Notes "Web tests", Task 2 rows), red first; the panel fixture (`ApiSettingsPanel.test.tsx:45-58`) and `SettingsPage.test.tsx`'s settings fixture gain `scheduledRestartTimes: []` and `backupKeepCount: 0`, and `config.test.ts`' typed `ApiSettingsData` fixtures the same (the type requires them)
+  - [ ] 2.5: `just test-web`, `just typecheck`, Prettier on the changed files, `just lint-web`. Commit `feat(story-22.6/task-2): set restart times in API Settings` (body: Settings > API Settings > Scheduled Restarts lists the daily restart times, in server time (`TZ`, UTC unless set); Add time, change or Remove saves the whole list; times closer than 16 minutes (also across midnight), duplicates and more than 24 are refused with the reason; players are warned 15, 5 and 1 minutes before; a stopped server is not started)
+
+- [ ] Task 3: The Backup Cleanup group + tests (AC: 6, 7, 8, 9, 10)
+  - [ ] 3.1: `ApiSettingsPanel.tsx`: a `SettingGroup title="Backup Cleanup" description="Delete old backup files every day"` directly after Scheduled Restarts, holding one `SettingField` (`settingKey="backup_keep_count"`, `label="Backups kept"`, `type="int"`, `value={settings?.backupKeepCount ?? API_SETTING_DEFAULTS.backup_keep_count}`, `validate={validators.compose(validators.positiveInt(BACKUP_LIMIT_MESSAGE), validators.range(0, MAX_BACKUP_KEEP_COUNT, BACKUP_LIMIT_MESSAGE))}` with a module constant `` BACKUP_LIMIT_MESSAGE = `Must be between 0 and ${MAX_BACKUP_KEEP_COUNT}` `` ("Must be between 0 and 1000"), the help text of Dev Notes "Backup Cleanup help text", `onSave={handleSave}`). `validators` comes from `@/hooks/use-setting-field` (`:30-111`)
+  - [ ] 3.2: Tests (Dev Notes "Web tests", Task 3 rows), red first
+  - [ ] 3.3: `just test-web src/features/settings`, `just typecheck`, Prettier on the changed files, `just lint-web`. Commit `feat(story-22.6/task-3): set the backup limit in API Settings` (body: Settings > API Settings > Backup Cleanup sets how many of the newest files in `serverdata/Backups` the daily 03:00 cleanup keeps (server time); 0, the default, keeps all; older files are deleted permanently; `BackupSaves` and the world are never touched)
+
+- [ ] Task 4: E2E for both groups, at 320px and desktop, with snapshot and restore + tests (AC: 2, 3, 5, 6, 7, 8, 9)
+  - [ ] 4.1: `web/e2e/settings-as-saved.spec.ts`: the tests of Dev Notes "E2E" in a new serial describe with its own snapshot and restore of `scheduled_restart_times` and `backup_keep_count`; update the spec's header comment (`:4-36`) with this story's lines and its residue (none: both values are restored exactly; Dev Notes "E2E")
+  - [ ] 4.2: `web/e2e/README.md`: recount (`cd web && bunx playwright test --list | tail -1`, and with `--grep-invert "@moddb|@moddb-live|@install|@game-server"`) and update every count it states (`:50` at 34a19a1b: 267 tests, CI 263: 236 untagged and 27 `@moddb`)
+  - [ ] 4.3: `just test-e2e-ci e2e/settings-as-saved.spec.ts` passes with 0 skipped in this file. Never against the dev stack
+  - [ ] 4.4: Commit `test(story-22.6/task-4): check the restart times and the backup limit in API Settings`
+
+- [ ] Task 5: Quality gate, review hand-off and the maintainer's check (AC: all)
+  - [ ] 5.1: `just check` passes (lint, typecheck with the E2E project, all API and web tests) with 0 skipped web tests; `just test-e2e-ci` (both passes) passes. `git status --short` shows nothing under `dev/` or `data/`. The diff has no `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, `nosemgrep`, `# type: ignore`, `.skip`/`.only` in unit tests, and no new `as` type assertion (`as const` is not one)
+  - [ ] 5.2: `git log --oneline 34a19a1b..HEAD` shows exactly the two `feat` subjects of AC 10 and no other `feat`/`fix`/`perf`; `just changelog` lists both under Features and nothing else from this story
+  - [ ] 5.3: Complete the Dev Agent Record: every completion note checked against the code as committed, the File List, the test counts
+  - [ ] 5.4: `just sprint set 22-6-restart-and-cleanup-settings-in-the-ui review`; story Status `review`. Commit `chore(story-22.6/task-5): validate and move story 22.6 to review`. Do not push or open the PR unless the maintainer says so; report `git status` and the proposed commands
+  - [ ] 5.5: Maintainer's manual check (maintainer only; leave unticked until he confirms; no agent writes to the dev stack): on the dev stack rebuilt from the branch (`just docker restart`, `http://localhost:9080`), first save a snapshot (`curl -s -H "X-API-Key: <admin key>" http://localhost:9080/api/v1alpha1/config/api > /tmp/api-settings-before.json`). In Settings > API Settings: read both groups' help texts; add a restart time at least 6 hours from now in the container's time (never one within the next hour: its warning job fires 15 minutes before, and the dev stack's game server must not be restarted), see it in Scheduled Jobs as `scheduled_restart_HHMM`, then remove it at once; set Backups kept to a value, then set it back. Look at both groups at a phone width (Add time, Remove, the time inputs) and with the keyboard only. Then restore `scheduled_restart_times` and `backup_keep_count` exactly as in the snapshot and compare a fresh `GET` with it: identical, and no `scheduled_restart_*` job listed that was not there before. The game server is neither started, stopped nor restarted
+
+## Dev Notes
+
+### The state today (verified at 34a19a1b)
+
+- **API, done by Stories 22.3 and 22.4** (`api/src/vintagestory_api/services/api_settings.py`): `scheduled_restart_times: list[str]`, default `[]` (`:99-107`); its validator (`:137-164`): each entry fully matches `([01][0-9]|2[0-3]):[0-5][0-9]` (`:45`), else `'<entry>' is not a time in HH:MM (24-hour, 00:00 to 23:59)` (an entry longer than 16 characters is cut with `...`, `:143-148`); duplicates are dropped and the list sorted (`:150`); more than `MAX_RESTART_TIMES = 24` (`:40`) gives `at most 24 times, got N`; each time and the next, the last wrapping to the first, must be at least `MIN_RESTART_GAP_MINUTES = 16` (`:41`) apart, else `'<a>' and '<b>' are N minutes apart; restart times must be at least 16 minutes apart` (`1 minute` in the singular, `:153-163`). `update_setting` refuses a value that is not a JSON array with `must be a list of times in HH:MM` (`:383-388`) and reports a Pydantic error by its first message (`:396-399`). `backup_keep_count: int`, default 0, `ge=0`, `le=MAX_BACKUP_KEEP_COUNT = 1000` (`:36`, `:108-116`); a string of digits is coerced, a bool refused (`:371-382`). `log_archive_retention_days` and `log_archive_keep_min` do not exist (saving either: 400 `API_SETTING_UNKNOWN`).
+- **The exact messages a client sees** (`routers/config.py:373-389`): 400 `{"detail": {"code": "API_SETTING_INVALID", "message": "Invalid value for 'scheduled_restart_times': Value error, '04:00' and '04:10' are 10 minutes apart; restart times must be at least 16 minutes apart"}}`. Pydantic prefixes a validator's message with `Value error, ` (checked by running `ApiSettings(scheduled_restart_times=["04:00", "04:10"])` at 34a19a1b). For `backup_keep_count` 1001: `Invalid value for 'backup_keep_count': Input should be less than or equal to 1000`; -1: `... greater than or equal to 0`. 500 `API_SETTING_NOT_APPLIED` when the save worked but the restart jobs could not be applied (`:382-389`; ADR-7).
+- **Saving restart times** (`POST /api/v1alpha1/config/api/settings/scheduled_restart_times`, `{"value": ["16:00", "04:00"]}`) answers `{"key": "scheduled_restart_times", "value": ["04:00", "16:00"]}` (sorted, `api/tests/test_routers_config.py:2440-2451`) and at once adds, replaces or removes one cron job per time, id `scheduled_restart_HHMM`, firing 15 minutes before it (ADR-6 decisions 1 and 7). `GET /config/api` returns both settings in `data.settings` (`redacted()`, `api_settings.py:166-170`; `routers/config.py:279-305`). `GET` and `POST` are Admin only.
+- **The client** (`web/src/api/client.ts`): `snakeToCamel` (`:53-66`) and `camelToSnake` (`:79-92`) recurse into arrays and change only object keys; a string element such as `"04:00"` is returned as it is (`:65`, `:91`). So the response arrives as `settings.scheduledRestartTimes: ["04:00", ...]` unchanged, and a body `{ value: ["04:00"] }` is sent as `{"value": ["04:00"]}`. The POST path keeps the snake_case key (`config.ts:146-152`, `encodeURIComponent(key)`). No change to `client.ts`.
+- **Web types:** `ApiSettingsData.settings` (`types.ts:304-316`) has neither `scheduledRestartTimes` nor `backupKeepCount` (Story 22.5 left both to this story, `22-5-...md:87`). `updateApiSetting(key, value: string | number | boolean)` (`config.ts:139-153`), `ApiSettingUpdateData.value` (`types.ts:330-333`) and `useUpdateApiSetting`'s `mutationFn` (`use-api-settings.ts:89-90`) cannot take a list.
+- **`useUpdateApiSetting`** (`use-api-settings.ts:85-135`): optimistic (`onMutate` writes the camelCase key, `:91-116`), its own `onError` rolls back except for `API_SETTING_NOT_APPLIED` (`:117-124`, Story 22.5), `onSettled` invalidates `config.api` and, only for `INTERVAL_API_SETTINGS`, `jobs.all` (`:125-133`). Its only caller is `ApiSettingsPanel.tsx:46`.
+- **`ApiSettingsPanel.tsx`**: `handleSave` (`:51-66`): `mutateAsync`, then `toast.success(`${key} updated`)`; `API_SETTING_NOT_APPLIED` -> `toast.warning('Saved, not applied yet', { description })`; else `toast.error('Update failed', { description })`; rethrows both. Groups: Server Behavior (`:117-130`), Environment Variables (`:132-155`), Refresh Intervals (`:157-210`, collapsible), Update Alerts (`:212-218`, `ModUpdateWebhookSetting`), Debug Logging (`:220-261`). Fallbacks read `API_SETTING_DEFAULTS` (`config.ts:103-110`; Story 22.5).
+- **`SettingField.tsx`** (`type="int"`): a `type="number"` `Input` with `max-w-xs` (`:241-253`), saved on blur or Enter when changed (`use-setting-field.ts:310-327`); `coerceSettingValue('int')` is `parseInt(value, 10) || 0` (`:344-347`), so `2.5` becomes 2 and an empty field 0; the validator runs before the save (`:276-282`); a thrown error's message is shown under the field with `role="alert"` (`SettingField.tsx:264-268`, `use-setting-field.ts:291-298`); the field follows a changed `value` prop (`use-setting-field.ts:255-258`). `validators.range` and `validators.positiveInt` exist (`:42-55`).
+- **`SettingGroup.tsx`**: a `Card` with title and description (`:92-123`), children in `CardContent className="space-y-4"` (`:126`).
+- **No time input or list editor exists** in `web/src` (`grep -rn 'type="time"' web/src` finds nothing; the Add/Remove lists in the mod pages are not editors). `ModUpdateWebhookSetting.tsx` (`features/settings/`) is the precedent for a setting component of its own inside the panel.
+- **Scheduled Jobs** (`ScheduledJobsPanel.tsx:25-87`, `components/JobsTable.tsx`): lists every job, `scheduled_restart_HHMM` and `disk_cleanup` included, with the raw trigger (`cron[month='*', day='*', day_of_week='*', hour='3', minute='45']` for a 04:00 restart; `formatSchedule` only rewrites `every N seconds`, `:50-69`) and the next run as `new Date(iso).toLocaleString()` (`:41-44`): the browser's time zone, and for a restart job the first warning, 15 minutes before. Not changed here (ADR-13 decision 3).
+- **Monitor:** `SettingsPage.tsx` renders the API Settings trigger and panel only when `isAdmin` (`:37`, `:52`, `:74`; Story 22.5), and its tests cover a Monitor (`SettingsPage.test.tsx:297`, `:309`). New groups inside the panel inherit that.
+- **Sizes:** `ui/button.tsx` sizes `default` `h-9`, `sm` `h-8`, `icon` `size-9` (`:22-28`); `ui/input.tsx` `h-9` (`:11`). The project's 44px-below-`lg` pattern: `max-lg:min-h-11` (`ui/tabs.tsx:34`, `DurationSettingField.tsx:354`), `max-lg:size-11` for icon buttons (`ConsolePanel.tsx:295`, `:312`), `max-lg:h-11` for inputs (`InstalledTab.tsx:98`).
+- **No time zone reaches the web:** no route returns `TZ` or the container's offset (`grep -rni "tzname\|utcoffset\|timezone" api/src` finds none outside UTC handling). A job's `next_run_time` carries an offset, but reading it would need the jobs request ADR-13 decision 3 leaves out. The README documents `TZ` (`README.md:95`, `:101`, `:129`).
+
+### ADR against the code
+
+1. **The UI cannot show the container's time zone (ADR-13 decision 1 says "the server's time zone (`TZ`, UTC unless set)").** Nothing in the API returns it (see "The state today"). The help text names it the way ADR-13 does, "server time (the container's time zone, `TZ`, UTC unless set)", rather than a zone name. Showing the real zone would need a new API field; not added (no API change in this story; a follow-up for the maintainer, open question 1).
+2. **"Saved when an entry changes and is valid" (ADR-13 decision 1) is a commit on blur or Enter, not on every change event.** A browser fires `input`/`change` on `<input type="time">` once per edited segment as soon as the value is complete (hours, then minutes), so saving on React's `onChange` would send `04:00` then `04:30` for one edit, two saves and two toasts (against AC 2's "once"). The editor saves when a time input loses focus or gets Enter, as `SettingField` and `DurationSettingField` do, and Remove saves at once. A new row with no time yet is never sent.
+3. **The client refuses a duplicate, which the API would silently drop (ADR-5 decision 2: "duplicates are removed").** Sending `["04:00", "04:00"]` would answer `["04:00"]` and a row would vanish after a success toast. The client says `'04:00' is already in the list` instead and sends nothing. Every other client rule is the API's rule with the API's words (Dev Notes "Client-side rules"), so the server's 400 is a fallback the admin should not normally see (AC 4 tests it with a stubbed answer).
+4. **The group for the backup limit is "Backup Cleanup" with one field (ADR-13 decision 2 as amended 2026-11-19).** Before the amendment it was "Disk Cleanup" with three fields; the two log-archive settings do not exist (planning corrected in 34a19a1b). The help text says that deletion is permanent and when it runs, which ADR-13 did not ask for and the maintainer's brief did.
+5. **44px targets: the new controls only (epic AC "each input and button is at least 44px tall below 1024px").** The time inputs, Remove and Add time are new and get the target. The Backups kept input is a `SettingField` like every number field in the tab and keeps `h-9`, as Story 22.5 kept the duration inputs (its controller decision 2 during validation, for the maintainer to review). Changing `SettingField` would change every settings page.
+6. **The epic's E2E task names 320px; Story 22.5 measured at 390px.** This story's E2E uses 320px (the epic's width) and 1440px.
+7. **`useUpdateApiSetting` refreshes Scheduled Jobs only for interval keys (`use-api-settings.ts:130`).** A saved restart list adds or removes jobs too, so Task 1 widens it to the four keys of the API's `SCHEDULED_SETTINGS` (`SCHEDULED_API_SETTINGS`). Without it Scheduled Jobs would show the old restart jobs until its own poll.
+
+### Client-side rules (`web/src/lib/restart-times.ts`, Task 2.1)
+
+`restartTimesError(times)` checks, in this order, the times the editor would send (every row with a value; a new row never given a value is left out, a saved row cleared to empty is not, below), and returns the first message or `null`:
+
+| Rule | Message (exact) | Source |
+|---|---|---|
+| An entry is `""` (a saved time cleared) | `Enter a time, or remove it` | client only |
+| An entry does not fully match `RESTART_TIME_PATTERN` | `'<entry>' is not a time in HH:MM (24-hour, 00:00 to 23:59)` | `api_settings.py:148` |
+| The same time twice | `'<time>' is already in the list` | client only ("ADR against the code" 3) |
+| More than `MAX_RESTART_TIMES` | `at most 24 times, got <n>` | `:152` |
+| Sorted, each time and the next (the last wrapping to the first) less than `MIN_RESTART_GAP_MINUTES` apart | `'<a>' and '<b>' are <n> minutes apart; restart times must be at least 16 minutes apart` (`1 minute` when n is 1) | `:156-163` |
+
+With two or more times the gap is checked between each sorted time and the next, and between the last and the first across midnight (`(next - this) mod 1440`), exactly as the API (`23:55` and `00:05` are 10 minutes apart; `00:00` and `23:59` 1 minute). With one time there is no gap. The numbers come from `MAX_RESTART_TIMES` and `MIN_RESTART_GAP_MINUTES` in `config.ts` (pinned by `TestWebDefaults`), not literals.
+
+### The editor (`ScheduledRestartsSetting.tsx`, Task 2.2)
+
+- **State:** `rows: { id: number; value: string; isNew: boolean }[]`, `error: string | null`, `isPending: boolean`, and a `followsProp` rule as in `DurationSettingField` (Story 22.5): while no save is pending and no error is shown, and no time input has focus, `rows` follows the `times` prop (sorted, `isNew: false`), so the 60-second poll, the save's refetch and another browser tab are shown. Ids come from a ref counter, so React keys stay stable across sorting.
+- **Empty:** with no rows, `<p data-testid="scheduled-restarts-empty">No restart is scheduled.</p>`.
+- **Rows:** a `<ul aria-label="Restart times">`, one `<li>` per row: `<Input type="time" step={60} aria-label={`Restart time ${n}`} value={row.value} ...>` (`n` from 1 in display order; `step={60}` keeps the value `HH:MM`, no seconds) with `className="w-36 max-lg:h-11"`, and a `Button variant="ghost" size="icon"` with an `X` (or `Trash2`) icon, `className="max-lg:size-11"`, `aria-label={row.value ? `Remove restart time ${row.value}` : `Remove restart time ${n}`}`. `data-testid`s: `restart-time-${n}`, `remove-restart-time-${n}`. The row is `flex items-center gap-2`, so nothing is wider than the card at 320px.
+- **Add time:** `<Button variant="outline" size="sm" className="max-lg:min-h-11" data-testid="add-restart-time">` with a `Plus` icon and the text "Add time". It appends `{ value: '', isNew: true }` and moves the focus to the new input (a ref or `autoFocus` on that row). Disabled while pending, or while 24 rows are listed; then a line `At most 24 restart times.` under it (`data-testid="scheduled-restarts-max"`). Nothing is saved.
+- **Commit (blur or Enter on a time input):** build the list from the rows (left out: a new row whose value is `""`); if it equals the saved `times` as a set, do nothing (no save, no toast; a blur without a change); else run `restartTimesError`: on a message, set `error` and send nothing; else `save(list)`.
+- **Remove:** if the row is new and empty, just drop it. Else build the list without it and run the same check (a removal can only fix an error, but a remaining cleared row still blocks); then `save(list)`. Focus moves to the next row's input, else the previous one's, else Add time.
+- **`save(list)`:** `isPending` true (inputs, Remove and Add disabled, a `Loader2` beside the group's help text as `SettingField` does); `await onSave({ key: 'scheduled_restart_times', value: sortRestartTimes(list) })`; on success clear `error`, rows become the sorted list (`isNew: false`); on a thrown error set `error` to its message (`err instanceof Error ? err.message : 'Failed to save restart times'`) and keep the rows as edited (AC 4; for `API_SETTING_NOT_APPLIED` the list was saved, so rows are that list and the message is shown); finally `isPending` false. A guard ref set synchronously at the start (as `savingRef` in `DurationSettingField`) makes a second commit in the same gesture (a blur caused by clicking Remove) wait or drop, so one gesture sends one save.
+- **The error:** `<p id="scheduled_restart_times-error" role="alert" className="text-xs text-destructive">`; every time input then has `aria-invalid` and `aria-describedby="scheduled_restart_times-error"`; otherwise `aria-describedby="scheduled_restart_times-desc"` (the help text). Editing any row clears the error only when the list then passes `restartTimesError`; a server message stays until the next successful save.
+- **Help text** (`<p id="scheduled_restart_times-desc" className="text-xs text-muted-foreground">`, above the list): `Times are server time: the container's time zone (TZ), UTC unless set. Players are warned in chat 15, 5 and 1 minutes before each restart. A stopped server is not started. A time less than 15 minutes from now first runs the next day. Up to 24 times, at least 16 minutes apart. Scheduled Jobs lists each one as scheduled_restart_HHMM, with its first warning as the next run, in your browser's time.` Tests match each fact by a short regex, not the whole text.
+- **Only through `onSave`:** the editor never calls a mutation or `toast` itself; the panel's `handleSave` shows the one toast (Dev Notes "One toast").
+- **The 24-hour display:** the browser shows a time input in the user's locale (some show 12-hour with AM/PM); its value is always `HH:MM` 24-hour, which is what is saved and what the help text means. Not worked around.
+
+### Backup Cleanup help text (Task 3.1)
+
+`Newest files kept in serverdata/Backups. 0 keeps all (the default). Every day at 03:00 server time (TZ, UTC unless set) older files are deleted permanently. BackupSaves and the world are never touched.`
+
+The group's description: `Delete old backup files every day`. No field for log archives: the game keeps its own to 5 (ADR-10 as amended).
+
+### One toast (AC 4, 7; project-context.md "Mutation errors")
+
+`useUpdateApiSetting` has its own `onError` (`use-api-settings.ts:117-124`), which replaces the query client's default toast (`api/query-client.ts:36-38`); the panel's `handleSave` shows exactly one toast (success, warning or error) and rethrows so the field or editor can show the message. Both new groups save only through `handleSave`; no `mutate(..., { onError })`, no `toast` in `ScheduledRestartsSetting.tsx` or the field. Tests count with `toHaveBeenCalledTimes(1)` on the mocked `sonner`.
+
+### Web tests
+
+Use each file's existing fetch pattern: `ApiSettingsPanel.test.tsx`, `SettingsPage.test.tsx` and `use-api-settings.test.tsx` save and restore `globalThis.fetch` (`ApiSettingsPanel.test.tsx:129-141`, `serveSettings` `:81-108`, `postCalls` `:114-118`, `renderPanel` `:120-127`); new test files use `vi.stubGlobal('fetch', ...)` with `vi.unstubAllGlobals()` in `afterEach`, or no fetch at all. Do not mix the two in one file (project-context.md, "Stubbing browser globals"). jsdom accepts `fireEvent.change(input, { target: { value: '04:00' } })` on a time input (and sanitises an invalid value to `""`); use it and `fireEvent.blur` / `fireEvent.keyDown(..., { key: 'Enter' })`, not `userEvent.type`, on time inputs.
+
+| Task | File | Tests |
+|---|---|---|
+| 1 | `api/config.test.ts` | `updateApiSetting('scheduled_restart_times', ['04:00', '16:00'])` calls `apiClient` with the POST path `/api/v1alpha1/config/api/settings/scheduled_restart_times` and `body: { value: ['04:00', '16:00'] }`. `API_SETTING_DEFAULTS` has exactly the eight keys (the existing "exactly the six" test, `:634-658`, changes deliberately), `scheduled_restart_times` is `[]` and `backup_keep_count` 0. `SCHEDULED_API_SETTINGS` is `INTERVAL_API_SETTINGS` plus `scheduled_restart_times`. `MAX_RESTART_TIMES` 24, `MIN_RESTART_GAP_MINUTES` 16, `MAX_BACKUP_KEEP_COUNT` 1000 (the values themselves are pinned by the API test) |
+| 1 | `api/client.test.ts` | `snakeToCamel({ scheduled_restart_times: ['04:00', '16:00'] })` is `{ scheduledRestartTimes: ['04:00', '16:00'] }` and `camelToSnake({ value: ['04:00'] })` is `{ value: ['04:00'] }` (strings in an array are not touched) |
+| 1 | `hooks/use-api-settings.test.tsx` (describe "useUpdateApiSetting and Scheduled Jobs", `:458-585`) | Saving `scheduled_restart_times` `['04:00']` writes `scheduledRestartTimes: ['04:00']` into the cached settings at once (optimistic) and invalidates the jobs query, on success and on a failure; a 400 rolls the cached list back; `auto_start_server` and `backup_keep_count` do not invalidate the jobs query |
+| 1 | `api/tests/test_api_settings.py` `TestWebDefaults` | As 1.4: eight keys, `[]` parsed, the three constants equal the API's; a changed web value fails (seen red) |
+| 2 | `lib/restart-times.test.ts` (new, no fetch) | `sortRestartTimes(['16:00', '04:00'])` is `['04:00', '16:00']` and does not mutate its input. `restartTimesError`: `[]`, `['04:00']`, `['04:00', '04:16']`, `['23:52', '00:08']` (16 minutes across midnight), 24 times 60 minutes apart: `null`. `['04:00', '04:10']`: the gap message with `'04:00' and '04:10' are 10 minutes apart`; `['23:55', '00:05']`: `'23:55' and '00:05' are 10 minutes apart`; `['00:00', '23:59']`: `'23:59' and '00:00' are 1 minute apart`; `['04:00', '04:00']`: `'04:00' is already in the list`; 25 distinct times 57 minutes apart: `at most 24 times, got 25`; `['4:00']`, `['24:00']`, `['04:60']`, `['04:00:00']`: the format message; `['']`: `Enter a time, or remove it`. Each message also equals the API's text where the table says so (copy the expected strings from `api/tests/test_api_settings.py:1025-1033`) |
+| 2 | `features/settings/ScheduledRestartsSetting.test.tsx` (new; a `vi.fn()` `onSave`, no fetch) | **Empty:** "No restart is scheduled." and an enabled Add time; help text facts by regex (server time and `TZ`, UTC unless set; 15, 5 and 1 minutes; stopped server not started; 15 minutes ahead runs the next day; 24 times, 16 minutes apart; Scheduled Jobs in browser time). **AC 2 sequence** with a parent that echoes each saved list back as `times` (a small wrapper with `useState`): add + `04:00` + blur -> `onSave` once with `['04:00']`; add + `16:00` + Enter -> `['04:00', '16:00']`; change `16:00` to `18:30` + blur -> `['04:00', '18:30']`; Remove `04:00` -> `['18:30']`; four calls in all. Adding `02:00` after `04:00` sends `['02:00', '04:00']` (sorted) and shows the rows sorted. **No save:** Add time then blur the empty input; a blur with an unchanged value; Remove of a new empty row. **AC 3:** `04:00` with `04:10` -> the gap message with `role="alert"`, no `onSave`, both rows still shown, inputs `aria-invalid`; the same for `23:55`/`00:05`, a duplicate, a saved row cleared to empty; 24 rows -> Add time disabled and "At most 24 restart times." shown. **AC 4:** `onSave` rejecting with `new Error("Invalid value for 'scheduled_restart_times': Value error, ...")` -> that message shown, the edited rows kept even when the `times` prop does not change; a later successful save clears it. **AC 5:** removing the only time calls `onSave` with `[]` and shows the empty text. **Pending:** while `onSave` is pending (a deferred promise) the inputs, Remove and Add time are disabled; a blur and a Remove in one gesture save once. **Prop:** a `rerender` with new `times` while idle shows them; while an error is shown it does not replace the edited rows. **Accessibility (AC 8):** inputs named "Restart time 1"...; Remove named "Remove restart time 04:00" or "Remove restart time 2" when empty; after Add time the new input has focus; after Remove the focus is on the next input, or Add time when none is left; the Add and Remove buttons have `max-lg:min-h-11` / `max-lg:size-11` and the inputs `max-lg:h-11` (class checks; heights are measured in E2E) |
+| 2 | `features/settings/ApiSettingsPanel.test.tsx` (new describe "Scheduled Restarts (Story 22.6)", with `serveSettings`) | The group is shown after Server Behavior and before Environment Variables (document order of the titles). Loaded `scheduledRestartTimes: ['16:00', '04:00']` (unsorted, as a hand edit could leave it) shows two rows in sorted order. With an empty `settings` object: the empty text (fallback from `API_SETTING_DEFAULTS`). Adding `04:00`: one POST to `/config/api/settings/scheduled_restart_times` with body `{"value":["04:00"]}`, `toast.success` once with `scheduled_restart_times updated`, no error toast. A 400 `API_SETTING_INVALID` (stubbed with the API's message for `04:00`/`04:10`, though the client would refuse it: post a list the client accepts, the stub refuses): `toast.error` once ("Update failed", the message), no success toast, the message under the list, the rows kept. A 500 `API_SETTING_NOT_APPLIED`: `toast.warning` once, no error or success toast |
+| 2 | `features/settings/SettingsPage.test.tsx` | Monitor (the existing `:297`, `:309` setup): no "Scheduled Restarts" and no "Backup Cleanup" text. Fixture gains the two fields |
+| 3 | `features/settings/ApiSettingsPanel.test.tsx` (new describe "Backup Cleanup (Story 22.6)") | The group after Scheduled Restarts; one number input named "Backups kept" with the loaded value, 0 with an empty `settings`; no text "log archive" (case-insensitive) in the panel; help text facts by regex (0 keeps all; deleted permanently; 03:00 server time, `TZ`; `serverdata/Backups`; `BackupSaves` never). `3` + blur: one POST with `{"value":3}`, `toast.success` once. `-1` and `1001`: "Must be between 0 and 1000", no POST. A 400 answer: `toast.error` once and the message under the field |
+
+### Existing tests that change (deliberately)
+
+- `api/config.test.ts:634-658` "has exactly the six settings": eight keys (Task 1).
+- `api/tests/test_api_settings.py` `WEB_DEFAULT_KEYS` and `_web_defaults`' type (Task 1).
+- Settings fixtures in `ApiSettingsPanel.test.tsx`, `SettingsPage.test.tsx` and `config.test.ts` gain `scheduledRestartTimes` and `backupKeepCount` (Task 2.4).
+
+Every other test stays as it is. Anything else that fails is a regression: fix the code, not the test.
+
+### E2E (`web/e2e/settings-as-saved.spec.ts`, Task 4)
+
+A new describe "Restart times and the backup limit: real API (Story 22.6)" with `test.describe.configure({ mode: 'serial' })`, modelled on the existing serial describe (`:156-311`):
+
+- **Snapshot (`beforeAll`):** `GET /api/v1alpha1/config/api` with the Admin key; keep `scheduled_restart_times` (the list) and `backup_keep_count`, and the set of `scheduled_restart_*` job ids from `GET /api/v1alpha1/jobs`; `hasSnapshot = true` only after both are read.
+- **Restore (`afterAll`):** throws `No snapshot of scheduled_restart_times and backup_keep_count; refusing to restore` without one; otherwise POSTs each setting whose value differs from the snapshot, then asserts both equal the snapshot and that the `scheduled_restart_*` job ids equal the snapshot's. Residue: none (the restored jobs are recreated with the same ids and times).
+- **Times far from now, in the container's time:** the restart times are read in the container's time zone, which the test learns from the API, not the runner: `disk_cleanup` is always registered (Story 22.4), and its `next_run_time` from `GET /api/v1alpha1/jobs` carries the container's UTC offset (for example `+00:00` in the throwaway container, which has no `TZ`). A helper takes `Date.now()`, applies that offset, and picks `H1` = container-local now + 6 h and `H2` = now + 12 h, rounded down to the quarter hour, formatted `HH:MM` (and a third time 10 minutes after `H1` for the refusal step). A restart job fires 15 minutes before its time, so nothing fires during the run; the helper fails the test if either time is within 2 hours of container-local now. If `disk_cleanup` is missing, the test fails with that reason rather than guessing.
+- **T1 (1440x900, Admin):** open `/config`, Scheduled Jobs first (cached), then API Settings. Add time, fill `H1` (`locator.fill('HH:MM')` works on a time input), press Enter: exactly one `[data-sonner-toast]` with `scheduled_restart_times updated`; the API value is the snapshot list plus `H1`, sorted (poll `GET`); Scheduled Jobs lists `job-name-scheduled_restart_<HHMM of H1>` within 5 s. Add `H2`: two rows, sorted. Type a time 10 minutes from `H1` into a third row and press Enter: the gap message (`are 10 minutes apart`) is shown and no POST is made (route spy on `**/api/v1alpha1/config/api/settings/scheduled_restart_times` counting requests during that step). Remove the third row (no POST), remove `H2`, then `H1`: the API value is the snapshot list again and the two jobs are gone.
+- **T2 (1440x900):** Backups kept: fill a value different from the snapshot (`snapshot === 3 ? 4 : 3`), blur: one toast, the API value is it; fill `1001`, blur: "Must be between 0 and 1000", no POST; fill the snapshot value back, blur: the API value is the snapshot.
+- **T3 (320x640, read-mostly):** API Settings at 320px: `document.documentElement.scrollWidth <= innerWidth`; the Add time button and, after Add time, the new time input and its Remove button each have a bounding box at least 44px tall (scroll into view first); Remove that new row (nothing saved, since it was empty: assert no POST). Also at 1440px nothing scrolls sideways.
+- **Monitor:** covered by Story 22.5's E2E (the tab is not shown) and the unit test of Task 2; no new Monitor E2E.
+
+Why serial and in this file: Playwright runs files and describes in parallel (`fullyParallel: true`, `web/playwright.config.ts:19`); no other spec writes these two settings (`grep -rln "config/api" web/e2e` finds only this file), and the existing serial describe writes `mod_list_refresh_interval` only. Each POST is one read-modify-write of `api-settings.json` with no `await` between the read and the write (`api_settings.py:346-402`), so two describes saving different keys at once cannot lose either. The base URL stays the config's default (`http://localhost:9080`, `playwright.config.ts:28`); run only with `just test-e2e-ci e2e/settings-as-saved.spec.ts` (throwaway container on `127.0.0.1:18080`, Monitor key set, removed after the run), and the whole suite with `just test-e2e-ci` in Task 5. Never against `http://localhost:9080`: writes to the dev stack are the maintainer's (5.5), and a restart time there could restart its game server (ADR-14 decision 3).
+
+### Not changed (do not "fix" these here)
+
+- The API: no source change (`api/src/`). The `Value error, ` prefix in its messages is Pydantic's; shown as it comes (open question 2).
+- `ScheduledJobsPanel.tsx` and `JobsTable.tsx`: the raw cron trigger and the browser-time next run stay; the next restart time is not shown in API Settings (ADR-13 decision 3). The help text tells admins how to read Scheduled Jobs.
+- `SettingField.tsx`, `DurationSettingField.tsx`, `SettingGroup.tsx`, `ui/*`: unchanged. `client.ts`: unchanged (arrays of strings already pass through).
+- `use-setting-field.ts`' `SettingValue` (game settings use it): unchanged; the API settings get `ApiSettingValue`.
+- `INTERVAL_API_SETTINGS`: kept for the interval keys (`config.test.ts` checks it); `SCHEDULED_API_SETTINGS` is new.
+- No time zone setting or route (ADR-5 decision 4); no next-restart display (ADR-13 decision 3).
+
+### What admins see
+
+- Settings > API Settings > Scheduled Restarts: the daily restart times, in server time, each with Remove, and Add time. A time is saved when the input loses focus or on Enter; one toast per save. Times closer than 16 minutes (also around midnight), the same time twice, or more than 24 are refused with the reason before anything is sent. With no time: "No restart is scheduled."
+- Settings > API Settings > Backup Cleanup: Backups kept, 0 (keep all) by default, up to 1000; the help text says older files are deleted permanently at 03:00 server time.
+- Scheduled Jobs shows the restart jobs at once after a save.
+- A Monitor key sees neither (the tab is Admin only since Story 22.5).
+
+### Testing Requirements
+
+**CRITICAL:** tests are written with each task and committed with it, red first. `just test-web <file>` after each change; `just check` before review.
+
+- Web unit tests: Vitest + Testing Library. No `.skip` or `.only`. The jsdom rules of `project-context.md` apply (`setTestUrl` for URLs, `matchMedia`/`ResizeObserver` stubbed in `web/tests/setup.ts`). Layout heights are not measurable in jsdom: assert classes in unit tests, measure in E2E.
+- The API pinning test: `just test-api tests/test_api_settings.py -k TestWebDefaults`.
+- `git status --short` after the unit and E2E runs shows nothing under `dev/` or `data/`.
+
+### Security Requirements
+
+- No new endpoint, request type or secret. The API stays the enforcement: `GET`/`POST /config/api` are Admin only, and it validates every list and bound itself; the client checks are for the admin's benefit only.
+- No instance-specific value (keys, server name, real restart times, URLs other than `localhost` and the throwaway port) in the story, the PR, the tests or the notes.
+
+### Development Commands
+
+- `just test-web src/lib/restart-times.test.ts src/features/settings/ScheduledRestartsSetting.test.tsx`
+- `just test-web src/api src/hooks/use-api-settings.test.tsx`
+- `just test-web src/features/settings`
+- `just test-api tests/test_api_settings.py`
+- `just typecheck`, `cd web && bunx prettier --write <changed files>` (the pinned Prettier; 22.5 formatted only its changed files), `just lint`, `just check`
+- `just test-e2e-ci e2e/settings-as-saved.spec.ts`, then `just test-e2e-ci`
+- `just sprint set 22-6-restart-and-cleanup-settings-in-the-ui review` (Task 5 only). Never edit `sprint-status.yaml` or `.beads/` by hand; never push without the maintainer's word.
+
+### Previous Story Intelligence
+
+- **22.5 (directly before; review):** `API_SETTING_DEFAULTS`, `MAX_INTERVAL_SECONDS` and `TestWebDefaults` (an API test that reads `config.ts` line by line and fails on a computed value: keep each default a plain literal on its own line); `DurationSettingField`'s "follow the prop when idle" rule and in-flight guard (the model for the editor's state); the hook keeps a not-applied value in the cache; the API Settings tab is Admin only; E2E writes go inside a serial describe with a snapshot that refuses to restore without one. Its review notes: a panel test whose fetch answers in the same microtask can see the field revert before the optimistic value arrives (its deviation 2; give such POSTs a short delay); counts in `web/e2e/README.md` drift and must be recounted; Prettier only on changed files; completion notes must match the code as committed.
+- **22.4:** `backup_keep_count` (0 to 1000, default 0), the daily `disk_cleanup` job at 03:00 container time, only `Backups/`; the log-archive settings dropped by the maintainer (its drawdown item 1 is the planning correction in 34a19a1b). `/genbackup` writing a file is unconfirmed (its drawdown 2): the field still applies to any file in `Backups/`.
+- **22.3:** `scheduled_restart_times` and its messages; the web contract (`22-3-scheduled-restarts.md:401`): camelCase `scheduledRestartTimes`, the POST path key snake_case, `ApiSettingsData` and `updateApiSetting` gain the list here. A time saved less than 15 minutes ahead first runs the next day (ADR-6 decision 6).
+- **21.7 / 21.8 (Epic 21):** 44px targets below `lg` with `max-lg:` classes; `feat` subjects describe what an admin sees; manual checks are ticked only after the maintainer confirms; E2E specs are type-checked.
+
+### Git Intelligence
+
+- Base: `34a19a1b` (`docs(epic-22): story 22.6 shows only the backup limit`) on `story/22-6-restart-and-cleanup-settings-in-the-ui`, branched from `story/22-5-interval-fields-can-turn-jobs-off` (last code commit `c6f6a689`, 22.5 Task 6, plus merges of 22.4's and 22.8's review commits). `main` is `e16a7932`.
+- Recent web commits (22.5): `refactor` for a component change no admin sees yet, `fix`/`feat` with admin-facing subjects, `test` for E2E, `chore` for the hand-off. Planned here: Task 1 `refactor`, Tasks 2 and 3 `feat` (release notes), Task 4 `test`, Task 5 `chore`.
+
+### Latest Technical Information
+
+- No new library. `<input type="time">`: its `value` is `HH:MM` (with `step` 60 or unset; `HH:MM:SS` only with a smaller step), whatever the locale shows; an incomplete entry gives `""`. Browsers fire `input`/`change` per completed segment edit, hence commit on blur/Enter ("ADR against the code" 2). Playwright's `locator.fill()` accepts `HH:MM` for a time input. jsdom sanitises a set value that is not a valid time string to `""`.
+- TanStack Query v5 (as in Story 22.5): a hook-level `onError` replaces the client default; the hook's `onError` and `onSettled` run before `mutateAsync` rejects; cache notifications reach components through `notifyManager` (`setTimeout(0)`), so the `times` prop can lag the editor's own state by a task: the editor must not depend on that order (its rows follow the prop only when idle and error-free).
+- `lucide-react` already provides `Plus`, `X`, `Trash2`, `Loader2`.
+
+### Project Structure Notes
+
+- New: `web/src/lib/restart-times.ts` and its test; `web/src/features/settings/ScheduledRestartsSetting.tsx` and its test.
+- Modified: `web/src/api/types.ts`, `web/src/api/config.ts` and `config.test.ts`, `web/src/api/client.test.ts`, `web/src/hooks/use-api-settings.ts` and its test, `web/src/features/settings/ApiSettingsPanel.tsx` and its test, `web/src/features/settings/SettingsPage.test.tsx`, `api/tests/test_api_settings.py`, `web/e2e/settings-as-saved.spec.ts`, `web/e2e/README.md`.
+- Not touched: `api/src/`, `web/src/components/` (no shared component changes), `web/src/api/client.ts`, `Justfile`, `scripts/`, `.github/`, `web/package.json`, `bun.lock`, compose files, README.
+
+### References
+
+- [Source: _bmad-output/planning-artifacts/epics.md#Story 22.6: Restart and Cleanup Settings in the UI] (as amended in 34a19a1b); Epic 22 header, order and dependencies
+- [Source: _bmad-output/planning-artifacts/prd.md] FR304, FR305 (amended)
+- [Source: _bmad-output/planning-artifacts/architecture/epic-22-server-operations-and-metrics.md] ADR-5, ADR-6 (decisions 2, 3, 6, 7), ADR-9 and ADR-10 (amendments), ADR-11 decision 6, ADR-12, ADR-13 (amended), ADR-14 decision 3; facts "The API Settings tab"
+- [Source: _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-18-epic-22.md] section 2 (contract table, draft release notes, as amended), section 5 (planner decisions not reviewed: the UI of ADR-13)
+- [Source: _bmad-output/implementation-artifacts/22-5-interval-fields-can-turn-jobs-off.md] (patterns, review notes); `22-4-log-archive-and-backup-cleanup.md` (maintainer decision, drawdown 1); `22-3-scheduled-restarts.md` (web contract `:401`); `21-8-sidebar-default-and-content-width.md` (depth model)
+- `project-context.md`: testing discipline, stubbing browser globals, no suppressions, mutation `onError` rule, commit message format, story sizing (5 tasks)
+
+### Open questions for the maintainer (none blocks the start)
+
+1. **Show the real time zone?** The web cannot know `TZ` (no API field), so the help text says "server time (TZ, UTC unless set)". A small API addition (for example the zone name and offset in `GET /config/api` or `/healthz`) would let the tab say "Europe/Berlin (UTC+01:00)". Not in scope; a bead if wanted.
+2. **The `Value error, ` prefix** in the API's restart-times messages (Pydantic's). The client's own messages omit it, so an admin normally never sees it; strip it in `update_setting` if wanted (API change, a bead).
+3. **Duplicates refused client-side** ("ADR against the code" 3) where the API drops them silently: kept, unless the maintainer prefers the silent merge.
+4. **44px only for the new controls** ("ADR against the code" 5): the Backups kept input keeps `SettingField`'s 36px, as Story 22.5's duration inputs did.
+
+## Dev Agent Record
+
+### Agent Model Used
+
+### Debug Log References
+
+### Completion Notes List
+
+### File List
+
+## Change Log
+
+- 2026-11-19: Story created (create-story, non-interactive) from Epic 22 Story 22.6 as corrected in 34a19a1b (backup limit only, after the maintainer's "Backups only + docs" decision), ADR-5, ADR-6, ADR-9 to ADR-14, and the code at 34a19a1b. Status ready-for-dev.
