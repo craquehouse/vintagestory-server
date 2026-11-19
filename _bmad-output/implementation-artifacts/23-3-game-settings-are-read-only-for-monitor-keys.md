@@ -1,6 +1,6 @@
 # Story 23.3: Game Settings Are Read-Only for Monitor Keys
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR313, Epic 23 ADR-6. Bead: VSS-7z3 (UI-084), closed by this story after merge. Branch story/23-3-game-settings-are-read-only-for-monitor-keys, stacked on story/23-2-file-browser-paths-are-lists-of-names at f2405f9a (23.2 in review); the PR targets main and merges after 23.2's. Web only: no API change, no new dependency. Line references verified at f2405f9a. -->
 
@@ -61,11 +61,11 @@ so that **I do not type a change that then fails with "Update failed"**.
   - [x] 3.2: `just typecheck-web` (covers `e2e/`); run the spec only if the dev stack is up and the Monitor key is configured; otherwise record that it was not run locally (CI runs the untagged set)
   - [x] 3.3: Commit `test(story-23.3/task-3): check Game Settings are read-only for a Monitor key`
 
-- [ ] Task 4: Validate and move the story to review (AC: all)
-  - [ ] 4.1: `just check` green; `git diff f2405f9a -- api` empty; no suppression added
-  - [ ] 4.2: `just changelog` lists exactly one entry from this story (Task 2)
-  - [ ] 4.3: Status `review`; `just sprint set 23-3-game-settings-are-read-only-for-monitor-keys review`; Dev Agent Record and File List
-  - [ ] 4.4: Commit `chore(story-23.3/task-4): validate and move story 23.3 to review`
+- [x] Task 4: Validate and move the story to review (AC: all)
+  - [x] 4.1: `just check` green; `git diff f2405f9a -- api` empty; no suppression added
+  - [x] 4.2: `just changelog` lists exactly one entry from this story (Task 2)
+  - [x] 4.3: Status `review`; `just sprint set 23-3-game-settings-are-read-only-for-monitor-keys review`; Dev Agent Record and File List
+  - [x] 4.4: Commit `chore(story-23.3/task-4): validate and move story 23.3 to review`
 
 ## Dev Notes
 
@@ -89,8 +89,32 @@ so that **I do not type a change that then fails with "Update failed"**.
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5), as the epic's controller.
+
 ### Debug Log References
+
+- `just check` (2026-11-19, with Stories 23.1's review fixes and 23.2 merged in): API 3866 passed, web 3757 passed (139 files), 0 skipped; Pyright 0/0; lints green.
+- `just test-e2e-ci e2e/game-settings-read-only.spec.ts e2e/monitor-password-redaction.spec.ts e2e/file-browser-monitor-note.spec.ts e2e/file-browser-navigation.spec.ts`: 18 passed (the throwaway container has a Monitor key, so the real-key test ran); API E2E 4 passed.
 
 ### Completion Notes List
 
+- 2026-11-19 (create-story): created from Epic 23's Story 23.3 and ADR-6.
+- 2026-11-19 (dev-story): Tasks 1 to 4 done.
+- **What changed.** `useIsAdmin` in `use-auth-me.ts` (`isKnown` is "a role string was returned"); `FileManagerPanel` and `SettingsPage` use it, unchanged in behaviour. `SettingField`: `disabled` prop (feeds `useSettingField`'s `disabled` and the controls; no badge). `GameConfigPanel`: `disabled={!isAdmin}` on every field; one `role="note"` paragraph (`game-config-read-only-note`) at the top for a known non-Admin role or a failed role read.
+- **Tests.** 4 `useIsAdmin` rows; 4 `SettingField` disabled rows; 4 `GameConfigPanel` role rows. The existing panel tests now start with the Admin role in the query cache (`createTestQueryClient('admin')`), because their fetch mock answers every URL, `/auth/me` included, with the game config, which would leave the role unknown and every field disabled. New E2E spec `e2e/game-settings-read-only.spec.ts` (3 tests).
+- `git diff f2405f9a -- api` is only Story 23.1's merged review docstring fix. `just changelog`: one entry from this story, 04e58ba (Task 2).
+
 ### File List
+
+- `web/src/api/hooks/use-auth-me.ts`, `web/src/api/hooks/use-auth-me.test.tsx` (modified)
+- `web/src/components/SettingField.tsx`, `web/src/components/SettingField.test.tsx` (modified)
+- `web/src/features/game-server/GameConfigPanel.tsx`, `web/src/features/game-server/GameConfigPanel.test.tsx` (modified)
+- `web/src/features/settings/FileManagerPanel.tsx`, `web/src/features/settings/SettingsPage.tsx` (modified: `useIsAdmin`)
+- `web/e2e/game-settings-read-only.spec.ts` (new)
+- `_bmad-output/implementation-artifacts/23-3-game-settings-are-read-only-for-monitor-keys.md` (this file)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
+
+## Change Log
+
+- 2026-11-19: Story 23.3 created (ready-for-dev).
+- 2026-11-19: Implemented (dev-story): Tasks 1 to 4; status review.
