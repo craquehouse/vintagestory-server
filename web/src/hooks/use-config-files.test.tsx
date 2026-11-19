@@ -8,6 +8,8 @@ import {
   useConfigDirectories,
   useSaveConfigFile,
   useConfigTextCheck,
+  useConfigHistory,
+  useRestoreConfigRevision,
 } from './use-config-files';
 import { act } from '@testing-library/react';
 import { queryKeys } from '@/api/query-keys';
@@ -649,5 +651,76 @@ describe('useConfigTextCheck', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 600));
     expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+});
+
+// Story 23.7: config file history
+describe('config history hooks', () => {
+  const originalFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('maps the revisions to camelCase', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          status: 'ok',
+          data: {
+            filename: 'x.json',
+            revisions: [
+              {
+                id: 'r1',
+                saved_at: '2026-11-19T12:00:00Z',
+                saved_by: 'admin',
+                size: 3,
+                sha256: 'h',
+              },
+            ],
+          },
+        }),
+    });
+    const { result } = renderHook(() => useConfigHistory(['x.json'], true), {
+      wrapper: createWrapper(createTestQueryClient()),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.data.revisions[0]).toEqual({
+      id: 'r1',
+      savedAt: '2026-11-19T12:00:00Z',
+      savedBy: 'admin',
+      size: 3,
+      sha256: 'h',
+    });
+  });
+
+  it('does not fetch when disabled', () => {
+    globalThis.fetch = vi.fn();
+    renderHook(() => useConfigHistory(['x.json'], false), {
+      wrapper: createWrapper(createTestQueryClient()),
+    });
+
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it('refetches the history and the read after a restore', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ status: 'ok', data: { filename: 'x.json', version: 'v2' } }),
+    });
+    const queryClient = createTestQueryClient();
+    queryClient.setQueryData(['config', 'history', 'x.json'], { status: 'ok' });
+    queryClient.setQueryData(queryKeys.config.file('x.json'), { status: 'ok' });
+    const { result } = renderHook(() => useRestoreConfigRevision(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({ path: ['x.json'], revision: 'r1', version: 'v1' });
+    });
+
+    expect(queryClient.getQueryState(['config', 'history', 'x.json'])?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(queryKeys.config.file('x.json'))?.isInvalidated).toBe(true);
   });
 });

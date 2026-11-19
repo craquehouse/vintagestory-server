@@ -11,6 +11,9 @@ import {
   saveConfigFile,
   checkConfigText,
   parseErrorFromApiError,
+  fetchConfigHistory,
+  fetchConfigRevision,
+  restoreConfigRevision,
   InvalidConfigPathError,
   API_SETTING_DEFAULTS,
   INTERVAL_API_SETTINGS,
@@ -889,5 +892,45 @@ describe('parseErrorFromApiError', () => {
   it('is null for other errors', () => {
     expect(parseErrorFromApiError(new ApiError('CONFIG_FILE_CHANGED', 'x', 409))).toBeNull();
     expect(parseErrorFromApiError(new Error('x'))).toBeNull();
+  });
+});
+
+// Story 23.7: config file history
+describe('config file history', () => {
+  beforeEach(() => {
+    vi.mocked(apiClient).mockReset();
+    vi.mocked(apiClient).mockResolvedValue({ status: 'ok', data: {} });
+  });
+
+  it('lists the history', async () => {
+    await fetchConfigHistory(['ModConfig', 'x.json']);
+
+    expect(apiClient).toHaveBeenCalledWith('/api/v1alpha1/config/history/ModConfig%2Fx.json');
+  });
+
+  it('reads a revision', async () => {
+    await fetchConfigRevision(['x.json'], '20261119T120000000000Z-2');
+
+    expect(apiClient).toHaveBeenCalledWith(
+      '/api/v1alpha1/config/history/x.json?revision=20261119T120000000000Z-2'
+    );
+  });
+
+  it('restores a revision with the version', async () => {
+    await restoreConfigRevision(['x.json'], 'r1', 'v1');
+
+    expect(apiClient).toHaveBeenCalledWith('/api/v1alpha1/config/history/x.json/restore', {
+      method: 'POST',
+      body: { revision: 'r1', version: 'v1' },
+    });
+  });
+
+  it.each([
+    ['list', () => fetchConfigHistory(['..'])],
+    ['read', () => fetchConfigRevision([''], 'r')],
+    ['restore', () => restoreConfigRevision(['a/b'], 'r', 'v')],
+  ])('%s refuses an invalid name without a request', async (_name, call) => {
+    await expect(call()).rejects.toThrow(InvalidConfigPathError);
+    expect(apiClient).not.toHaveBeenCalled();
   });
 });

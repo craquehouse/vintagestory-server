@@ -373,6 +373,30 @@ export interface ConfigParseError {
   column: number | null;
 }
 
+/** An earlier version of a config file (Story 23.7; API: Story 23.6). */
+export interface ConfigRevision {
+  id: string;
+  /** ISO 8601, UTC */
+  savedAt: string;
+  savedBy: string;
+  /** Bytes */
+  size: number;
+  sha256: string;
+}
+
+/** A config file's earlier versions, newest first (Story 23.7). */
+export interface ConfigHistoryData {
+  filename: string;
+  revisions: ConfigRevision[];
+}
+
+/** One earlier version and its text (Story 23.7). */
+export interface ConfigRevisionData {
+  filename: string;
+  revision: ConfigRevision;
+  text: string;
+}
+
 /** A config file save's answer (Story 23.5). */
 export interface ConfigFileSaveData {
   filename: string;

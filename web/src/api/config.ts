@@ -21,6 +21,8 @@ import type {
   ConfigDirectoryListData,
   ConfigParseError,
   ConfigFileSaveData,
+  ConfigHistoryData,
+  ConfigRevisionData,
   ConfigTextCheck,
   ConfigFileListData,
   ConfigFileContentData,
@@ -353,4 +355,46 @@ export async function checkConfigText(
 export function parseErrorFromApiError(error: unknown): ConfigParseError | null {
   if (!(error instanceof ApiError) || error.code !== 'CONFIG_FILE_INVALID') return null;
   return toParseError(error.details?.parse_error);
+}
+
+// ===== Config file history (Story 23.7; API: Story 23.6, Epic 23 ADR-7) =====
+
+const HISTORY_PREFIX = `${API_PREFIX}/history`;
+
+/** A config file's earlier versions, newest first (Admin). */
+export async function fetchConfigHistory(
+  path: readonly string[]
+): Promise<ApiResponse<ConfigHistoryData>> {
+  const filename = toConfigPath(path);
+  return apiClient<ApiResponse<ConfigHistoryData>>(
+    `${HISTORY_PREFIX}/${encodeURIComponent(filename)}`
+  );
+}
+
+/** One earlier version of a config file and its text (Admin). */
+export async function fetchConfigRevision(
+  path: readonly string[],
+  revision: string
+): Promise<ApiResponse<ConfigRevisionData>> {
+  const filename = toConfigPath(path);
+  return apiClient<ApiResponse<ConfigRevisionData>>(
+    `${HISTORY_PREFIX}/${encodeURIComponent(filename)}?revision=${encodeURIComponent(revision)}`
+  );
+}
+
+/**
+ * Save an earlier version of a config file over it (Admin; the game server stopped).
+ *
+ * @param version - The version of the file as it is now (from the read)
+ */
+export async function restoreConfigRevision(
+  path: readonly string[],
+  revision: string,
+  version: string
+): Promise<ApiResponse<ConfigFileSaveData>> {
+  const filename = toConfigPath(path);
+  return apiClient<ApiResponse<ConfigFileSaveData>>(
+    `${HISTORY_PREFIX}/${encodeURIComponent(filename)}/restore`,
+    { method: 'POST', body: { revision, version } }
+  );
 }
