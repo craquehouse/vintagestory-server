@@ -247,7 +247,8 @@ export function ScheduledRestartsSetting({ times, onSave }: ScheduledRestartsSet
     focusTargetRef.current = id;
   }, [newId, setRows]);
 
-  const isFull = rows.length >= MAX_RESTART_TIMES;
+  // Only filled times count: a new row left empty is not a time (AC 3)
+  const isFull = listFrom(rows).length >= MAX_RESTART_TIMES;
   const describedBy = message ? ERROR_ID : DESCRIPTION_ID;
 
   return (

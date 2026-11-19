@@ -255,6 +255,51 @@ describe('ScheduledRestartsSetting (Story 22.6)', () => {
       );
     });
 
+    describe('counts only filled times toward 24 (review)', () => {
+      const hourly23 = Array.from({ length: 23 }, (_, i) => `${String(i).padStart(2, '0')}:00`);
+
+      it('with 23 times and a new empty row, Add time stays enabled', () => {
+        renderEcho(hourly23);
+
+        fireEvent.click(addButton());
+
+        expect(shownTimes()).toHaveLength(24);
+        expect(addButton()).not.toBeDisabled();
+        expect(screen.queryByTestId('scheduled-restarts-max')).not.toBeInTheDocument();
+      });
+
+      it('filling the 24th time disables Add time', async () => {
+        const onSave = renderEcho(hourly23);
+
+        await addTime('23:00');
+
+        await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+        expect(saved(onSave, 0)).toHaveLength(24);
+        await waitFor(() => expect(addButton()).toBeDisabled());
+        expect(screen.getByTestId('scheduled-restarts-max')).toHaveTextContent(
+          'At most 24 restart times.'
+        );
+      });
+
+      it('an empty row can never make 25: filling it is refused and nothing is sent', async () => {
+        const onSave = renderEcho(hourly23);
+
+        fireEvent.click(addButton());
+        fireEvent.click(addButton());
+        expect(shownTimes()).toHaveLength(25);
+        fireEvent.change(timeInput(24), { target: { value: '23:00' } });
+        fireEvent.blur(timeInput(24));
+        await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+        await waitFor(() => expect(addButton()).toBeDisabled());
+
+        fireEvent.change(timeInput(25), { target: { value: '23:30' } });
+        fireEvent.blur(timeInput(25));
+
+        expect(screen.getByRole('alert')).toHaveTextContent('at most 24 times, got 25');
+        expect(onSave).toHaveBeenCalledTimes(1);
+      });
+    });
+
     it('describes the inputs by the help text when there is no message', () => {
       renderEcho(['04:00']);
 
