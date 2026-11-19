@@ -790,4 +790,61 @@ describe('SettingField', () => {
       expect(input).toHaveValue(42421);
     });
   });
+
+  // Story 23.3 (FR313): read-only for this key, e.g. a Monitor key
+  describe('disabled', () => {
+    it('disables a text input and does not save on blur', () => {
+      const onSave = vi.fn().mockResolvedValue({});
+      render(<SettingField {...defaultProps} onSave={onSave} disabled />);
+
+      const input = screen.getByLabelText('Server Name');
+      expect(input).toBeDisabled();
+      fireEvent.change(input, { target: { value: 'Changed' } });
+      fireEvent.blur(input);
+
+      expect(onSave).not.toHaveBeenCalled();
+    });
+
+    it('disables a number input', () => {
+      render(
+        <SettingField
+          settingKey="Port"
+          label="Port"
+          value={42420}
+          type="int"
+          onSave={vi.fn()}
+          disabled
+        />
+      );
+
+      expect(screen.getByLabelText('Port')).toBeDisabled();
+    });
+
+    it('disables a switch and does not save on click', () => {
+      const onSave = vi.fn().mockResolvedValue({});
+      render(
+        <SettingField
+          settingKey="AllowPvP"
+          label="Allow PvP"
+          value={true}
+          type="bool"
+          onSave={onSave}
+          disabled
+        />
+      );
+
+      const switchInput = screen.getByRole('switch');
+      expect(switchInput).toBeDisabled();
+      fireEvent.click(switchInput);
+
+      expect(onSave).not.toHaveBeenCalled();
+      expect(switchInput).toBeChecked();
+    });
+
+    it('shows no environment badge', () => {
+      render(<SettingField {...defaultProps} disabled />);
+
+      expect(screen.queryByText(/Env:/)).not.toBeInTheDocument();
+    });
+  });
 });

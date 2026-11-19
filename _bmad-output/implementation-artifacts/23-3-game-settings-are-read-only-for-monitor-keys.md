@@ -49,12 +49,12 @@ so that **I do not type a change that then fails with "Update failed"**.
   - [x] 1.3: `FileManagerPanel.tsx` (`showAdminNote = isKnown && !isAdmin`, same as today's `role !== undefined && role !== 'admin'`) and `SettingsPage.tsx` (`isAdmin`) use it; their tests unchanged and green
   - [x] 1.4: Commit `refactor(story-23.3/task-1): read the key's role through one hook`
 
-- [ ] Task 2: Game Settings disabled unless the key is Admin + tests (AC: 1, 2, 3, 6)
-  - [ ] 2.1: Red first: `SettingField.test.tsx`: with `disabled`, the text input, number input and switch are disabled, no `onSave` on blur or toggle, and no env badge is shown; `GameConfigPanel.test.tsx`: the four AC rows (Admin, Monitor, loading, error), mocking `/auth/me` as the existing panel tests mock fetch
-  - [ ] 2.2: `SettingField.tsx`: new prop `disabled?: boolean` (doc: "Read-only for this key, e.g. a Monitor key (Story 23.3); unlike envManaged, no badge"); `useSettingField({ disabled: envManaged || disabled })`; `isDisabled = envManaged || disabled || field.isPending`
-  - [ ] 2.3: `GameConfigPanel.tsx`: `const { isAdmin, isKnown, isError } = useIsAdmin()`; pass `disabled={!isAdmin}` to each `SettingField`; render the note above the first group when `isKnown && !isAdmin` ("Only an Admin key can change settings.") or `isError` (the failure text), as `<p data-testid="game-config-read-only-note" role="note" className="text-sm text-muted-foreground">`, inside the `PAGE_CONTENT_WIDTH` container
-  - [ ] 2.4: `just test-web`; `just typecheck-web`; `just format-web`, `just lint-web`
-  - [ ] 2.5: Commit `fix(story-23.3/task-2): show game settings read-only to Monitor keys`
+- [x] Task 2: Game Settings disabled unless the key is Admin + tests (AC: 1, 2, 3, 6)
+  - [x] 2.1: Red first: `SettingField.test.tsx`: with `disabled`, the text input, number input and switch are disabled, no `onSave` on blur or toggle, and no env badge is shown; `GameConfigPanel.test.tsx`: the four AC rows (Admin, Monitor, loading, error), mocking `/auth/me` as the existing panel tests mock fetch
+  - [x] 2.2: `SettingField.tsx`: new prop `disabled?: boolean` (doc: "Read-only for this key, e.g. a Monitor key (Story 23.3); unlike envManaged, no badge"); `useSettingField({ disabled: envManaged || disabled })`; `isDisabled = envManaged || disabled || field.isPending`
+  - [x] 2.3: `GameConfigPanel.tsx`: `const { isAdmin, isKnown, isError } = useIsAdmin()`; pass `disabled={!isAdmin}` to each `SettingField`; render the note above the first group when `isKnown && !isAdmin` ("Only an Admin key can change settings.") or `isError` (the failure text), as `<p data-testid="game-config-read-only-note" role="note" className="text-sm text-muted-foreground">`, inside the `PAGE_CONTENT_WIDTH` container
+  - [x] 2.4: `just test-web`; `just typecheck-web`; `just format-web`, `just lint-web`
+  - [x] 2.5: Commit `fix(story-23.3/task-2): show game settings read-only to Monitor keys`
 
 - [ ] Task 3: E2E with the Monitor key (AC: 5)
   - [ ] 3.1: A spec next to the existing Monitor specs (`web/e2e/file-browser-monitor-note.spec.ts` is the model: how it loads the Monitor key and skips without it), visiting the Game Settings page, asserting `game-config-read-only-note` and that the `ServerName` input is disabled. Read-only: it never saves a setting

@@ -57,6 +57,11 @@ export interface SettingFieldProps {
   envManaged?: boolean;
 
   /**
+   * Read-only for this key, e.g. a Monitor key (Story 23.3). Unlike envManaged, no badge.
+   */
+  disabled?: boolean;
+
+  /**
    * Environment variable name (shown in badge).
    */
   envVar?: string;
@@ -108,6 +113,7 @@ export function SettingField({
   type,
   validate,
   envManaged = false,
+  disabled = false,
   envVar,
   description,
   onSave,
@@ -129,13 +135,13 @@ export function SettingField({
     settingType: type,
     validate,
     onSave,
-    disabled: envManaged,
+    disabled: envManaged || disabled,
     // Story 17.6 review: a switch that failed to save goes back to the stored state
     // (for a setting with no value, the default or "Not set"); typed text is kept
     revertOnError: type === 'bool',
   });
 
-  const isDisabled = envManaged || field.isPending;
+  const isDisabled = envManaged || disabled || field.isPending;
   const isNumber = type === 'int' || type === 'float';
 
   // Story 17.6: a boolean with no value whose switch has not been moved from the

@@ -16,8 +16,8 @@ vi.mock('sonner', () => ({
   },
 }));
 
-// Create a fresh QueryClient for each test
-function createTestQueryClient() {
+// Create a fresh QueryClient for each test, without a known role
+function createUnseededQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
@@ -28,6 +28,14 @@ function createTestQueryClient() {
       },
     },
   });
+}
+
+// Story 23.3: the fields are editable only for an Admin key, so the existing tests start
+// with the Admin role known (useAuthMe's staleTime is Infinity: no request is made)
+function createTestQueryClient(role = 'admin') {
+  const queryClient = createUnseededQueryClient();
+  queryClient.setQueryData(queryKeys.auth.me, { status: 'ok', data: { role } });
+  return queryClient;
 }
 
 // Wrapper component for rendering with QueryClientProvider
@@ -909,6 +917,74 @@ describe('GameConfigPanel', () => {
 
       const skeletons = screen.getByTestId('game-config-loading').firstElementChild;
       expect(skeletons).toHaveClass(...PAGE_CONTENT_WIDTH.split(' '));
+    });
+  });
+
+  // Story 23.3 (FR313, Epic 23 ADR-6)
+  describe('read-only for keys that are not Admin', () => {
+    function respondWithConfig(authMe?: () => Promise<unknown>) {
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/auth/me') && authMe) {
+          return authMe();
+        }
+        return { ok: true, json: () => Promise.resolve(mockGameConfig) };
+      });
+    }
+
+    it('disables every field and shows the note for a Monitor key', async () => {
+      respondWithConfig();
+      render(<GameConfigPanel />, { wrapper: createWrapper(createTestQueryClient('monitor')) });
+
+      await waitFor(() => expect(screen.getByTestId('game-config-panel')).toBeInTheDocument());
+      expect(screen.getByTestId('game-config-read-only-note')).toHaveTextContent(
+        'Only an Admin key can change settings.'
+      );
+      expect(screen.getByLabelText('Server Name')).toBeDisabled();
+      expect(screen.getByLabelText('Port')).toBeDisabled();
+      for (const control of screen.queryAllByRole('switch')) {
+        expect(control).toBeDisabled();
+      }
+
+      fireEvent.change(screen.getByLabelText('Server Name'), { target: { value: 'X' } });
+      fireEvent.blur(screen.getByLabelText('Server Name'));
+      const posts = vi
+        .mocked(globalThis.fetch)
+        .mock.calls.filter(([, init]) => (init as RequestInit | undefined)?.method === 'POST');
+      expect(posts).toHaveLength(0);
+    });
+
+    it('enables the fields and shows no note for an Admin key', async () => {
+      respondWithConfig();
+      render(<GameConfigPanel />, { wrapper: createWrapper(createTestQueryClient('admin')) });
+
+      await waitFor(() => expect(screen.getByTestId('game-config-panel')).toBeInTheDocument());
+      expect(screen.queryByTestId('game-config-read-only-note')).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Server Name')).toBeEnabled();
+    });
+
+    it('disables the fields without a note while the role loads', async () => {
+      respondWithConfig(() => new Promise(() => {}));
+      render(<GameConfigPanel />, { wrapper: createWrapper(createUnseededQueryClient()) });
+
+      await waitFor(() => expect(screen.getByTestId('game-config-panel')).toBeInTheDocument());
+      expect(screen.getByLabelText('Server Name')).toBeDisabled();
+      expect(screen.queryByTestId('game-config-read-only-note')).not.toBeInTheDocument();
+    });
+
+    it('disables the fields and says why when the role cannot be loaded', async () => {
+      respondWithConfig(async () => ({
+        ok: false,
+        status: 500,
+        json: () => Promise.resolve({ detail: { code: 'INTERNAL_ERROR', message: 'boom' } }),
+      }));
+      render(<GameConfigPanel />, { wrapper: createWrapper(createUnseededQueryClient()) });
+
+      await waitFor(() =>
+        expect(screen.getByTestId('game-config-read-only-note')).toHaveTextContent(
+          "Could not check this key's role; settings cannot be changed until it loads."
+        )
+      );
+      expect(screen.getByLabelText('Server Name')).toBeDisabled();
     });
   });
 });
