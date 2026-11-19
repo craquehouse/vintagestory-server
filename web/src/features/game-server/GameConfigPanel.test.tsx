@@ -940,6 +940,9 @@ describe('GameConfigPanel', () => {
         'Only an Admin key can change settings.'
       );
       expect(screen.getByLabelText('Server Name')).toBeDisabled();
+      expect(screen.getByLabelText('Server Name').getAttribute('aria-describedby')).toContain(
+        'game-config-read-only-note'
+      );
       expect(screen.getByLabelText('Port')).toBeDisabled();
       for (const control of screen.queryAllByRole('switch')) {
         expect(control).toBeDisabled();

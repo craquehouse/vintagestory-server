@@ -62,6 +62,12 @@ export interface SettingFieldProps {
   disabled?: boolean;
 
   /**
+   * The id of an element that says why the field is disabled, added to the control's
+   * aria-describedby while disabled (Story 23.3 review: the Game Settings read-only note).
+   */
+  disabledReasonId?: string;
+
+  /**
    * Environment variable name (shown in badge).
    */
   envVar?: string;
@@ -114,6 +120,7 @@ export function SettingField({
   validate,
   envManaged = false,
   disabled = false,
+  disabledReasonId,
   envVar,
   description,
   onSave,
@@ -157,6 +164,10 @@ export function SettingField({
       ? 'Not set'
       : `${gameDefault ? 'Enabled' : 'Disabled'} (default)`;
 
+  // Story 23.3 review: a disabled control also names the note that says why
+  const withReason = (ids: string | undefined) =>
+    [ids, disabled ? disabledReasonId : undefined].filter(Boolean).join(' ') || undefined;
+
   // Props shared by the plain and masked text inputs, so the two cannot drift apart
   const sharedInputProps = {
     id: settingKey,
@@ -164,11 +175,9 @@ export function SettingField({
     onBlur: field.onBlur,
     onKeyDown: field.onKeyDown,
     disabled: isDisabled,
-    'aria-describedby': field.error
-      ? `${settingKey}-error`
-      : description
-        ? `${settingKey}-desc`
-        : undefined,
+    'aria-describedby': withReason(
+      field.error ? `${settingKey}-error` : description ? `${settingKey}-desc` : undefined
+    ),
     'aria-invalid': !!field.error,
   };
   const errorInputClass = field.error && 'border-destructive focus-visible:ring-destructive';
@@ -207,9 +216,9 @@ export function SettingField({
             disabled={isDisabled}
             // Story 17.6 review: the state ("Enabled (default)", "Not set") is announced
             // with the switch, before the description
-            aria-describedby={
+            aria-describedby={withReason(
               description ? `${settingKey}-state ${settingKey}-desc` : `${settingKey}-state`
-            }
+            )}
           />
           <span
             id={`${settingKey}-state`}
