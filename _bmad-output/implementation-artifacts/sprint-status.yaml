@@ -252,7 +252,7 @@ development_status:
   23-1-configs-with-comments-can-be-viewed: done
   23-2-file-browser-paths-are-lists-of-names: review
   23-3-game-settings-are-read-only-for-monitor-keys: review
-  23-4-config-files-can-be-saved-through-the-api: backlog
+  23-4-config-files-can-be-saved-through-the-api: in-progress
   23-5-config-files-are-edited-in-the-file-browser: backlog
   23-6-config-edits-are-kept-as-history: backlog
   23-7-config-history-in-the-file-browser: backlog
