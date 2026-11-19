@@ -6,9 +6,11 @@
  *
  * Story 6.4: Settings UI
  * Story 17.6: Saving a refresh interval refreshes the Scheduled Jobs tab
+ * Story 22.5: A save that was not applied keeps its value in the cache
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ApiError } from '@/api/errors';
 import { queryKeys } from '@/api/query-keys';
 import {
   INTERVAL_API_SETTINGS,
@@ -112,7 +114,9 @@ export function useUpdateApiSetting() {
 
       return { previous };
     },
-    onError: (_err, _vars, context) => {
+    onError: (err, _vars, context) => {
+      // Story 22.5: a not-applied save is saved; keep it
+      if (err instanceof ApiError && err.code === 'API_SETTING_NOT_APPLIED') return;
       // Rollback to previous state on error
       if (context?.previous) {
         queryClient.setQueryData(queryKeys.config.api, context.previous);

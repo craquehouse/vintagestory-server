@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import { SettingsPage } from './SettingsPage';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
+import { forgetRememberedDurations } from '@/components/DurationSettingField';
 
 // Mock cookies module
 vi.mock('@/lib/cookies', () => ({
@@ -57,6 +58,7 @@ const mockApiSettings = {
       enforceEnvOnRestart: true,
       modListRefreshInterval: 300,
       serverVersionsRefreshInterval: 3600,
+      metricsCollectionInterval: 10,
     },
   },
 };
@@ -94,6 +96,7 @@ describe('SettingsPage', () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    forgetRememberedDurations();
   });
 
   describe('rendering', () => {

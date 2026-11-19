@@ -9,6 +9,7 @@
  * Story 14.6: Mod update webhook
  * Story 17.6: A saved interval that could not be applied shows a warning
  * Story 22.5: bounds and defaults match the API
+ * Story 22.5: interval jobs can be turned off; Metrics Collection field
  */
 
 import { AlertCircle, Loader2 } from 'lucide-react';
@@ -170,6 +171,8 @@ export function ApiSettingsPanel({ className }: ApiSettingsPanelProps) {
             minMessage="Must be at least {min}"
             maxMessage="Must be at most {max}"
             description="How often to refresh the installed mods list"
+            offValue={0}
+            onValue={API_SETTING_DEFAULTS.mod_list_refresh_interval}
             onSave={handleSave}
           />
           <DurationSettingField
@@ -184,6 +187,24 @@ export function ApiSettingsPanel({ className }: ApiSettingsPanelProps) {
             minMessage="Must be at least {min}"
             maxMessage="Must be at most {max}"
             description="How often to check for new game server versions"
+            offValue={0}
+            onValue={API_SETTING_DEFAULTS.server_versions_refresh_interval}
+            onSave={handleSave}
+          />
+          <DurationSettingField
+            settingKey="metrics_collection_interval"
+            label="Metrics Collection"
+            value={
+              settings?.metricsCollectionInterval ??
+              API_SETTING_DEFAULTS.metrics_collection_interval
+            }
+            min={1}
+            max={3600}
+            minMessage="Must be at least {min}"
+            maxMessage="Must be at most {max}"
+            description="How often the dashboard's metrics are collected. When off, the dashboard's charts and its memory and players cards stop updating; /metrics is read live and keeps working."
+            offValue={0}
+            onValue={API_SETTING_DEFAULTS.metrics_collection_interval}
             onSave={handleSave}
           />
         </SettingGroup>

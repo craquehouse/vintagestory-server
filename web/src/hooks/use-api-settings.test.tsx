@@ -11,6 +11,7 @@ vi.mock('sonner', () => ({
 import { toast } from 'sonner';
 import { useApiSettings, useUpdateApiSetting, useSetModUpdateWebhook } from './use-api-settings';
 import { handleApiError } from '@/api/error-handler';
+import type { ApiResponse, ApiSettingsData } from '@/api/types';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -525,6 +526,48 @@ describe('useUpdateApiSetting and Scheduled Jobs (Story 17.6)', () => {
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['jobs'] });
     });
+  });
+
+  // Story 22.5: a not-applied save did save the value, so the cache keeps it
+  it('keeps the saved value in the cache after API_SETTING_NOT_APPLIED', async () => {
+    globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/settings/')) {
+        return {
+          ok: false,
+          status: 500,
+          statusText: 'Internal Server Error',
+          json: () =>
+            Promise.resolve({
+              detail: {
+                code: 'API_SETTING_NOT_APPLIED',
+                message: 'Saved, but its job could not be rescheduled',
+              },
+            }),
+        };
+      }
+      // The refetch is held, so only onError can change the cache
+      return new Promise(() => {});
+    });
+    const queryClient = createTestQueryClient();
+    queryClient.setQueryData<ApiResponse<ApiSettingsData>>(['config', 'api'], {
+      status: 'ok',
+      data: {
+        settings: {
+          autoStartServer: false,
+          blockEnvManagedSettings: true,
+          enforceEnvOnRestart: false,
+          modListRefreshInterval: 3600,
+          serverVersionsRefreshInterval: 86400,
+          metricsCollectionInterval: 10,
+          modUpdateWebhookConfigured: false,
+        },
+      },
+    });
+
+    await save(queryClient, 'mod_list_refresh_interval', 0);
+
+    const cached = queryClient.getQueryData<ApiResponse<ApiSettingsData>>(['config', 'api']);
+    expect(cached?.data.settings.modListRefreshInterval).toBe(0);
   });
 
   it('does not invalidate the jobs query after saving auto_start_server', async () => {
