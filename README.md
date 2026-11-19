@@ -55,6 +55,10 @@ The web UI receives its API key from the server at runtime (`/config.js`): the v
 
 Your data in `./data` is kept. The running version is shown in the sidebar and reported by `/healthz` (`data.version`).
 
+### Stopping and restarting the container
+
+When the container is stopped or restarted (`docker stop`, `docker restart`, `docker compose down`, or `docker compose up -d` with a new image), the manager first stops a running game server the normal way, so the game saves the world, and then exits. It gives open requests up to 1 second to finish, then waits up to 8 seconds for the game to stop (a save usually takes about a second) and then ends it. Docker gives a container 10 seconds by default before it kills it, which is enough: do not make it shorter (`docker stop -t`, `stop_grace_period` in a compose file). On Kubernetes, keep `terminationGracePeriodSeconds` at 10 or more (the default is 30). A shorter grace period, `docker kill`, or a crash or power loss of the host can still lose what changed since the game's last autosave. Whether the game server starts again with the container depends on the auto-start setting.
+
 ### Verifying an image
 
 Each release image has signed build provenance and an SBOM attestation, created by the release workflow. With the [GitHub CLI](https://cli.github.com):

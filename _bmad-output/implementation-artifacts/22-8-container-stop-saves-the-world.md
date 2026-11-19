@@ -88,10 +88,10 @@ so that **the world is saved and players do not lose their progress when I upgra
   - [x] 4.5: **Stop rule:** if in Run A, B or C the lifespan shutdown does not run, the game's `server-main.log` shows no save before the container stops, the API lines are not in AC 1's order, or the container's exit code is 137 (killed by Docker): commit the record (4.6), then stop and report to the controller with the lines. Tasks 5 and 6 wait for the answer; the story does not go to review before it. Run D's outcome is recorded, not judged
   - [x] 4.6: Commit `docs(story-22.8/task-4): record a container stop saving the world in a throwaway container`
 
-- [ ] Task 5: The README section (AC: 8)
-  - [ ] 5.1: `README.md`: the section of Dev Notes "Documentation", `### Stopping and restarting the container`, between `### Upgrading` (`:45-56`) and `### Verifying an image` (`:58`)
-  - [ ] 5.2: `just lint` green
-  - [ ] 5.3: Commit `docs(story-22.8/task-5): explain what stopping the container does to the game server`
+- [x] Task 5: The README section (AC: 8)
+  - [x] 5.1: `README.md`: the section of Dev Notes "Documentation", `### Stopping and restarting the container`, between `### Upgrading` (`:45-56`) and `### Verifying an image` (`:58`)
+  - [x] 5.2: `just lint` green
+  - [x] 5.3: Commit `docs(story-22.8/task-5): explain what stopping the container does to the game server`
 
 - [ ] Task 6: Validate and move the story to review (AC: all)
   - [ ] 6.1: `just check` green: API tests, pyright 0 errors and 0 warnings, ruff; web tests with 0 skipped, tsc, Prettier; and `just test-scripts`. The added lines in `api/src` and `api/tests` hold no `type: ignore`, `pyright:`, `noqa`, `cast(`, skip, `xfail` or `.only`. `git diff da55999b -- web/ docker-compose.yaml docker-compose.dev.yaml api/src/vintagestory_api/routers/ api/src/vintagestory_api/models/ api/src/vintagestory_api/services/scheduler.py api/src/vintagestory_api/jobs/ api/src/vintagestory_api/services/pending_config_edits.py` is empty, and `git diff da55999b -- Dockerfile` is Task 3's `CMD` line and its comment only. `git status --short dev/ data/` is empty after the runs
