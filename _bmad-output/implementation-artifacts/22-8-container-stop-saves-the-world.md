@@ -80,13 +80,13 @@ so that **the world is saved and players do not lose their progress when I upgra
   - [x] 3.3: `just test-scripts test-docker-context.sh` green; `just lint-scripts` green. `just dev-api` (the `Justfile`) is not changed: it is not the container
   - [x] 3.4: Commit `build(story-22.8/task-3): limit uvicorn's wait for open requests at shutdown to 1 second` (body: Story 22.8 / task 3; an install, mod download or Stop/Restart request in flight at SIGTERM no longer holds the lifespan shutdown, and so the game's stop, past Docker's 10 s grace)
 
-- [ ] Task 4: Show it in a throwaway container (AC: 7)
-  - [ ] 4.1: Run Dev Notes "The throwaway-container run" exactly: image `vss-22-8-stop:local` built from this branch after Task 3's commit, container `vss-22-8-stop` on `127.0.0.1:18096`, no game port published, placeholder key, no `-v`/`--mount`/`--env-file`, no compose, not `just test-e2e-ci`. Never the dev stack (`vintagestory-manager-dev`, port 9080), whose game server is not started or stopped, and never `./data` or `dev/`
-  - [ ] 4.2: The process tree (and PID 1's command line holds `--timeout-graceful-shutdown 1`); Run A (`docker stop`, with a pending `Port` edit the game has overwritten), Run B (`docker restart` with an open console WebSocket), Run C (`docker stop -t 30`), Run D (`docker stop -t 2`), as listed there
-  - [ ] 4.3: Remove the container and the image (`docker rm -f vss-22-8-stop; docker image rm vss-22-8-stop:local`); `docker ps -a --filter name=vss-22-8` and `docker image ls vss-22-8-stop` are empty; `git status --short dev/ data/` is empty
-  - [ ] 4.4: Record the results in Dev Agent Record "Throwaway-container results" (host architecture, game version, the process tree, one block per run with the timings, exit codes, the API lines and the game's last lines, the commands) and append a "Results (Story 22.8)" paragraph to ADR-16's section in `_bmad-output/planning-artifacts/architecture/epic-22-server-operations-and-metrics.md`, which also records the `CMD`'s `--timeout-graceful-shutdown 1` (Task 3; "ADR against the code" 6). No instance data, no real key, no address
-  - [ ] 4.5: **Stop rule:** if in Run A, B or C the lifespan shutdown does not run, the game's `server-main.log` shows no save before the container stops, the API lines are not in AC 1's order, or the container's exit code is 137 (killed by Docker): commit the record (4.6), then stop and report to the controller with the lines. Tasks 5 and 6 wait for the answer; the story does not go to review before it. Run D's outcome is recorded, not judged
-  - [ ] 4.6: Commit `docs(story-22.8/task-4): record a container stop saving the world in a throwaway container`
+- [x] Task 4: Show it in a throwaway container (AC: 7)
+  - [x] 4.1: Run Dev Notes "The throwaway-container run" exactly: image `vss-22-8-stop:local` built from this branch after Task 3's commit, container `vss-22-8-stop` on `127.0.0.1:18096`, no game port published, placeholder key, no `-v`/`--mount`/`--env-file`, no compose, not `just test-e2e-ci`. Never the dev stack (`vintagestory-manager-dev`, port 9080), whose game server is not started or stopped, and never `./data` or `dev/`
+  - [x] 4.2: The process tree (and PID 1's command line holds `--timeout-graceful-shutdown 1`); Run A (`docker stop`, with a pending `Port` edit the game has overwritten), Run B (`docker restart` with an open console WebSocket), Run C (`docker stop -t 30`), Run D (`docker stop -t 2`), as listed there
+  - [x] 4.3: Remove the container and the image (`docker rm -f vss-22-8-stop; docker image rm vss-22-8-stop:local`); `docker ps -a --filter name=vss-22-8` and `docker image ls vss-22-8-stop` are empty; `git status --short dev/ data/` is empty
+  - [x] 4.4: Record the results in Dev Agent Record "Throwaway-container results" (host architecture, game version, the process tree, one block per run with the timings, exit codes, the API lines and the game's last lines, the commands) and append a "Results (Story 22.8)" paragraph to ADR-16's section in `_bmad-output/planning-artifacts/architecture/epic-22-server-operations-and-metrics.md`, which also records the `CMD`'s `--timeout-graceful-shutdown 1` (Task 3; "ADR against the code" 6). No instance data, no real key, no address
+  - [x] 4.5: **Stop rule:** if in Run A, B or C the lifespan shutdown does not run, the game's `server-main.log` shows no save before the container stops, the API lines are not in AC 1's order, or the container's exit code is 137 (killed by Docker): commit the record (4.6), then stop and report to the controller with the lines. Tasks 5 and 6 wait for the answer; the story does not go to review before it. Run D's outcome is recorded, not judged
+  - [x] 4.6: Commit `docs(story-22.8/task-4): record a container stop saving the world in a throwaway container`
 
 - [ ] Task 5: The README section (AC: 8)
   - [ ] 5.1: `README.md`: the section of Dev Notes "Documentation", `### Stopping and restarting the container`, between `### Upgrading` (`:45-56`) and `### Verifying an image` (`:58`)
@@ -341,6 +341,74 @@ None. No route, field, status code or setting changes. The visible change is in 
 ### Throwaway-container results
 
 <!-- Task 4.4: host architecture, Docker version, game version, the process tree, a block per run (duration, exit code, API lines with timestamps, the game's last lines), the commands. -->
+
+Run on 2026-11-19 from this branch at `e22886d9` (after Tasks 1 to 3). Host `arm64` (macOS), Docker server 29.9.2; image `vss-22-8-stop:local` built with `docker build --platform linux/amd64` (emulated); container `vss-22-8-stop` from `docker run -d --name vss-22-8-stop --platform linux/amd64 -p 127.0.0.1:18096:8080 -e VS_API_KEY_ADMIN=<placeholder> -e VS_DATA_DIR=/data vss-22-8-stop:local` (no `-v`, `--mount`, `--env-file` or compose; no game port published); `POST /server/install {"version":"stable"}` resolved to game **1.22.7**, fresh world. Helper functions as in Dev Notes "The throwaway-container run" (`read_cfg`, `game_log_tail`, `ps_tree`), plus a wait for a new `now running on Port` line and 60 s before each stop. Durations are `docker stop`/`docker restart`'s wall time on the host.
+
+**Process tree** (game running, before Run A):
+
+```
+1  ppid=0  uv run --no-sync uvicorn vintagestory_api.main:app --host 0.0.0.0 --port 8080 --timeout-graceful-shutdown 1
+10 ppid=1  /app/.venv/bin/python /app/.venv/bin/uvicorn vintagestory_api.main:app --host 0.0.0.0 --po...
+31 ppid=10 dotnet /data/server/VintagestoryServer.dll --dataPath serverdata
+```
+
+PID 1's full command line ends in `--timeout-graceful-shutdown 1`. As expected: `uv` PID 1, uvicorn its child, the game uvicorn's child.
+
+**Run A (`docker stop`, default grace 10 s; AC 1, 6, 7).** `POST /config/game/settings/Port {"value": 42421}` -> `file_update`, `pending_restart: true`; `POST .../ServerName {"value": "vss-22-8 run a"}` -> `console_command`; 5 s later `read_cfg` -> `42420 vss-22-8 run a` (the game wrote its own Port back). `docker stop vss-22-8-stop`: **1.29 s**, exit code **143**, `OOMKilled=false`.
+
+```
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+14:20:56.702336Z api_shutdown_stopping_game timeout=8.0
+14:20:56.703076Z stopping_server pid=31 timeout=8.0
+14:20:57.625658Z server_stopped_gracefully returncode=0
+14:20:57.626420Z pending_config_edits_reapplied keys=["Port"] trigger=exit
+14:20:57.626900Z api_shutdown_game_stopped seconds=0.92
+14:20:57.627011Z scheduler_stopped
+14:20:57.627166Z api_shutting_down
+INFO:     Finished server process [10]
+```
+
+Game (`server-main.log`): `14:20:56 [Notification] Server termination event SIGTERM received. Shutting down server`, `... Entering runphase Shutdown`, `Mods and systems notified, now saving everything...`, `Saved player world data...`, `Saved map regions...`, `Saved map chunks...`, `Saved loaded chunks...`, `Saved generating chunks...`, `Saved savegamedata...`, `14:20:56 [Event] World saved! Saved 8 chunks, 1 mapchunks, 16 mapregions.`, then `14:20:57 ... All threads gracefully shut down`, `Doing last tick...`, `Stopped the server!`. After `docker start`: `read_cfg` -> `42421 vss-22-8 run a`; no `pending_config_edits_reapplied` line at the API start (the file already held 42421).
+
+**Run B (`docker restart` with an open console WebSocket; AC 7).** Game started (ready on Port 42421), 60 s. A WebSocket client (scratchpad script, run with the image's `/app/.venv/bin/python` via `docker exec -d`) connected to `ws://127.0.0.1:8080/api/v1alpha1/console/ws?api_key=<placeholder>` (`websocket_connected` at 14:22:43). `docker restart vss-22-8-stop`: **1.27 s**; `/healthz` up again.
+
+```
+INFO:     Shutting down
+14:22:51.199458Z websocket_disconnected code=1012
+INFO:     Waiting for application shutdown.
+14:22:51.302672Z api_shutdown_stopping_game timeout=8.0
+14:22:51.303640Z stopping_server pid=37 timeout=8.0
+14:22:52.147221Z server_stopped_gracefully returncode=0
+14:22:52.147893Z api_shutdown_game_stopped seconds=0.84
+14:22:52.148468Z scheduler_stopped
+14:22:52.148665Z api_shutting_down
+INFO:     Finished server process [9]
+INFO:     Waiting for application startup.
+```
+
+No `Waiting for connections to close` and no `Cancel N running task(s), timeout graceful shutdown exceeded` line: the WebSocket closed at once. The client's file: `14:22:51.203 closed code=1012`. Game: `14:22:51 ... SIGTERM received. Shutting down server`, `14:22:51 [Event] World saved! Saved 0 chunks, 0 mapchunks, 16 mapregions.`, `14:22:52 [Event] Stopped the server!`. The old run's exit code cannot be read after a restart (`docker inspect` shows the new run's state).
+
+**Run C (`docker stop -t 30`; AC 7).** Game started, ready, 60 s. **1.33 s** (not 30 s), exit code **143**.
+
+```
+14:24:21.734865Z api_shutdown_stopping_game timeout=8.0
+14:24:21.736465Z stopping_server pid=36 timeout=8.0
+14:24:22.630853Z server_stopped_gracefully returncode=0
+14:24:22.631680Z api_shutdown_game_stopped seconds=0.9
+14:24:22.632241Z scheduler_stopped
+14:24:22.632507Z api_shutting_down
+```
+
+(preceded by uvicorn's `Shutting down`, `Waiting for application shutdown.` and followed by `Finished server process [9]`). Game: `14:24:21 ... SIGTERM received`, `14:24:21 [Event] World saved! Saved 0 chunks, 0 mapchunks, 16 mapregions.`, `14:24:22 [Event] Stopped the server!`.
+
+**Run D (`docker stop -t 2`; recorded, not judged).** `docker start`, game started, ready, 60 s. **1.32 s**, exit code **143**; every line of AC 1's order: `api_shutdown_stopping_game` 14:25:54.167100Z, `stopping_server` .170947Z, `server_stopped_gracefully` 14:25:55.075637Z, `api_shutdown_game_stopped seconds=0.91` .076378Z, `scheduler_stopped` .076939Z, `api_shutting_down` .077242Z. Game: `14:25:54 ... SIGTERM received`, `World saved! Saved 0 chunks, 0 mapchunks, 16 mapregions.`, `Stopped the server!`. The save completed inside the 2 s on this small, fresh world.
+
+**Exit code 143, not the expected 0.** uvicorn 0.54 records the signal it caught (`Server.handle_exit`, `_captured_signals`) and, once its shutdown, including the lifespan shutdown, has finished, re-raises it (`signal.raise_signal`, `uvicorn/server.py:348-349`), so the uvicorn process ends by SIGTERM and `uv` exits with 128 + 15 = 143. Docker did not kill the container (that would be 137; `OOMKilled=false`), every stop ended within 1.33 s of the grace, and `api_shutting_down` and `Finished server process` were logged first. The stop rule (4.5) names 137, so it did not fire; recorded as a difference from the story's expectation (Completion Notes, deviations).
+
+**Stop rule (4.5):** not fired. In Runs A, B and C the lifespan shutdown ran, the game saved before it stopped, the API lines are in AC 1's order, and no exit code was 137.
+
+**Cleanup:** `docker rm -f vss-22-8-stop; docker image rm vss-22-8-stop:local`; afterwards `docker ps -a --filter name=vss-22-8` and `docker image ls vss-22-8-stop` list nothing; `git status --short dev/ data/` is empty. The dev stack was not touched. Copied logs and the WebSocket client stayed in the session scratchpad.
 
 ### Debug Log References
 
