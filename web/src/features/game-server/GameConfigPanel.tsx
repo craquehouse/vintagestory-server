@@ -154,6 +154,9 @@ const NETWORK_SETTINGS: SettingDefinition[] = [
   },
 ];
 
+/** The read-only note's id, which disabled fields name in aria-describedby (Story 23.3). */
+const READ_ONLY_NOTE_ID = 'game-config-read-only-note';
+
 /**
  * Props for the GameConfigPanel component.
  */
@@ -274,6 +277,7 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
         masked={def.masked}
         gameDefault={setting.default}
         disabled={!isAdmin}
+        disabledReasonId={readOnlyNote ? READ_ONLY_NOTE_ID : undefined}
         onSave={handleSave}
       />
     );
@@ -312,6 +316,7 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
       <div className={`${PAGE_CONTENT_WIDTH} space-y-4`} data-testid="game-config-layout">
         {readOnlyNote && (
           <p
+            id={READ_ONLY_NOTE_ID}
             role="note"
             className="text-sm text-muted-foreground"
             data-testid="game-config-read-only-note"
