@@ -14,7 +14,7 @@ documentCounts:
 lastUpdated: '2026-11-18'
 updates:
   - date: '2026-11-18'
-    description: 'Added FR287-FR305 for Epic 22 (Server Operations and Metrics), with the maintainer''s answers of the same day; revised the same day: FR306 added for the pending-restart fix pulled into Story 22.2 during its validation'
+    description: 'Added FR287-FR305 for Epic 22 (Server Operations and Metrics), with the maintainer''s answers of the same day; revised the same day: FR306 added for the pending-restart fix pulled into Story 22.2 during its validation, and FR307 for Story 22.7 (VSS-zws, after Story 22.3 confirmed it)'
   - date: '2026-11-17'
     description: 'Added FR260-FR285 for Epic 21 (Maintainer Decisions and Web Polish); revised the same day: FR286 added for the pulled-in VSS-q38r'
   - date: '2026-11-17'
@@ -925,3 +925,7 @@ If trivial to implement:
 #### Pulled In (Story 22.2 validation, 2026-11-18)
 
 - FR306: A game setting change that needs a restart is a pending restart like a mod change: `/healthz`, the web's Restart required banner and `/metrics` show it, and a restart clears it
+
+#### Fixed Inside the Epic (Matt, 2026-11-18, after Story 22.3)
+
+- FR307: A game setting change that needs a restart, saved while the game server runs, is not lost when the game writes its own config (after a live setting change): the manager keeps it across API restarts and writes it to `serverconfig.json` again after the game exits and before any start (Start button, restart, scheduled restart, auto-start), and drops it once a start has loaded it or the same setting is changed again

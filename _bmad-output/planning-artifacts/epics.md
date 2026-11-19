@@ -7,7 +7,7 @@ inputDocuments:
 lastUpdated: '2026-11-18'
 updates:
   - date: '2026-11-18'
-    description: 'Added Epic 22 (6 stories) for Server Operations and Metrics; FR287-FR305, with the maintainer''s eleven answers of the same day (VSS-zws pulled in); revised the same day: FR306 (one pending-restart state) pulled into Story 22.2 during its validation'
+    description: 'Added Epic 22 (6 stories) for Server Operations and Metrics; FR287-FR305, with the maintainer''s eleven answers of the same day (VSS-zws pulled in); revised the same day: FR306 (one pending-restart state) pulled into Story 22.2 during its validation, and Story 22.7 with FR307 (VSS-zws fixed, after Story 22.3 confirmed it; maintainer''s twelfth answer)'
   - date: '2026-11-17'
     description: 'Added Epic 21 (8 stories) for Maintainer Decisions and Web Polish; FR260-FR286 (revised the same day with the maintainer''s answers: every default confirmed, VSS-q38r pulled into Story 21.4 with FR286)'
   - date: '2026-11-17'
@@ -522,6 +522,7 @@ This document provides the complete epic and story breakdown for vintagestory-se
 | FR304 | Epic 22 | Restart times edited in the API Settings tab |
 | FR305 | Epic 22 | Cleanup limits edited in the API Settings tab |
 | FR306 | Epic 22 | A restart-required game setting is a pending restart, cleared by a restart |
+| FR307 | Epic 22 | A restart-required change made while the game runs survives a live change |
 
 ## Epic List
 
@@ -2038,8 +2039,8 @@ So that **I can monitor background task status**.
 | Epic 19: API Security and Mod File Safety | 19.1, 19.2, 19.3, 19.4, 19.5, 19.6, 19.7 | 7 |
 | Epic 20: Tooling and Test Health | 20.1, 20.2, 20.3, 20.4, 20.5, 20.6, 20.7 | 7 |
 | Epic 21: Maintainer Decisions and Web Polish | 21.1, 21.2, 21.3, 21.4, 21.5, 21.6, 21.7, 21.8 | 8 |
-| Epic 22: Server Operations and Metrics | 22.1, 22.2, 22.3, 22.4, 22.5, 22.6 | 6 |
-| **Total** | | **134** |
+| Epic 22: Server Operations and Metrics | 22.1, 22.2, 22.3, 22.4, 22.5, 22.6, 22.7 | 7 |
+| **Total** | | **135** |
 
 ---
 
@@ -7230,22 +7231,23 @@ So that **content has room at tablet widths and stays readable on large monitors
 
 **Goal:** An operator can watch the game server from Prometheus and the dashboard (players online, the game process's CPU and memory, uptime, state), restart it on a daily schedule with warnings to players, and keep the disk from filling with old log archives and backups; and every scheduled job can be turned off, and metrics collection set, from the API Settings tab. Four open beads are closed.
 
-**Architecture:** `architecture/epic-22-server-operations-and-metrics.md` (ADR-1 to ADR-14, with the facts checked at `e16a7932`). There is no preparation story: what planning could not check (the stop time of a world save, whether the game prunes its own log archives, `VSS-zws`, the console prefix of the join and leave lines) is a task inside Stories 22.1, 22.3 and 22.4, run in throwaway containers or confirmed by the maintainer.
+**Architecture:** `architecture/epic-22-server-operations-and-metrics.md` (ADR-1 to ADR-15, with the facts checked at `e16a7932`). There is no preparation story: what planning could not check (the stop time of a world save, whether the game prunes its own log archives, `VSS-zws`, the console prefix of the join and leave lines) is a task inside Stories 22.1, 22.3 and 22.4, run in throwaway containers or confirmed by the maintainer.
 
-**Decided by the maintainer (Matt, 2026-11-18):** eleven answers given one at a time (`sprint-change-proposal-2026-11-18-epic-22.md`, section 5): a Prometheus `/metrics` at the root and `playersOnline` in the JSON metrics and the dashboard (ADR-2, ADR-3); `/metrics` open like `/healthz` (ADR-3); the metric set of ADR-4; players counted from the game's join and leave lines (ADR-1); restart times as a daily `HH:MM` list in the container's time zone (ADR-5); warnings at 15, 5 and 1 minutes with fixed text (ADR-6); a restart whenever the game runs, players or not, and never a start (ADR-6); cleanup of log archives older than 14 days with the newest 5 kept, backups only when a count is set, `BackupSaves` never (ADR-9); log rotation left to the game (ADR-10); an On switch per interval field and a Metrics Collection field from 1 second to 1 hour (ADR-11); `VSS-zws` pulled in, `VSS-hv60`, `VSS-3tb1` and `VSS-7z3` not (ADR-8). Planner decisions not reviewed yet: the job layout of ADR-6 and ADR-7, the 16-minute gap between restart times (ADR-6 decision 6), the 03:00 cleanup time and the safety rules (ADR-9), the hidden API Settings tab for Monitor (ADR-12, told to the maintainer with question 11), and the UI of ADR-13.
+**Decided by the maintainer (Matt, 2026-11-18):** eleven answers given one at a time (`sprint-change-proposal-2026-11-18-epic-22.md`, section 5): a Prometheus `/metrics` at the root and `playersOnline` in the JSON metrics and the dashboard (ADR-2, ADR-3); `/metrics` open like `/healthz` (ADR-3); the metric set of ADR-4; players counted from the game's join and leave lines (ADR-1); restart times as a daily `HH:MM` list in the container's time zone (ADR-5); warnings at 15, 5 and 1 minutes with fixed text (ADR-6); a restart whenever the game runs, players or not, and never a start (ADR-6); cleanup of log archives older than 14 days with the newest 5 kept, backups only when a count is set, `BackupSaves` never (ADR-9); log rotation left to the game (ADR-10); an On switch per interval field and a Metrics Collection field from 1 second to 1 hour (ADR-11); `VSS-zws` pulled in, `VSS-hv60`, `VSS-3tb1` and `VSS-7z3` not (ADR-8). A twelfth answer the same day, after Story 22.3's Task 1 confirmed `VSS-zws`: fix it in a new Story 22.7, a small API story after 22.4, that keeps the restart-required edits made while the game runs and writes them to `serverconfig.json` again after the process exits, before any start (ADR-15). Planner decisions not reviewed yet: the job layout of ADR-6 and ADR-7, the 16-minute gap between restart times (ADR-6 decision 6), the 03:00 cleanup time and the safety rules (ADR-9), the hidden API Settings tab for Monitor (ADR-12, told to the maintainer with question 11), the UI of ADR-13, and the design of ADR-15 (edits kept on disk, when they are written back and dropped, a failed write-back not blocking a start).
 
-**Order:** 22.1, 22.2, 22.3, 22.4, 22.5, 22.6.
+**Order:** 22.1, 22.2, 22.3, 22.4, 22.7, 22.5, 22.6. Story 22.7 was added after 22.3 (answer 12) and runs after 22.4 and before 22.5.
 
 **Dependencies:**
 
 - Story 22.2 comes after 22.1: its `vintagestory_players_online` series reads the tracker 22.1 adds.
 - Stories 22.3 and 22.4 both edit `services/api_settings.py`, `jobs/__init__.py` and the README's configuration table; 22.4 comes after 22.3 and uses the `apply_setting` function 22.3 adds (ADR-7).
 - Stories 22.5 and 22.6 both edit `ApiSettingsPanel.tsx`, its test and `web/src/api/config.ts`; 22.6 comes after 22.5, and after 22.3 and 22.4, whose settings it edits.
+- Story 22.7 comes after 22.4. It uses the shared pending-restart state of 22.2 and the throwaway-container steps of 22.3, and touches only API files (`services/game_config.py`, `services/server.py`, `main.py`, a new state store) and the README; 22.4 does not touch them. Stories 22.5 and 22.6 do not depend on 22.7 and 22.7 does not depend on them; it runs before them only to keep one branch at a time.
 - Stories are run one after another. Each branch starts from the previous story's branch, and each pull request targets `main`; the merge order is the story order.
 
-**Beads:** four in scope, each closed with an AAR by its story after merge: `VSS-bhw` in 22.2 (22.1 carries its first half), `VSS-29p` in 22.4 (22.3 carries its first half), `VSS-zws` in 22.3, `VSS-9jv` in 22.5. Story 22.6 has no bead: it is the web half of `VSS-29p`'s settings. What planning found is in the stories (the change proposal lists it), not in new beads.
+**Beads:** four in scope, each closed with an AAR by its story after merge: `VSS-bhw` in 22.2 (22.1 carries its first half), `VSS-29p` in 22.4 (22.3 carries its first half), `VSS-zws` in 22.7 (22.3 confirmed it), `VSS-9jv` in 22.5. Story 22.6 has no bead: it is the web half of `VSS-29p`'s settings. What planning found is in the stories (the change proposal lists it), not in new beads.
 
-**Product changes:** one new route (`GET /metrics`, open); one new field in the JSON metrics (`playersOnline`); four new API settings (`scheduled_restart_times`, `log_archive_retention_days`, `log_archive_keep_min`, `backup_keep_count`; the existing settings' API bounds do not change); two new background jobs (`scheduled_restart_HHMM`, `disk_cleanup`); `TZ` documented; one new runtime dependency (`prometheus-client`). No existing route, field or status code changes. Nothing is breaking. Deleting old log archives by default (14 days, 5 kept) is new behaviour an operator should read about in the release note.
+**Product changes:** one new route (`GET /metrics`, open); one new field in the JSON metrics (`playersOnline`); four new API settings (`scheduled_restart_times`, `log_archive_retention_days`, `log_archive_keep_min`, `backup_keep_count`; the existing settings' API bounds do not change); two new background jobs (`scheduled_restart_HHMM`, `disk_cleanup`); one new state file (`vsmanager/state/pending-config-edits.json`, Story 22.7); `TZ` documented; one new runtime dependency (`prometheus-client`). No existing route, field or status code changes. Nothing is breaking. Deleting old log archives by default (14 days, 5 kept) is new behaviour an operator should read about in the release note.
 
 ### Current State
 
@@ -7262,6 +7264,7 @@ So that **content has room at tablet widths and stays readable on large monitors
 - Daily restart times, with warnings at 15, 5 and 1 minutes, restart a running game and never start a stopped one
 - A daily cleanup deletes old log archives and, when asked, old backups, and never touches the world, mods or `BackupSaves`
 - The stop time and `VSS-zws` are measured and recorded
+- A `Port` or `Ip` change made while the game runs reaches the next start, even after a live setting change made the game rewrite its config
 - Every interval job can be turned off and on in the UI, Metrics Collection has a field, the bounds and fallbacks match the API, and a Monitor key does not see the tab
 - Restart times and cleanup limits are edited in the API Settings tab
 
@@ -7417,7 +7420,7 @@ So that **I can graph players, CPU, memory and uptime, and alert when the server
 ### Story 22.3: Scheduled Restarts
 
 **Sprint key:** `22-3-scheduled-restarts`
-**Beads:** `VSS-29p` (API-011), first half; `VSS-zws` (API-073), closes here
+**Beads:** `VSS-29p` (API-011), first half; `VSS-zws` (API-073), checked here, fixed and closed by Story 22.7 (answer 12)
 **FRs:** FR292, FR293, FR294, FR295, FR296
 
 As an **operator**,
@@ -7476,7 +7479,7 @@ So that **it runs fresh every day without me being there, and nobody is surprise
 
 **Given** the same throwaway container
 **When** `Port` is changed through the API while the game runs, a live `/serverconfig` command is sent, the game is stopped, and then started again
-**Then** the story records what `serverconfig.json` holds after the stop and after the start, and `VSS-zws` is closed with that evidence (and a fix only if it is small; otherwise the maintainer decides)
+**Then** the story records what `serverconfig.json` holds after the stop and after the start, and the maintainer decides the fix (answered: Story 22.7, ADR-15)
 
 *(Covers FR296; ADR-8 decision 3)*
 
@@ -7702,3 +7705,80 @@ So that **I can schedule restarts and control disk use without calling the API**
 - [ ] The Scheduled Restarts group (time list, add, change, remove, one save per change, error state), with unit tests; a `feat(web)` commit with the release note (ADR-13 decision 1)
 - [ ] The Disk Cleanup group, with unit tests; a `feat(web)` commit with the release note (ADR-13 decision 2)
 - [ ] E2E: set and clear a restart time and a cleanup limit in the tab, restoring the saved values from a snapshot, at 320px and desktop width; base URL default `http://localhost:9080` (ADR-13, ADR-14 decision 3)
+
+---
+
+### Story 22.7: Restart-Required Settings Survive a Live Change
+
+**Sprint key:** `22-7-restart-required-settings-survive-a-live-change`
+**Beads:** `VSS-zws` (API-073), closes here
+**FRs:** FR307
+
+As an **administrator**,
+I want **a `Port` or `Ip` change I save while the game server runs to be the one the next start uses**,
+So that **a later live setting change cannot quietly undo it while "Restart required" goes away as if it had worked**.
+
+**Acceptance Criteria:**
+
+**Given** the game is running and `serverconfig.json` holds `Port` 42420
+**When** an Admin key sets `Port` to 42421, and the game then writes its own config with 42420 (as it does after a live `/serverconfig` command), and the game is stopped
+**Then** after the exit `serverconfig.json` holds 42421 again, `pending_config_edits_reapplied trigger=exit` is logged, and the next start runs with 42421; after that start the pending edit is gone
+
+*(Covers FR307; ADR-15 decisions 1, 3 and 4)*
+
+**Given** the same pending edit and the game exits by itself (a crash or `/stop`)
+**When** the exit is seen
+**Then** the file holds 42421 again before anything starts the game; a Start, a Restart, a scheduled restart and auto-start each start with 42421
+
+*(Covers FR307; ADR-15 decision 3)*
+
+**Given** a pending edit and the API restarts while the game is not running (the container was restarted)
+**When** the API starts
+**Then** the edit is read from `vsmanager/state/pending-config-edits.json`, written to `serverconfig.json` before auto-start (`trigger=api_start`), and with auto-start off the file holds 42421 while the game stays stopped
+
+*(Covers FR307; ADR-15 decisions 2 and 3)*
+
+**Given** a pending `Port` edit of 42421
+**When** `Port` is set again (to 42422 while the game runs, or to 42423 while it is stopped)
+**Then** the pending edit holds 42422 in the first case and is dropped in the second, and an older value is never written over a newer one; a pending `ServerDescription` clear followed by a live `ServerDescription` change is dropped
+
+*(Covers FR307; ADR-15 decision 4)*
+
+**Given** a restart-required change saved while no game process lives
+**When** it is saved
+**Then** nothing is recorded (the game reads the file at its next start), and behaviour is as today
+
+*(Covers FR307; ADR-15 decision 1)*
+
+**Given** a pending edit and `serverconfig.json` cannot be read or written at a start
+**When** the start runs
+**Then** `pending_config_edits_reapply_failed` is logged at ERROR, the start goes on, the edit is kept, and the pending-restart flag is set again after the start so "Restart required" stays
+
+*(Covers FR307; ADR-15 decision 5)*
+
+**Given** the state file is missing, empty, not JSON, or names an unknown setting
+**When** the API starts
+**Then** it starts normally; a bad file or unknown key is logged at WARNING and ignored
+
+*(Covers FR307; ADR-15 decision 2)*
+
+**Given** a setting managed by a `VS_CFG_*` variable
+**When** an Admin key tries to change it
+**Then** it is refused as today and nothing is recorded; the write-back never reads `VS_CFG_*`
+
+*(Covers FR307; ADR-15 decision 6)*
+
+**Given** a throwaway container (never the dev stack)
+**When** the steps of Story 22.3's `VSS-zws` check are repeated with the fix: `Port` 42420 -> 42421 while running, a live `ServerName` change, stop, start
+**Then** the story records `serverconfig.json` after each step, the file holds 42421 after the stop, and the game listens on 42421 after the start; the same after `docker restart` of the container between the live change and the start
+
+*(Covers FR307; ADR-15, ADR-14)*
+
+**Tasks:**
+
+- [ ] The `PendingConfigEdits` store (record, replace, drop, load and atomic save in `vsmanager/state/`, the load rules), with unit tests on temporary directories (Epic 22 ADR-15 decision 2)
+- [ ] Record and drop edits in `GameConfigService.update_setting` and `_update_config_file` (a process lives, the same key changed again, nothing for env-managed keys), with tests (ADR-15 decisions 1, 4 and 6)
+- [ ] Write back after exit (stop and monitor), before every spawn and at API start before auto-start; drop after a successful start; the failure rule and the log lines; tests with a stubbed process for each path, including a scheduled restart and auto-start; a `fix(api)` commit with the release note (ADR-15 decisions 3 to 5 and 7)
+- [ ] The throwaway-container run (a `vss-22-7-*` container on its own `127.0.0.1` port, not 9080, 18080, 18081 or 18090; plain `docker build`/`docker run`, no compose, no bind mount, placeholder keys, removed with its image afterwards; never the dev stack at `http://localhost:9080` or its `./data`): repeat Story 22.3's `VSS-zws` steps with the fix and with a container restart in between; record the reads in the story and in ADR-15 (ADR-14)
+- [ ] The README (it has no game settings section today): a short paragraph after the Configuration table saying that a restart-required change made while the server runs is kept until the next start, and that the Game Settings page shows the game's value until the server stops (ADR-15 consequences)
+- [ ] `just check` green and the story moved to review; `VSS-zws` closed with an AAR after merge
