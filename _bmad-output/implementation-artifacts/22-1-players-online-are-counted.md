@@ -34,7 +34,7 @@ so that **I know whether anyone is playing before I restart or change something,
 
 5. **Given** players join and leave
    **When** I read the API's log (at any level, DEBUG included) and the API responses
-   **Then** no player name and no player address appears in either
+   **Then** no player name and no player address appears in either (the console and log-file routes, which carry the game's own lines to the roles that read them today, are unchanged and out of scope: Dev Notes "Not changed")
    *(Covers FR287; ADR-1 decision 4; see "ADR against the code" 4)*
 
 6. **Given** the game is running with two players online
@@ -100,7 +100,7 @@ so that **I know whether anyone is playing before I restart or change something,
   - [ ] 4.7: Commit `feat(web): show the players online on the dashboard` (body: Story 22.1 / task 4; the card shows the count from the current metrics, or Stopped)
 
 - [ ] Task 5: The Players card at every dashboard width + E2E test (AC: 8)
-  - [ ] 5.1: `web/e2e/layout-widths.spec.ts`: a new `test.describe('Players card at every width (Story 22.1, AC 8)')` (Dev Notes "E2E test"); add Story 22.1 to the file comment (`:3-61`)
+  - [ ] 5.1: `web/e2e/layout-widths.spec.ts`: a new `test.describe('Players card at every width (Story 22.1, AC 8)')` (Dev Notes "E2E test"); add Story 22.1 to the file comment (`:4-65`)
   - [ ] 5.2: Run it in a throwaway container only: `just test-e2e-ci e2e/layout-widths.spec.ts` (port 18080, removed after the run). Never against the dev stack, and never rebuild or restart the dev stack for it
   - [ ] 5.3: Commit `test(story-22.1/task-5): check the Players card at every dashboard width`
 
@@ -139,13 +139,14 @@ import structlog
 logger = structlog.get_logger()
 
 # PROVISIONAL until the maintainer's sample lines (Story 22.1, Task 6.4): the game's
-# Logger.Event lines are assumed to carry the "[Event]" tag (seen in v1.22.7 logs), with nothing but a
-# timestamp (no "[") before it. A chat line carries its own tag first, so it never matches.
+# Logger.Event lines are assumed to carry the "[Event]" tag (seen in v1.22.7 logs), with
+# nothing but a timestamp (no "[") before it. A chat line carries its own tag first, so it
+# never matches.
 _EVENT_PREFIX = re.compile(r"^[^\[]*\[Event\] (?P<message>.+)$")
 
 # The VintagestoryLib.dll v1.22.7 literals, anchored at the end of the message.
-_JOIN = re.compile(r"^(?P<name>.+) \S+ joins\.$")                     # '{0} {1} joins.'
-_LEAVE = re.compile(r"^Player (?P<name>.+) left\.$")                  # 'Player {0} left.'
+_JOIN = re.compile(r"^(?P<name>.+) \S+ joins\.$")  # '{0} {1} joins.'
+_LEAVE = re.compile(r"^Player (?P<name>.+) left\.$")  # 'Player {0} left.'
 _REJOIN = re.compile(r"^(?P<name>.+) joined again, killing previous client\.$")
 
 
@@ -263,7 +264,8 @@ Vitest rules of `project-context.md` apply (`vi.stubGlobal` for `fetch` with `vi
 ### E2E test (Task 5)
 
 - In `web/e2e/layout-widths.spec.ts`, a helper `runningWithPlayers(page)` routes `**/api/v1alpha1/server/status` (GET only; fetch the real answer with `fetchOnNewConnection` from `./config-js`, then set `state: 'running'`, `version`, `uptimeSeconds: 3600`, as `installedVersion` does at `:747-758`) and `**/api/v1alpha1/metrics/current` (fulfil `{status: 'ok', data: {timestamp, apiMemoryMb: 100, apiCpuPercent: 1, gameMemoryMb: 500, gameCpuPercent: 5, playersOnline: 2}}`). `readOnly(page)` (`:146`) still refuses every write, so nothing on the server changes and the game is neither started nor stopped.
-- Widths 320, 390, 768, 1024, 1440, 2560, for both `SIDEBAR` states (`:355-358`), through `openPage` (`:324-353`) then the helper: `players-card` is visible, `players-card-value` is `2`, the card is inside the viewport (`expectInsideViewport`, `:301`), `documentOverflow(page)` is 0 (`:290`), and the grid's child after `uptime-card` is `players-card`.
+- **Route order:** register the helper after `readOnly` (whose `pretendServerInstalled` route would otherwise answer the status first; the last-registered route runs first) and before `page.goto`, the way `installedVersion` is: add a `players` option to `PageOptions`/`openPage` (`:309-353`) beside `installed`. Calling the helper after `openPage` returns would stub only after the first status and metrics requests.
+- Widths 320, 390, 768, 1024, 1440, 2560, for both `SIDEBAR` states (`:355-358`), through `openPage(..., { players: true })`: `players-card` is visible, `players-card-value` is `2`, the card is inside the viewport (`expectInsideViewport`, `:301`), `documentOverflow(page)` is 0 (`:290`), and the grid's child after `uptime-card` is `players-card`.
 - Run with `just test-e2e-ci e2e/layout-widths.spec.ts` only (ADR-14 decision 2). Not against `http://localhost:9080`: the dev stack serves an older build, and rebuilding it would stop its game server.
 
 ### API tests
@@ -277,7 +279,7 @@ Vitest rules of `project-context.md` apply (`vi.stubGlobal` for `fetch` with `vi
 | 1 | same | `reset()` empties the set; a join after it counts from 0 |
 | 1 | same | Logging (AC 5): with `structlog.testing.capture_logs()`, a join, a duplicate, a rejoin, a leave, an unknown leave and a reset produce exactly the events and fields of "What is logged"; `repr` of the captured list contains neither a name nor an address |
 | 2 | `api/tests/server/test_internal_methods.py` `TestReadStream` (`:82-172`) | Lines `[event(join NAME), event(join OTHER), b""]` through `_read_stream` (the `AsyncMock(side_effect=[...])` stream of `:113-124`) with a running process mock (`_process` with `returncode = None`, `pid = 4242`): `players_online == 2` and both lines are in the console buffer. With `_process = None`: `players_online is None` and the lines are still buffered. **AC 7:** `monkeypatch.setattr(service._player_tracker, "observe", <raises ValueError>)`, three lines: all three are in the buffer, one `player_tracker_error` per line at WARNING with `error_type="ValueError"`, no `stream_read_error`, and no captured event contains the line text |
-| 2 | `api/tests/server/test_lifecycle.py` | Using `mock_subprocess` (`:35-66`) with stdout lines fed through the reader: after start + two join lines, `players_online == 2`. **Start** resets: put a name in the tracker before `start_server()`; after start the count is 0. **Stop** resets: after `stop_server()`, `_player_tracker.count == 0` and `players_online is None`. **Exit** resets: as `test_crash_detected_updates_state` (`:607-624`) with a name added before the monitor runs; after `asyncio.sleep(0.1)` the count is 0. **Failed stop of an exited process** (as `test_failed_stop_of_exited_process_returns_to_installed`, `:485-521`): count 0. **Failed stop of a live process** (as `test_failed_stop_of_live_process_stays_running`, `:459-483`): the count is unchanged. **Restart** (`TestRestartServer`, `:561-591`): count 0 after restart |
+| 2 | `api/tests/server/test_lifecycle.py` | **Mind the fixture:** `mock_subprocess` (`:35-66`) makes `wait()` return after 0.01 s and never sets `returncode`, so the monitor's exit reset runs about 10 ms after every start and `game_server_pid` stays non-`None` after a stop. So: **count while running**, as `test_stop_server_records_exit_code` (`:424-456`): a blocking `wait` for the monitor and `process.stdout.readline = AsyncMock(side_effect=[event(join NAME), event(join OTHER), b""])` set after `_configure_stream_mocks`; after start and a short sleep, `players_online == 2`. **Start** resets: put a name in the tracker before `start_server()`; after start the count is 0. **Stop** resets: same setup, then swap `wait` for one that sets `returncode = 0` (`:446-450`); after `stop_server()`, `_player_tracker.count == 0` and `players_online is None`. **Exit** resets: as `test_crash_detected_updates_state` (`:607-624`), adding a name after `start_server()` returns (start itself resets) and before the sleep; after `asyncio.sleep(0.1)` the count is 0. **Failed stop of an exited process** (as `test_failed_stop_of_exited_process_returns_to_installed`, `:485-521`, a name added after start): count 0. **Failed stop of a live process** (as `test_failed_stop_of_live_process_stays_running`, `:459-483`, a name added after start): the count is unchanged. **Restart** (`TestRestartServer`, `:561-591`): count 0 after restart |
 | 2 | same or `test_internal_methods.py` | Logging during the lifecycle tests: no captured event contains `ExamplePlayer` or `203.0.113.5` (AC 5) |
 | 3 | `api/tests/test_metrics.py` `TestMetricsService` (`:225-409`) | `test_collect_with_game_server_running` (`:273-304`): set `mock_server_service.players_online = 2`, assert `snapshot.players_online == 2`. `server_service=None` tests: `snapshot.players_online is None`. New: a server service whose `players_online` is `None` (game stopped) gives `None`; a snapshot built by `collect()` passes the field explicitly (`dataclasses.fields` order unchanged apart from the new last field) |
 | 3 | `api/tests/test_metrics.py` `TestMetricsSnapshot` (`:23-106`) | Default `players_online is None`; explicit `2` kept; still frozen and hashable with the field |
@@ -288,7 +290,7 @@ All addresses are documentation ranges (RFC 5737 `203.0.113.0/24`, `198.51.100.0
 ### Existing tests that change (deliberately)
 
 - `api/tests/test_metrics_api.py`: `_create_snapshot` gains a parameter (above); the key-set assertion is new.
-- `web`: every object typed `MetricsSnapshot` gains `playersOnline` (tsc requires it; tests are type-checked, `web/tsconfig.json` `include: ["src", "tests"]`): `src/features/dashboard/Dashboard.test.tsx` (`sampleMetrics`, `:101-116`), `MemoryCard.test.tsx`, `MetricsChart.test.tsx`, `MetricCards.test.tsx`, `src/hooks/use-metrics.test.tsx` (by `rg -l gameCpuPercent web/src`: 2, 16, 8, 5 and 6 occurrences). Use `playersOnline: null` where the fixture's game fields are null, a number otherwise. Change nothing else in those tests.
+- `web`: every object typed `MetricsSnapshot` gains `playersOnline` (tsc requires it; tests are type-checked, `web/tsconfig.json` `include: ["src", "tests"]`). Only two files type their fixtures so: `src/features/dashboard/Dashboard.test.tsx` (`sampleMetrics: MetricsSnapshot[]`, `:101-116`) and `MetricsChart.test.tsx` (`mockDataWithGame`, `mockDataWithNullGame`, ...: `MetricsSnapshot[]`, from `:29`). `src/hooks/use-metrics.test.tsx` (untyped fetch bodies, `:32-83`) gains `playersOnline` in its fixtures for the new assertion. `MemoryCard.test.tsx` (its own `MetricsData` interface, `:41-47`, and a mocked hook) and `MetricCards.test.tsx` (untyped fetch bodies) are not type-checked against `MetricsSnapshot` and need no change. Use `playersOnline: null` where the fixture's game fields are null, a number otherwise. Change nothing else in those tests.
 - `Dashboard.test.tsx` "renders stats grid with 4 cards" becomes 5 (above).
 - Anything else that fails is a regression (AC 9): fix the code, not the test.
 
@@ -365,7 +367,7 @@ All addresses are documentation ranges (RFC 5737 `203.0.113.0/24`, `198.51.100.0
 ### Project Structure Notes
 
 - New: `api/src/vintagestory_api/services/players.py`, `api/tests/test_players.py`, `web/src/features/dashboard/PlayersCard.tsx`, `web/src/features/dashboard/PlayersCard.test.tsx`. The dashboard's component files are PascalCase (`UptimeCard.tsx`), so the new card follows them rather than the kebab-case rule of `project-context.md`.
-- Modified: `api/src/vintagestory_api/services/server.py`, `services/metrics.py`, `models/metrics.py`; `api/tests/server/test_internal_methods.py`, `api/tests/server/test_lifecycle.py`, `api/tests/test_metrics.py`, `api/tests/test_metrics_api.py`; `web/src/api/types.ts`, `web/src/features/dashboard/Dashboard.tsx`, `Dashboard.test.tsx`, `MemoryCard.test.tsx`, `MetricsChart.test.tsx`, `MetricCards.test.tsx`, `web/src/hooks/use-metrics.test.tsx`, `web/e2e/layout-widths.spec.ts`; this story file and `sprint-status.yaml` (through `just sprint`).
+- Modified: `api/src/vintagestory_api/services/server.py`, `services/metrics.py`, `models/metrics.py`; `api/tests/server/test_internal_methods.py`, `api/tests/server/test_lifecycle.py`, `api/tests/test_metrics.py`, `api/tests/test_metrics_api.py`; `web/src/api/types.ts`, `web/src/features/dashboard/Dashboard.tsx`, `Dashboard.test.tsx`, `MetricsChart.test.tsx`, `web/src/hooks/use-metrics.test.tsx`, `web/e2e/layout-widths.spec.ts`; this story file and `sprint-status.yaml` (through `just sprint`).
 - No README change (the README's metrics section is Story 22.2's), no dependency, no compose or Dockerfile change.
 
 ### References
@@ -395,3 +397,4 @@ All addresses are documentation ranges (RFC 5737 `203.0.113.0/24`, `198.51.100.0
 ## Change Log
 
 - 2026-11-18: Story 22.1 created (ready-for-dev).
+- 2026-11-18: Validated against the create-story checklist: AC 5 scoped to exclude the unchanged console and log-file routes; tracker snippet wrapped to the 100-column ruff limit; lifecycle test rows account for `mock_subprocess` (early monitor reset, `returncode` never set); web fixture list corrected to the files tsc checks; E2E route order (register the stub inside `openPage`); file comment range `:4-65`.
