@@ -276,8 +276,10 @@ test.describe('A changed refresh interval applies at once: real API (Story 17.6)
     await toggle.click();
     await expect(off).toHaveText('Off');
     await expect(input).toHaveCount(0);
-    await expect(page.locator('[data-sonner-toast]')).toHaveCount(1);
-    await expect(page.locator('[data-sonner-toast]')).toContainText(`${INTERVAL_KEY} updated`);
+    // Only this save's toast: an earlier test's may still be showing
+    await expect(
+      page.locator('[data-sonner-toast]', { hasText: `${INTERVAL_KEY} updated` })
+    ).toHaveCount(1);
     await expect.poll(() => apiInterval(request)).toBe(0);
     await page.getByTestId('scheduled-jobs-tab').click();
     await expect(schedule).toHaveCount(0, { timeout: 5000 });
