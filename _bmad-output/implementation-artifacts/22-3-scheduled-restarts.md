@@ -1,6 +1,6 @@
 # Story 22.3: Scheduled Restarts
 
-Status: review
+Status: done
 
 <!-- Implements FR292-FR296, Epic 22 ADR-5, ADR-6, ADR-7, ADR-8 and ADR-14. Beads: VSS-29p (API-011), first half (Story 22.4 closes it); VSS-zws (API-073), checked here and fixed in Story 22.7 (maintainer, 2026-11-18), not closed here. Maintainer answers 5, 6, 7 and 11 (Matt, 2026-11-18). Stories run in order 22.1 to 22.6; this branch, story/22-3-scheduled-restarts, is stacked on story/22-2-prometheus-metrics-endpoint at 0067a09b (22.2 in review: it made game settings and mods share one PendingRestartState and makes every successful start clear it). The PR targets main and merges after 22.2's. Line references were verified at 0067a09b and must be re-checked at implementation time. API and documentation only; no web source change (the UI for the setting is Story 22.6). No new dependency, no new route, one new job module, no change to services/scheduler.py. The stop timeout and game_config.py change only on the maintainer's answer (ADR-8 decision 2). -->
 
@@ -615,18 +615,29 @@ Cleanup done: the container and the image were removed; both listings were empty
 - Drawdown: the validator's gap message reads "1 minutes apart" for a one-minute gap (the binding format `{gap} minutes apart`).
 - Drawdown: `web/src/api/config.ts:79-80` still names `INTERVAL_SETTINGS` in a comment (left for Story 22.6, as the story says).
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode. Verdict: approve. 0 HIGH, 0 MEDIUM, two LOW findings, both fixed; two more items from the developer's own drawdown, both fixed:
+
+1. **LOW: no test pinned the registered job's function and arguments.** `apply_restart_schedule` registers `scheduled_restart` with `kwargs={"restart_time": ..., "scheduler": ...}`, but every scheduler test replaced the job function. Fixed: `TestRegisteredRestartJob` in `tests/test_jobs_registration.py` registers `04:00` through `apply_restart_schedule` on a real (never started) `SchedulerService` subclass that records each `add_cron_job` call, asserts the function is `scheduled_restart` and the kwargs are the time and that scheduler, then calls the function with those kwargs against a stopped fake server: one `scheduled_restart_skipped` with `reason="not_running"`, `minutes_left=15`, nothing sent. Removing `scheduler` from the kwargs fails it. The APScheduler `Job`'s own `func` and `kwargs` are not read: the package has no types and pyright cannot see those attributes.
+2. **LOW: `apply_setting` accepted a bool for an interval key** (`isinstance(True, int)` is true, so `True` would register a 1-second interval). Fixed: a bool raises `TypeError` like any other non-int; tested with `True` and `False`. The route never sent one (`update_setting` refuses a bool for an int setting), so no behaviour through the API changed.
+3. **Drawdown: `api_setting_updated` logged the list as the request sent it** (unsorted, with duplicates) while the response, the file and the callback held the sorted list. Fixed: the log and the response both use the stored value; tested with `["16:00", "04:00", "16:00"]`.
+4. **Drawdown: the gap message said "1 minutes apart".** Fixed: a gap of 1 reads `'23:59' and '00:00' are 1 minute apart`; other gaps are unchanged. Dev Notes "The setting" now gives the message format with the singular.
+
+Fix commits: `test(story-22.3/review): pin the scheduled restart job's registered arguments`; `refactor(story-22.3/review): reject bools in apply_setting and log the stored restart times`. `just check` green after them (API 3649 passed, web 3567 passed, pyright 0 errors and 0 warnings).
+
 ### File List
 
-- `_bmad-output/implementation-artifacts/22-3-scheduled-restarts.md` (Task 1 record, status)
-- `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint` only: in-progress, then review)
-- `api/src/vintagestory_api/services/api_settings.py` (Task 2, Task 4)
+- `_bmad-output/implementation-artifacts/22-3-scheduled-restarts.md` (Task 1 record, status, review)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint` only: in-progress, then review, then done)
+- `api/src/vintagestory_api/services/api_settings.py` (Task 2, Task 4, review)
 - `api/src/vintagestory_api/services/server.py` (Task 3: `game_running`, `lifecycle_busy`)
 - `api/src/vintagestory_api/jobs/scheduled_restart.py` (new, Task 3)
-- `api/src/vintagestory_api/jobs/__init__.py` (Task 4)
+- `api/src/vintagestory_api/jobs/__init__.py` (Task 4, review)
 - `api/src/vintagestory_api/routers/config.py` (Task 4)
-- `api/tests/test_api_settings.py` (Task 2, Task 4)
+- `api/tests/test_api_settings.py` (Task 2, Task 4, review)
 - `api/tests/test_routers_config.py` (Task 2, Task 4)
-- `api/tests/test_jobs_registration.py` (Task 2, Task 4)
+- `api/tests/test_jobs_registration.py` (Task 2, Task 4, review)
 - `api/tests/server/test_lifecycle.py` (Task 3)
 - `api/tests/test_scheduled_restart.py` (new, Task 3)
 - `README.md` (Task 5)
@@ -640,3 +651,4 @@ Cleanup done: the container and the image were removed; both listings were empty
 - 2026-11-19: Task 1 done: the stop measured (under 1 s, world saved, three rounds) and `VSS-zws` confirmed (a live `/serverconfig` command reverts a pending `Port` edit). Stopped at Task 1.7 for the maintainer.
 - 2026-11-19: Maintainer decision recorded: `VSS-zws` fixed in Story 22.7; Story 22.3 continues with Tasks 2 to 6 and no longer closes `VSS-zws`.
 - 2026-11-19: Tasks 2 to 6 done (dev-story): the setting, the sequence, the cron jobs, the documentation; `just check` green; status review.
+- 2026-11-19: Code review (GLM-5.3-Flash via opencode): approve; 0 HIGH, 0 MEDIUM, two LOW findings fixed (a test pins the restart job's registered function and kwargs; `apply_setting` refuses a bool interval), and two drawdown items fixed (`api_setting_updated` logs the stored list; "1 minute apart") (see "Review"). Status done.
