@@ -72,15 +72,15 @@ so that **I know whether anyone is playing before I restart or change something,
   - [x] 1.4: `ruff format` the two files; `just test-api tests/test_players.py` green
   - [x] 1.5: Commit `refactor(story-22.1/task-1): add a player tracker for the game's join and leave lines` (nothing reads it yet; precedent `refactor(story-21.8/task-1): add the sidebar preference rules`)
 
-- [ ] Task 2: Wire the tracker into `ServerService`: every output line after the console append, resets on start, stop and exit + tests (AC: 1, 3, 5, 7)
-  - [ ] 2.1: Red first: the Task 2 rows of Dev Notes "API tests" in `api/tests/server/test_internal_methods.py` (`TestReadStream`) and `api/tests/server/test_lifecycle.py`; see them fail
-  - [ ] 2.2: `services/server.py` `__init__`: `self._player_tracker = PlayerTracker()` after the console buffer (`:185`); import from `vintagestory_api.services.players` in the import block (`:28-29`, alphabetical)
-  - [ ] 2.3: A `players_online` property after `game_server_pid` (`:202-211`): `self._player_tracker.count` when `self.game_server_pid is not None`, else `None` (Dev Notes "Wiring")
-  - [ ] 2.4: `_read_stream` (`:1234-1263`): after `await self._console_buffer.append(text)` (`:1258`), call the tracker inside its own `try`/`except Exception` that logs `player_tracker_error` at WARNING with `error_type=type(e).__name__` only and continues the loop (Dev Notes "Wiring"). The outer `except Exception` (`:1262-1263`) ends the loop, so the tracker must never reach it
-  - [ ] 2.5: Resets: `_start_server_locked` beside `self._last_exit_code = None` (`:1011`), before the process is spawned; `_stop_server_locked` after the task-cancel loop (`:1116-1123`), before `_update_mod_service_server_state(False)` (`:1126`); `_settle_state_after_failed_stop` in the exited branch (`:1150-1153`); `_monitor_process` right after `returncode = await self._process.wait()` (`:1208`), whatever the state (also during a stop)
-  - [ ] 2.6: Update the `_read_stream` docstring (`:1239-1246`): each line also goes to the player tracker
-  - [ ] 2.7: `ruff format` the changed files; `just test-api tests/server tests/test_players.py` green
-  - [ ] 2.8: Commit `refactor(story-22.1/task-2): count players from the game's output in the server service` (not yet visible in any response)
+- [x] Task 2: Wire the tracker into `ServerService`: every output line after the console append, resets on start, stop and exit + tests (AC: 1, 3, 5, 7)
+  - [x] 2.1: Red first: the Task 2 rows of Dev Notes "API tests" in `api/tests/server/test_internal_methods.py` (`TestReadStream`) and `api/tests/server/test_lifecycle.py`; see them fail
+  - [x] 2.2: `services/server.py` `__init__`: `self._player_tracker = PlayerTracker()` after the console buffer (`:185`); import from `vintagestory_api.services.players` in the import block (`:28-29`, alphabetical)
+  - [x] 2.3: A `players_online` property after `game_server_pid` (`:202-211`): `self._player_tracker.count` when `self.game_server_pid is not None`, else `None` (Dev Notes "Wiring")
+  - [x] 2.4: `_read_stream` (`:1234-1263`): after `await self._console_buffer.append(text)` (`:1258`), call the tracker inside its own `try`/`except Exception` that logs `player_tracker_error` at WARNING with `error_type=type(e).__name__` only and continues the loop (Dev Notes "Wiring"). The outer `except Exception` (`:1262-1263`) ends the loop, so the tracker must never reach it
+  - [x] 2.5: Resets: `_start_server_locked` beside `self._last_exit_code = None` (`:1011`), before the process is spawned; `_stop_server_locked` after the task-cancel loop (`:1116-1123`), before `_update_mod_service_server_state(False)` (`:1126`); `_settle_state_after_failed_stop` in the exited branch (`:1150-1153`); `_monitor_process` right after `returncode = await self._process.wait()` (`:1208`), whatever the state (also during a stop)
+  - [x] 2.6: Update the `_read_stream` docstring (`:1239-1246`): each line also goes to the player tracker
+  - [x] 2.7: `ruff format` the changed files; `just test-api tests/server tests/test_players.py` green
+  - [x] 2.8: Commit `refactor(story-22.1/task-2): count players from the game's output in the server service` (not yet visible in any response)
 
 - [ ] Task 3: `players_online` in `MetricsSnapshot` and `playersOnline` in the responses + tests (AC: 5, 6)
   - [ ] 3.1: Red first: the Task 3 rows of Dev Notes "API tests" in `api/tests/test_metrics.py` and `api/tests/test_metrics_api.py`; see them fail
@@ -391,16 +391,21 @@ Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive
 ### Debug Log References
 
 - Task 1 red: `just test-api tests/test_players.py` failed at collection (`cannot import name 'players'`).
+- Task 2 red: the 10 new tests in `tests/server/test_internal_methods.py` and `tests/server/test_lifecycle.py` failed (`ServerService` had no `players_online` or `_player_tracker`).
 
 ### Completion Notes List
 
 - 2026-11-18: Story created (create-story, non-interactive) and checked against the create-story checklist: 6 tasks; every code task carries its tests; every AC is mapped to a task (AC 9 to Task 6 and every task's test run, AC 10 to Task 6.4). Ultimate context engine analysis completed - comprehensive developer guide created.
 - Task 1: `PlayerTracker` in `services/players.py` with the provisional `_EVENT_PREFIX` and the three DLL literals; `observe` checks prefix, then rejoin, join, leave. Logging is DEBUG only, with counts and the `reason` field, never a name, address or line. 26 tests in `tests/test_players.py` (literal patterns, counting, chat and other lines, reset, logging with `capture_logs`). Decision: a rejoin line for a name not in the set adds it (the line says the player is on the server; the story names only the already-online case, which changes nothing); pinned by `test_rejoin_of_a_name_not_online_counts_it`. Formatted with `cd api && uv run ruff format <files>` (as Dev Notes "Development Commands" says; `just format-api` takes no file arguments and formats the whole tree).
+- Task 2: `ServerService` owns a `PlayerTracker`; `players_online` reports its count while `game_server_pid` is set, else `None`. `_read_stream` passes each line to the tracker after the console append, inside its own `try`/`except Exception` that logs `player_tracker_error` (WARNING, `stream` and `error_type` only) and continues. Resets in `_start_server_locked` (before the spawn), `_stop_server_locked` (after the readers are cancelled), the exited branch of `_settle_state_after_failed_stop`, and `_monitor_process` right after the wait. Tests: 3 in `TestReadStream` (count while running, `None` without a process, AC 7 tracker fault: lines kept, one WARNING per line, no `stream_read_error`, no line text logged) and 7 in a new `TestPlayersOnline` class in `test_lifecycle.py` (count while running with a no-name log check, start, stop, exit, failed stop of an exited and of a live process, restart). The lifecycle tests use a blocking-`wait` fake process (as `test_stop_server_records_exit_code`) so the start and stop resets are tested on their own, not by the monitor's; the exit and restart tests use `mock_subprocess`.
 
 ### File List
 
 - `api/src/vintagestory_api/services/players.py` (new)
 - `api/tests/test_players.py` (new)
+- `api/src/vintagestory_api/services/server.py` (modified)
+- `api/tests/server/test_internal_methods.py` (modified)
+- `api/tests/server/test_lifecycle.py` (modified)
 
 ## Change Log
 

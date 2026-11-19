@@ -8,6 +8,8 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from structlog.testing import capture_logs
+from structlog.typing import EventDict
 
 from vintagestory_api.config import Settings
 from vintagestory_api.models.server import ServerState
@@ -16,6 +18,20 @@ from vintagestory_api.services.server import ServerService
 # pyright: reportPrivateUsage=false
 # pyright: reportUnknownParameterType=false
 # pyright: reportUnknownVariableType=false
+
+# Placeholder player data (Story 22.1): documentation addresses only (RFC 5737).
+_JOIN_LINE = "18.11.2026 10:15:32 [Event] ExamplePlayer 203.0.113.5:42420 joins."
+_OTHER_JOIN_LINE = "18.11.2026 10:15:32 [Event] AnotherPlayer 198.51.100.7:42420 joins."
+
+
+def _encoded(line: str) -> bytes:
+    return f"{line}\n".encode()
+
+
+def _assert_no_player_data(logs: list[EventDict]) -> None:
+    captured = repr(logs)
+    for secret in ("ExamplePlayer", "AnotherPlayer", "203.0.113", "198.51.100"):
+        assert secret not in captured
 
 
 class TestGetRuntimeState:
@@ -170,6 +186,87 @@ class TestReadStream:
         lines_in_buffer = service.console_buffer.get_history()
         assert "" in lines_in_buffer
         assert "line" in lines_in_buffer
+
+    @pytest.mark.asyncio
+    async def test_read_stream_counts_players_while_running(
+        self, test_settings: Settings, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Each line also goes to the player tracker (Story 22.1, AC 1)."""
+        service = ServerService(test_settings)
+        process = MagicMock()
+        process.returncode = None
+        process.pid = 4242
+        monkeypatch.setattr(service, "_process", process)
+
+        stream = MagicMock(spec=asyncio.StreamReader)
+        stream.readline = AsyncMock(
+            side_effect=[_encoded(_JOIN_LINE), _encoded(_OTHER_JOIN_LINE), b""]
+        )
+
+        with capture_logs() as logs:
+            await service._read_stream(stream, "stdout")
+
+        assert service.players_online == 2
+        lines_in_buffer = service.console_buffer.get_history()
+        assert _JOIN_LINE in lines_in_buffer
+        assert _OTHER_JOIN_LINE in lines_in_buffer
+        _assert_no_player_data(logs)
+
+    @pytest.mark.asyncio
+    async def test_read_stream_players_online_none_without_process(
+        self, test_settings: Settings
+    ) -> None:
+        """No running process: players_online is None, the lines are still buffered."""
+        service = ServerService(test_settings)
+
+        stream = MagicMock(spec=asyncio.StreamReader)
+        stream.readline = AsyncMock(
+            side_effect=[_encoded(_JOIN_LINE), _encoded(_OTHER_JOIN_LINE), b""]
+        )
+
+        await service._read_stream(stream, "stdout")
+
+        assert service.players_online is None
+        lines_in_buffer = service.console_buffer.get_history()
+        assert _JOIN_LINE in lines_in_buffer
+        assert _OTHER_JOIN_LINE in lines_in_buffer
+
+    @pytest.mark.asyncio
+    async def test_read_stream_survives_a_tracker_fault(
+        self, test_settings: Settings, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A tracker that raises never stops console capture (Story 22.1, AC 7)."""
+        service = ServerService(test_settings)
+
+        def failing_observe(line: str) -> None:
+            raise ValueError(f"cannot handle {line}")
+
+        monkeypatch.setattr(service._player_tracker, "observe", failing_observe)
+
+        lines = [_JOIN_LINE, "second line", _OTHER_JOIN_LINE]
+        stream = MagicMock(spec=asyncio.StreamReader)
+        stream.readline = AsyncMock(side_effect=[*(_encoded(line) for line in lines), b""])
+
+        with capture_logs() as logs:
+            await service._read_stream(stream, "stderr")
+
+        lines_in_buffer = service.console_buffer.get_history()
+        for line in lines:
+            assert line in lines_in_buffer
+
+        tracker_errors = [log for log in logs if log["event"] == "player_tracker_error"]
+        assert tracker_errors == [
+            {
+                "event": "player_tracker_error",
+                "log_level": "warning",
+                "stream": "stderr",
+                "error_type": "ValueError",
+            }
+        ] * len(lines)
+        assert not [log for log in logs if log["event"] == "stream_read_error"]
+        captured = repr(logs)
+        assert "second line" not in captured
+        _assert_no_player_data(logs)
 
 
 class TestUpdateModServiceServerState:
