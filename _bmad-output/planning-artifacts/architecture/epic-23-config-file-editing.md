@@ -85,7 +85,7 @@ A comment or trailing comma saved into `serverconfig.json` would make each of th
 
 1. `FileManagerPanel` holds the current directory as `string[]` (`[]` is the root) and the selected file as `{ directory: string[]; name: string } | null`. `PathBreadcrumb` takes `segments: string[]` and calls `onNavigate(segments.slice(0, n))`. Nothing in the panel or the breadcrumb splits or joins on `/`.
 2. One helper, `toConfigPath(segments: string[]): string` in `web/src/api/config.ts`, joins the names with `/` for the API. It is the only place a path string is built. It throws on a name that is empty, `.` or `..`, or that contains `/` or a NUL character. Such a name cannot come from a POSIX directory listing, and if one ever did, it is never sent. The fetch functions keep `encodeURIComponent` of the joined path (the route's `{filename:path}` decodes `%2F`) and take `string[]`.
-3. The TanStack Query keys for directories, files and file content use the joined path from `toConfigPath`, so cached entries stay comparable.
+3. The TanStack Query keys for directories, files and file content use the names joined with `/` (`segments.join('/')`), so cached entries stay comparable. **Amended in Story 23.2 (review LOW-3):** the keys do not call `toConfigPath`, because a key is computed during render and must not throw; the fetch refuses an invalid name, and the query shows the error. Two lists that join to the same string (`['a/b']` and `['a', 'b']`) share a key; only the refused names can produce that, and the refetch on mount corrects it (review LOW-2, accepted).
 4. A `refactor(web)` commit: there is no user-visible change, so no release note.
 
 ## ADR-4: Saving a Config File Through the API

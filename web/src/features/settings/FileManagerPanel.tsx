@@ -166,7 +166,7 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
     ) {
       return;
     }
-    guard(() => setSelectedFile({ directory: currentDirectory, name: filename }));
+    guard(() => setSelectedFile({ directory: [...currentDirectory], name: filename }));
   };
 
   // Handle directory navigation (Story 9.7 - nested directory support)
