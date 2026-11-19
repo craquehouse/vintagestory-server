@@ -120,7 +120,7 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
 
   // Handle file selection
   const handleSelectFile = (filename: string) => {
-    setSelectedFile({ directory: currentDirectory, name: filename });
+    setSelectedFile({ directory: [...currentDirectory], name: filename });
   };
 
   // Handle directory navigation (Story 9.7 - nested directory support)
