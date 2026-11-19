@@ -6,6 +6,7 @@ Story 22.4: Backup cleanup limit (Epic 22 ADR-9 decision 1, as amended 2026-11-1
 """
 
 import json
+import re
 import shutil
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -1258,3 +1259,69 @@ class TestBackupKeepCountService:
 
         assert service.settings_file.read_bytes() == before
         callback.assert_not_called()
+
+
+# =============================================================================
+# Story 22.5: the web's defaults and interval bound equal the API's
+# =============================================================================
+
+WEB_CONFIG = Path(__file__).resolve().parents[2] / "web" / "src" / "api" / "config.ts"
+WEB_DEFAULTS_START = "export const API_SETTING_DEFAULTS = {"
+WEB_DEFAULT_LINE = re.compile(r"^\s*([a-z_]+): (true|false|\d[\d_]*),$")
+WEB_MAX_INTERVAL = re.compile(r"^export const MAX_INTERVAL_SECONDS = (\d[\d_]*);$", re.MULTILINE)
+WEB_DEFAULT_KEYS = {
+    "auto_start_server",
+    "block_env_managed_settings",
+    "enforce_env_on_restart",
+    "mod_list_refresh_interval",
+    "server_versions_refresh_interval",
+    "metrics_collection_interval",
+}
+
+
+def _web_defaults() -> dict[str, bool | int]:
+    """Parse `API_SETTING_DEFAULTS` in the web's config.ts; fail on any unexpected line."""
+    text = WEB_CONFIG.read_text()
+    start = text.find(WEB_DEFAULTS_START)
+    assert start != -1, f"{WEB_DEFAULTS_START!r} not found in {WEB_CONFIG}"
+    body_start = start + len(WEB_DEFAULTS_START)
+    end = text.find("}", body_start)
+    assert end != -1, f"API_SETTING_DEFAULTS in {WEB_CONFIG} has no closing brace"
+
+    defaults: dict[str, bool | int] = {}
+    for line in text[body_start:end].splitlines():
+        if not line.strip():
+            continue
+        match = WEB_DEFAULT_LINE.match(line)
+        assert match is not None, (
+            f"API_SETTING_DEFAULTS in {WEB_CONFIG}: {line.strip()!r} is not a plain literal "
+            "on its own line"
+        )
+        key, literal = match.group(1), match.group(2)
+        if literal in ("true", "false"):
+            defaults[key] = literal == "true"
+        else:
+            defaults[key] = int(literal.replace("_", ""))
+    return defaults
+
+
+class TestWebDefaults:
+    """The web's API_SETTING_DEFAULTS and MAX_INTERVAL_SECONDS equal the API's (Story 22.5)."""
+
+    def test_keys_are_the_settings_the_tab_shows(self) -> None:
+        defaults = _web_defaults()
+        assert set(defaults) == WEB_DEFAULT_KEYS, f"API_SETTING_DEFAULTS in {WEB_CONFIG}"
+        for key in defaults:
+            assert key in ApiSettings.model_fields, f"{key} in {WEB_CONFIG} is not an API setting"
+
+    @pytest.mark.parametrize("key", sorted(WEB_DEFAULT_KEYS))
+    def test_default_equals_the_api_default(self, key: str) -> None:
+        web_value = _web_defaults()[key]
+        api_value: object = getattr(ApiSettings(), key)
+        assert type(web_value) is type(api_value), f"{key} in {WEB_CONFIG}: type differs"
+        assert web_value == api_value, f"{key} in {WEB_CONFIG}: {web_value} != {api_value}"
+
+    def test_max_interval_equals_the_api_bound(self) -> None:
+        match = WEB_MAX_INTERVAL.search(WEB_CONFIG.read_text())
+        assert match is not None, f"MAX_INTERVAL_SECONDS not found in {WEB_CONFIG}"
+        assert int(match.group(1).replace("_", "")) == MAX_INTERVAL_SECONDS

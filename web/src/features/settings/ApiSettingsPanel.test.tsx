@@ -70,6 +70,52 @@ const mockDebugStatusDisabled = {
   },
 };
 
+type FetchCall = [string, RequestInit | undefined];
+
+/**
+ * Story 22.5: serve the given settings for every GET and answer every POST with
+ * `postResponse` (a successful save by default); returns the fetch mock.
+ */
+function serveSettings(
+  settings: Record<string, unknown>,
+  postResponse?: (url: string, body: unknown) => unknown
+) {
+  const mockFetch = vi.fn().mockImplementation(async (url: string, options?: RequestInit) => {
+    if (options?.method === 'POST') {
+      const body: unknown = JSON.parse(String(options.body));
+      if (postResponse) return postResponse(url, body);
+      return {
+        ok: true,
+        json: () => Promise.resolve({ status: 'ok', data: body }),
+      };
+    }
+    if (url.includes('/debug')) {
+      return { ok: true, json: () => Promise.resolve(mockDebugStatusDisabled) };
+    }
+    return {
+      ok: true,
+      json: () => Promise.resolve({ status: 'ok', data: { settings } }),
+    };
+  });
+  globalThis.fetch = mockFetch;
+  return mockFetch;
+}
+
+function postCalls(mockFetch: ReturnType<typeof vi.fn>): FetchCall[] {
+  return mockFetch.mock.calls.filter(
+    (call): call is FetchCall => typeof call[0] === 'string' && call[1]?.method === 'POST'
+  );
+}
+
+async function renderPanel() {
+  const queryClient = createTestQueryClient();
+  render(<ApiSettingsPanel />, { wrapper: createWrapper(queryClient) });
+  await waitFor(() => {
+    expect(screen.getByTestId('api-settings-panel')).toBeInTheDocument();
+  });
+  return queryClient;
+}
+
 describe('ApiSettingsPanel', () => {
   const originalFetch = globalThis.fetch;
 
@@ -201,15 +247,15 @@ describe('ApiSettingsPanel', () => {
       const blockEnvToggle = screen.getByLabelText('Block Env-Managed Settings');
       expect(blockEnvToggle).toHaveAttribute('data-state', 'checked');
 
-      // enforce_env_on_restart should default to true
+      // Story 22.5: enforce_env_on_restart defaults to false, as in the API
       const enforceEnvToggle = screen.getByLabelText('Enforce Env on Restart');
-      expect(enforceEnvToggle).toHaveAttribute('data-state', 'checked');
+      expect(enforceEnvToggle).toHaveAttribute('data-state', 'unchecked');
 
       // mod_list_refresh_interval should default to 14400 (4h)
       expect(screen.getByLabelText('Mod List Refresh')).toHaveValue('4h');
 
-      // server_versions_refresh_interval should default to 3600 (1h)
-      expect(screen.getByLabelText('Server Versions Refresh')).toHaveValue('1h');
+      // Story 22.5: server_versions_refresh_interval defaults to 86400 (1d), as in the API
+      expect(screen.getByLabelText('Server Versions Refresh')).toHaveValue('1d');
     });
 
     it('renders the Update Alerts group with the webhook status (Story 14.6)', async () => {
@@ -686,13 +732,13 @@ describe('ApiSettingsPanel', () => {
         expect(screen.getByTestId('api-settings-panel')).toBeInTheDocument();
       });
 
-      // Enter invalid value (too high - 2d > 86400s/1d max)
+      // Story 22.5: too high - 400d > 365d, the API's maximum
       const input = screen.getByLabelText('Mod List Refresh');
-      fireEvent.change(input, { target: { value: '2d' } });
+      fireEvent.change(input, { target: { value: '400d' } });
       fireEvent.blur(input);
 
       await waitFor(() => {
-        expect(screen.getByText('Must be at most 1d')).toBeInTheDocument();
+        expect(screen.getByText('Must be at most 365d')).toBeInTheDocument();
       });
     });
 
@@ -711,14 +757,81 @@ describe('ApiSettingsPanel', () => {
         expect(screen.getByTestId('api-settings-panel')).toBeInTheDocument();
       });
 
-      // Enter invalid value (too high - 8d > 604800s/7d max)
+      // Story 22.5: too high - 400d > 365d, the API's maximum
       const input = screen.getByLabelText('Server Versions Refresh');
-      fireEvent.change(input, { target: { value: '8d' } });
+      fireEvent.change(input, { target: { value: '400d' } });
       fireEvent.blur(input);
 
       await waitFor(() => {
-        expect(screen.getByText('Must be at most 7d')).toBeInTheDocument();
+        expect(screen.getByText('Must be at most 365d')).toBeInTheDocument();
       });
+    });
+  });
+
+  describe('refresh bounds and defaults (Story 22.5)', () => {
+    const loaded = { ...mockApiSettingsCamelCase.data.settings };
+
+    for (const label of ['Mod List Refresh', 'Server Versions Refresh']) {
+      it(`${label}: refuses 30s with the min message and saves nothing`, async () => {
+        const mockFetch = serveSettings(loaded);
+        await renderPanel();
+
+        const input = screen.getByLabelText(label);
+        fireEvent.change(input, { target: { value: '30s' } });
+        fireEvent.blur(input);
+
+        await waitFor(() => {
+          expect(screen.getByText('Must be at least 1m')).toBeInTheDocument();
+        });
+        expect(postCalls(mockFetch)).toHaveLength(0);
+      });
+
+      it(`${label}: refuses 400d with the max message and saves nothing`, async () => {
+        const mockFetch = serveSettings(loaded);
+        await renderPanel();
+
+        const input = screen.getByLabelText(label);
+        fireEvent.change(input, { target: { value: '400d' } });
+        fireEvent.blur(input);
+
+        await waitFor(() => {
+          expect(screen.getByText('Must be at most 365d')).toBeInTheDocument();
+        });
+        expect(postCalls(mockFetch)).toHaveLength(0);
+      });
+
+      it(`${label}: saves 2d`, async () => {
+        const mockFetch = serveSettings(loaded);
+        await renderPanel();
+
+        const input = screen.getByLabelText(label);
+        fireEvent.change(input, { target: { value: '2d' } });
+        fireEvent.blur(input);
+
+        await waitFor(() => {
+          expect(toast.success).toHaveBeenCalledTimes(1);
+        });
+        const posts = postCalls(mockFetch);
+        expect(posts).toHaveLength(1);
+        expect(JSON.parse(String(posts[0][1]?.body))).toEqual({ value: 172800 });
+      });
+    }
+
+    it('shows the API defaults when the settings are missing', async () => {
+      serveSettings({});
+      await renderPanel();
+
+      expect(screen.getByLabelText('Server Versions Refresh')).toHaveValue('1d');
+      expect(screen.getByLabelText('Enforce Env on Restart')).toHaveAttribute(
+        'data-state',
+        'unchecked'
+      );
+      expect(screen.getByLabelText('Mod List Refresh')).toHaveValue('4h');
+      expect(screen.getByLabelText('Auto-Start Server')).toHaveAttribute('data-state', 'unchecked');
+      expect(screen.getByLabelText('Block Env-Managed Settings')).toHaveAttribute(
+        'data-state',
+        'checked'
+      );
     });
   });
 
