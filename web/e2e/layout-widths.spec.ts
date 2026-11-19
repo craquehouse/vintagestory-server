@@ -1,5 +1,10 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { fetchOnNewConnection, pretendServerInstalled, serveConfigKey } from './config-js';
+import {
+  FIXTURE_GAME_VERSION,
+  fetchOnNewConnection,
+  pretendServerInstalled,
+  serveConfigKey,
+} from './config-js';
 
 /**
  * E2E tests for page layouts at tablet and phone widths.
@@ -46,10 +51,16 @@ import { fetchOnNewConnection, pretendServerInstalled, serveConfigKey } from './
  *   1024px and 32px from 1024px.
  * - Console: at 320-430px its controls wrap, so the page does not scroll sideways; its font
  *   size buttons are 44 by 44px below 1024px and 28px from 1024px (review).
+ * Story 22.1 (FR288; VSS-bhw):
+ * - Dashboard: at 320, 390, 768, 1024, 1440 and 2560px in both sidebar states, with the game
+ *   shown as running and two players online (stubbed status and current metrics), the Players
+ *   card shows 2, sits inside the viewport directly after the Uptime card, and nothing
+ *   scrolls sideways.
  *
  * Reads only. The installed mods, their update status and the compatibility lookups are
  * stubbed with `page.route` (the three mods of installed-mods-phone.spec.ts), as are the
- * Version page's versions, its installed version and the Scheduled Jobs (Story 21.7); every
+ * Version page's versions, its installed version and the Scheduled Jobs (Story 21.7), and the
+ * running state and current metrics of the Players card (Story 22.1); every
  * write to the API is refused, so no mod or setting changes; the game server is neither
  * started nor stopped; no screenshot is taken. The sidebar state is the `vs_ui_prefs`
  * cookie of a fresh browser context: `{ sidebar: 'expanded' }` or `{ sidebar: 'collapsed' }`
@@ -318,6 +329,8 @@ interface PageOptions {
   installed?: string;
   /** Stub the mod browser with eight mods (Story 21.8) */
   browse?: boolean;
+  /** Show the game as running with two players online (Story 22.1) */
+  players?: boolean;
 }
 
 /** A page in a fresh context with the sidebar chosen expanded or collapsed (vs_ui_prefs cookie). */
@@ -333,6 +346,7 @@ async function openPage(
     jobs = false,
     installed,
     browse = false,
+    players = false,
   }: PageOptions = {}
 ) {
   await page.context().addCookies([
@@ -349,6 +363,7 @@ async function openPage(
   if (jobs) await fakeJobs(page);
   if (installed) await installedVersion(page, installed);
   if (browse) await fakeBrowse(page);
+  if (players) await runningWithPlayers(page);
   await page.goto(url);
 }
 
@@ -754,6 +769,48 @@ async function installedVersion(page: Page, version: string) {
     const body: { data?: Record<string, unknown> } = await response.json();
     body.data = { ...body.data, state: 'installed', version };
     await route.fulfill({ response, json: body });
+  });
+}
+
+/**
+ * Show the game as running with two players online (Story 22.1): the page's server status
+ * says running, and the current metrics carry `playersOnline: 2` (registered after
+ * pretendServerInstalled, so it runs first). Nothing is started; writes stay refused.
+ */
+async function runningWithPlayers(page: Page) {
+  await page.route('**/api/v1alpha1/server/status', async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+    const response = await fetchOnNewConnection(route);
+    const body: { data?: Record<string, unknown> } = await response.json();
+    body.data = {
+      ...body.data,
+      state: 'running',
+      version: FIXTURE_GAME_VERSION,
+      uptimeSeconds: 3600,
+    };
+    await route.fulfill({ response, json: body });
+  });
+  await page.route('**/api/v1alpha1/metrics/current', async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({
+      json: {
+        status: 'ok',
+        data: {
+          timestamp: new Date().toISOString(),
+          apiMemoryMb: 100,
+          apiCpuPercent: 1,
+          gameMemoryMb: 500,
+          gameCpuPercent: 5,
+          playersOnline: 2,
+        },
+      },
+    });
   });
 }
 
@@ -1407,4 +1464,34 @@ test.describe('Content width on wide screens (Story 21.8)', () => {
     expect(Math.abs(left - right), `space left ${left}, right ${right}`).toBeLessThanOrEqual(1);
     expect(await documentOverflow(page)).toBe(0);
   });
+});
+
+test.describe('Players card at every width (Story 22.1, AC 8)', () => {
+  // Drop status requests still in flight when a test ends
+  test.afterEach(async ({ page }) => {
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
+  for (const { collapsed, label } of SIDEBAR) {
+    for (const width of [320, 390, 768, 1024, 1440, 2560]) {
+      test(`Players card shows the count after Uptime at ${width}px, ${label}`, async ({
+        page,
+      }) => {
+        await openPage(page, width, collapsed, '/', { players: true });
+
+        const card = page.getByTestId('players-card');
+        await expect(card).toBeVisible({ timeout: 30_000 });
+        await expect(page.getByTestId('players-card-value')).toHaveText('2');
+        await expectInsideViewport(page, 'players-card', width);
+        expect(await documentOverflow(page)).toBe(0);
+
+        const order = await page
+          .getByTestId('dashboard-stats-grid')
+          .evaluate((grid) =>
+            Array.from(grid.children).map((child) => child.getAttribute('data-testid'))
+          );
+        expect(order.indexOf('players-card')).toBe(order.indexOf('uptime-card') + 1);
+      });
+    }
+  }
 });

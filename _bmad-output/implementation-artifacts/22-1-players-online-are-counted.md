@@ -99,10 +99,10 @@ so that **I know whether anyone is playing before I restart or change something,
   - [x] 4.6: `just format-web` (it takes no file arguments; the tree is already formatted, so only this task's files should change: check `git status`, Dev Notes "Development Commands"); `just lint-web`, `just typecheck-web`, `just test-web` green
   - [x] 4.7: Commit `feat(web): show the players online on the dashboard` (body: Story 22.1 / task 4; the card shows the count from the current metrics, or Stopped)
 
-- [ ] Task 5: The Players card at every dashboard width + E2E test (AC: 8)
-  - [ ] 5.1: `web/e2e/layout-widths.spec.ts`: a new `test.describe('Players card at every width (Story 22.1, AC 8)')` (Dev Notes "E2E test"); add Story 22.1 to the file comment (`:4-65`)
-  - [ ] 5.2: Run it in a throwaway container only: `just test-e2e-ci e2e/layout-widths.spec.ts` (port 18080, removed after the run). Never against the dev stack, and never rebuild or restart the dev stack for it
-  - [ ] 5.3: Commit `test(story-22.1/task-5): check the Players card at every dashboard width`
+- [x] Task 5: The Players card at every dashboard width + E2E test (AC: 8)
+  - [x] 5.1: `web/e2e/layout-widths.spec.ts`: a new `test.describe('Players card at every width (Story 22.1, AC 8)')` (Dev Notes "E2E test"); add Story 22.1 to the file comment (`:4-65`)
+  - [x] 5.2: Run it in a throwaway container only: `just test-e2e-ci e2e/layout-widths.spec.ts` (port 18080, removed after the run). Never against the dev stack, and never rebuild or restart the dev stack for it
+  - [x] 5.3: Commit `test(story-22.1/task-5): check the Players card at every dashboard width`
 
 - [ ] Task 6: Validate and move the story to review (AC: all)
   - [ ] 6.1: `just check` green: API tests, pyright 0 errors and 0 warnings, ruff; web tests with 0 skipped, tsc 0 errors, Prettier. The diff adds no lint or type suppression (`# type: ignore`, `# pyright: ignore`, `eslint-disable`, `@ts-expect-error`), no `cast`, no skipped or `.only` test. `git status --short dev/` is empty after the runs
@@ -404,6 +404,7 @@ Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive
 - Commit subject: `feat(story-22.1/task-3): count the players online and include them in the metrics` instead of the story's `feat(api): ...` (orchestrator's instruction: the project's `type(story-X.Y/task-N)` convention; the scope is stripped from release notes, so the release note reads the same).
 - Task 4: `playersOnline: number | null` on the web `MetricsSnapshot`; new `PlayersCard` (memo, `isRunning` prop, `useCurrentMetrics()`, lucide `Users`, `testId="players-card"`) with the states of the card table in the order loading, stopped, error, N/A, count; rendered in a `StatCardErrorBoundary` directly after Uptime in `Dashboard.tsx` (grid classes unchanged). Tests: 11 in `PlayersCard.test.tsx` (every row of the table, Stopped with a lagging snapshot of 3, NaN, fetch URLs are only `/api/v1alpha1/metrics/current`; uses `vi.stubGlobal`/`vi.unstubAllGlobals`), the Dashboard grid test now expects 5 cards, 2 new Dashboard tests (Players right after Uptime in the grid's children, Stopped when installed), 1 new `use-metrics` test (`playersOnline` passes through). `playersOnline` added to the typed fixtures of `Dashboard.test.tsx` and `MetricsChart.test.tsx` and to the fetch bodies of `use-metrics.test.tsx` (null where the game fields are null). `just format-web` changed no file outside this task; `just lint-web`, `just typecheck-web` clean; `just test-web` 3567 passed in 137 files.
 - Commit subject: `feat(story-22.1/task-4): show the players online on the dashboard` instead of the story's `feat(web): ...` (same reason as Task 3).
+- Task 5: `layout-widths.spec.ts` gains `runningWithPlayers(page)` (status GET rewritten to running, version `FIXTURE_GAME_VERSION`, `uptimeSeconds: 3600`; `/metrics/current` GET fulfilled with `playersOnline: 2`), registered inside `openPage` through a new `players` option, and the describe `Players card at every width (Story 22.1, AC 8)`: 12 tests (6 widths x 2 sidebar states) checking the card is visible, reads 2, is inside the viewport, the document has no sideways overflow, and the grid child after `uptime-card` is `players-card`. The describe drops in-flight routes in `afterEach`, as the Story 21.8 width describe does. `just test-e2e-ci e2e/layout-widths.spec.ts`: first pass 148 passed (the file's tests, 12 new), API E2E 3 passed, the @moddb pass found no test in the file; exit 0, the throwaway containers removed by the script. Not run against the dev stack.
 
 ### File List
 
@@ -423,6 +424,7 @@ Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive
 - `web/src/features/dashboard/Dashboard.test.tsx` (modified)
 - `web/src/features/dashboard/MetricsChart.test.tsx` (modified)
 - `web/src/hooks/use-metrics.test.tsx` (modified)
+- `web/e2e/layout-widths.spec.ts` (modified)
 
 ## Change Log
 
