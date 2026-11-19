@@ -1,0 +1,96 @@
+# Story 23.3: Game Settings Are Read-Only for Monitor Keys
+
+Status: ready-for-dev
+
+<!-- Implements FR313, Epic 23 ADR-6. Bead: VSS-7z3 (UI-084), closed by this story after merge. Branch story/23-3-game-settings-are-read-only-for-monitor-keys, stacked on story/23-2-file-browser-paths-are-lists-of-names at f2405f9a (23.2 in review); the PR targets main and merges after 23.2's. Web only: no API change, no new dependency. Line references verified at f2405f9a. -->
+
+## Story
+
+As an **operator with a Monitor key**,
+I want **Game Settings to show me the values without letting me edit them**,
+so that **I do not type a change that then fails with "Update failed"**.
+
+## Acceptance Criteria
+
+1. **Given** a Monitor key
+   **When** I open Game Settings
+   **Then** every field and switch is disabled, the note "Only an Admin key can change settings." is shown once at the top, Password keeps its status display (`SecretSettingStatus`), and no request is sent when I click or type
+   *(FR313; ADR-6 decision 1)*
+
+2. **Given** an Admin key
+   **When** I open Game Settings
+   **Then** the page is as before (fields enabled unless env-managed) and no note is shown
+   *(FR313; ADR-6 decision 1)*
+
+3. **Given** the role is loading, or `GET /auth/me` fails
+   **When** I open Game Settings
+   **Then** the fields are disabled; while it loads there is no note; on failure the note reads "Could not check this key's role; settings cannot be changed until it loads."
+   *(FR313; ADR-6 decision 2)*
+
+4. **Given** `useIsAdmin`
+   **When** the file browser's note (Story 19.1) and `SettingsPage`'s tab hiding (Epic 22 ADR-12) use it
+   **Then** their existing tests pass unchanged
+   *(ADR-6 decision 3)*
+
+5. **Given** the Monitor key is configured for E2E (the existing Monitor specs' precondition)
+   **When** the E2E opens Game Settings with it
+   **Then** the fields are disabled and the note is shown (skipped, as the other Monitor specs are, when the key is not configured)
+   *(FR313)*
+
+6. **(Quality gates.)** `just check` green with 0 skipped unit tests; no suppression, `cast`, skip or `.only` added; `git diff` of `api/` empty.
+
+## Tasks / Subtasks
+
+<!-- Red first. Subjects: type(story-23.3/task-N): ... One user-visible commit: Task 2 (fix(web)). -->
+
+- [ ] Task 1: `useIsAdmin`, and the two existing users moved to it + tests (AC: 4, 6)
+  - [ ] 1.1: Red first: `use-auth-me.test.tsx` rows for `useIsAdmin`: Admin `{ isAdmin: true, isKnown: true, isError: false }`; Monitor `{ false, true, false }`; loading `{ false, false, false }`; failed `{ false, false, true }`
+  - [ ] 1.2: `web/src/api/hooks/use-auth-me.ts`: `export function useIsAdmin(): { isAdmin: boolean; isKnown: boolean; isError: boolean }` over `useAuthMe` (`isKnown`: a role string was returned)
+  - [ ] 1.3: `FileManagerPanel.tsx` (`showAdminNote = isKnown && !isAdmin`, same as today's `role !== undefined && role !== 'admin'`) and `SettingsPage.tsx` (`isAdmin`) use it; their tests unchanged and green
+  - [ ] 1.4: Commit `refactor(story-23.3/task-1): read the key's role through one hook`
+
+- [ ] Task 2: Game Settings disabled unless the key is Admin + tests (AC: 1, 2, 3, 6)
+  - [ ] 2.1: Red first: `SettingField.test.tsx`: with `disabled`, the text input, number input and switch are disabled, no `onSave` on blur or toggle, and no env badge is shown; `GameConfigPanel.test.tsx`: the four AC rows (Admin, Monitor, loading, error), mocking `/auth/me` as the existing panel tests mock fetch
+  - [ ] 2.2: `SettingField.tsx`: new prop `disabled?: boolean` (doc: "Read-only for this key, e.g. a Monitor key (Story 23.3); unlike envManaged, no badge"); `useSettingField({ disabled: envManaged || disabled })`; `isDisabled = envManaged || disabled || field.isPending`
+  - [ ] 2.3: `GameConfigPanel.tsx`: `const { isAdmin, isKnown, isError } = useIsAdmin()`; pass `disabled={!isAdmin}` to each `SettingField`; render the note above the first group when `isKnown && !isAdmin` ("Only an Admin key can change settings.") or `isError` (the failure text), as `<p data-testid="game-config-read-only-note" role="note" className="text-sm text-muted-foreground">`, inside the `PAGE_CONTENT_WIDTH` container
+  - [ ] 2.4: `just test-web`; `just typecheck-web`; `just format-web`, `just lint-web`
+  - [ ] 2.5: Commit `fix(story-23.3/task-2): show game settings read-only to Monitor keys`
+
+- [ ] Task 3: E2E with the Monitor key (AC: 5)
+  - [ ] 3.1: A spec next to the existing Monitor specs (`web/e2e/file-browser-monitor-note.spec.ts` is the model: how it loads the Monitor key and skips without it), visiting the Game Settings page, asserting `game-config-read-only-note` and that the `ServerName` input is disabled. Read-only: it never saves a setting
+  - [ ] 3.2: `just typecheck-web` (covers `e2e/`); run the spec only if the dev stack is up and the Monitor key is configured; otherwise record that it was not run locally (CI runs the untagged set)
+  - [ ] 3.3: Commit `test(story-23.3/task-3): check Game Settings are read-only for a Monitor key`
+
+- [ ] Task 4: Validate and move the story to review (AC: all)
+  - [ ] 4.1: `just check` green; `git diff f2405f9a -- api` empty; no suppression added
+  - [ ] 4.2: `just changelog` lists exactly one entry from this story (Task 2)
+  - [ ] 4.3: Status `review`; `just sprint set 23-3-game-settings-are-read-only-for-monitor-keys review`; Dev Agent Record and File List
+  - [ ] 4.4: Commit `chore(story-23.3/task-4): validate and move story 23.3 to review`
+
+## Dev Notes
+
+### The code today (verified at f2405f9a)
+
+- `web/src/features/game-server/GameConfigPanel.tsx`: renders each setting through `SettingField` (or `SecretSettingStatus` when the API withheld a secret: `setting.configured !== undefined`); `handleSave` toasts "Update failed" on error. No role is read.
+- `web/src/components/SettingField.tsx`: `envManaged` disables the input/switch and shows an env badge; `useSettingField({ disabled: envManaged })` (`:132`) refuses to save when disabled (`use-setting-field.ts:278`, `:326`); `isDisabled = envManaged || field.isPending` (`:138`) feeds every control.
+- `web/src/api/hooks/use-auth-me.ts`: `useAuthMe()` (staleTime Infinity). Users: `FileManagerPanel.tsx` (`role !== undefined && role !== 'admin'` note), `SettingsPage.tsx` (`auth?.data?.role === 'admin'` hides two tabs).
+- The API refuses the save for Monitor anyway (`RequireAdmin` on `POST /config/game/settings/{key}`); this story only stops the useless edit.
+
+### Testing rules
+
+- Web unit tests mock `fetch` as the panel tests already do. The E2E is read-only and runs against whichever stack `just test-e2e-web` targets; it must not save anything.
+
+### References
+
+- `epics.md` "Story 23.3"; `architecture/epic-23-config-file-editing.md` ADR-6
+- Story 17.5 (`17-5-monitor-keys-cannot-read-the-server-password.md`) for `SecretSettingStatus`; Story 19.1 for the file browser note; Epic 22 ADR-12 for the hidden tabs
+
+## Dev Agent Record
+
+### Agent Model Used
+
+### Debug Log References
+
+### Completion Notes List
+
+### File List
