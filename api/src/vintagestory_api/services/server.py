@@ -8,8 +8,9 @@ import signal
 import tarfile
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import httpx
 import structlog
@@ -27,7 +28,11 @@ from vintagestory_api.models.server import (
 )
 from vintagestory_api.services.config_init_service import ConfigInitService
 from vintagestory_api.services.console import ConsoleBuffer
-from vintagestory_api.services.pending_config_edits import PendingConfigEdits
+from vintagestory_api.services.pending_config_edits import (
+    PendingConfigEdit,
+    PendingConfigEdits,
+    reapply_edits,
+)
 from vintagestory_api.services.players import PlayerTracker
 
 # Lazy import to avoid circular dependency - imported at runtime when needed
@@ -60,6 +65,29 @@ def get_server_service() -> ServerService:
     if _server_service is None:
         _server_service = ServerService()
     return _server_service
+
+
+def reapply_pending_config_edits_at_api_start() -> None:
+    """Write pending config edits to serverconfig.json when the API starts (Story 22.7).
+
+    Runs in the lifespan before the auto-start (Epic 22 ADR-15 decision 3).
+    """
+    get_server_service().reapply_pending_config_edits_at_api_start()
+
+
+ReapplyTrigger = Literal["exit", "start", "api_start"]
+
+
+@dataclass(frozen=True)
+class ReapplyOutcome:
+    """What a write-back of pending config edits did (Story 22.7).
+
+    `written` holds every edit serverconfig.json now holds (changed or already equal);
+    `failed` is True when the file could not be read or written.
+    """
+
+    written: dict[str, PendingConfigEdit]
+    failed: bool
 
 
 # VintageStory API endpoints
@@ -192,6 +220,8 @@ class ServerService:
         # Restart-required settings saved while a game process lives (Story 22.7, ADR-15);
         # the one store, read from disk on first use
         self._pending_config_edits = PendingConfigEdits(self._settings.state_dir)
+        # Keys the last start could not write back; they flag a restart again after it
+        self._last_start_reapply_failed_keys: list[str] = []
 
     @property
     def settings(self) -> Settings:
@@ -277,6 +307,70 @@ class ServerService:
         except Exception as e:
             # Non-fatal: restart state integration is optional
             logger.debug("pending_restart_clear_skipped", reason=str(e))
+
+    def _reflag_unapplied_edits(self) -> None:
+        """Set "Restart required" again when the last start could not write its edits back.
+
+        Called after `_clear_pending_restart()` (Story 22.7, ADR-15 decision 5). No value
+        is put in the reason.
+        """
+        keys = self._last_start_reapply_failed_keys
+        if not keys:
+            return
+        try:
+            mod_module = _get_mod_service_module()
+            mod_module.get_restart_state().require_restart(
+                f"Settings {', '.join(keys)} could not be written to serverconfig.json"
+                " - requires server restart"
+            )
+        except Exception as e:
+            # Non-fatal, as _clear_pending_restart: restart state integration is optional
+            logger.debug("pending_restart_reflag_skipped", reason=str(e))
+
+    def _reapply_pending_config_edits(self, trigger: ReapplyTrigger) -> ReapplyOutcome:
+        """Write the pending config edits to serverconfig.json again (Story 22.7).
+
+        Synchronous on purpose: no other task runs between the caller's state change and
+        this write. Never raises for a file problem (ADR-15 decision 5), and never creates
+        a missing serverconfig.json (decision 3).
+        """
+        edits = self._pending_config_edits.edits
+        if not edits:
+            return ReapplyOutcome({}, False)
+        config_path = self._settings.serverdata_dir / "serverconfig.json"
+        if not config_path.exists():
+            # Nothing is written, so nothing may be dropped after a start
+            return ReapplyOutcome({}, False)
+        try:
+            changed = reapply_edits(config_path, edits)
+        except OSError as e:
+            # No str(e) and no value: the text holds the absolute path
+            logger.error(
+                "pending_config_edits_reapply_failed",
+                keys=sorted(edits),
+                trigger=trigger,
+                error_type=type(e).__name__,
+                errno=e.errno,
+                strerror=e.strerror,
+            )
+            return ReapplyOutcome({}, True)
+        except ValueError as e:
+            logger.error(
+                "pending_config_edits_reapply_failed",
+                keys=sorted(edits),
+                trigger=trigger,
+                error_type=type(e).__name__,
+            )
+            return ReapplyOutcome({}, True)
+        if changed:
+            logger.info("pending_config_edits_reapplied", keys=changed, trigger=trigger)
+        return ReapplyOutcome(edits, False)
+
+    def reapply_pending_config_edits_at_api_start(self) -> None:
+        """Write pending config edits back when the API starts; never while a process lives."""
+        if self.game_server_pid is not None:
+            return
+        self._reapply_pending_config_edits("api_start")
 
     async def _get_http_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client for API requests.
@@ -987,6 +1081,8 @@ class ServerService:
             # A fresh start loads every pending change (Story 22.2); a failed start
             # raised above and leaves the flag. A restart clears it the same way.
             self._clear_pending_restart()
+            # Unless the start could not write a pending config edit back (Story 22.7)
+            self._reflag_unapplied_edits()
             return response
 
     async def _start_server_locked(self) -> LifecycleResponse:
@@ -1052,6 +1148,13 @@ class ServerService:
         self._player_tracker.reset()
 
         try:
+            # Story 22.7: pending config edits go into serverconfig.json right before the
+            # spawn, with no await between, and inside this try so an unexpected error
+            # returns the state to INSTALLED like a failed spawn
+            outcome = self._reapply_pending_config_edits("start")
+            self._last_start_reapply_failed_keys = (
+                sorted(self._pending_config_edits.edits) if outcome.failed else []
+            )
             self._process = await asyncio.create_subprocess_exec(
                 *command,
                 stdin=asyncio.subprocess.PIPE,
@@ -1059,6 +1162,9 @@ class ServerService:
                 stderr=asyncio.subprocess.PIPE,
                 cwd=str(self._settings.data_dir),  # Run from data dir for relative paths
             )
+            # The game has loaded the written edits; one recorded or dropped during the
+            # spawn is not the one written and is left alone (by identity)
+            self._pending_config_edits.drop_if_unchanged(outcome.written, reason="started")
 
             # Record start time and update state
             self._server_start_time = time.time()
@@ -1154,6 +1260,9 @@ class ServerService:
             self._server_state = ServerState.INSTALLED
             self._server_start_time = None
 
+            # The game may have rewritten serverconfig.json; put pending edits back (22.7)
+            self._reapply_pending_config_edits("exit")
+
             # Cancel monitor and stream reader tasks if still running
             await self._cancel_background_tasks()
 
@@ -1198,6 +1307,8 @@ class ServerService:
         self._last_exit_code = process.returncode
         self._server_state = ServerState.INSTALLED
         self._server_start_time = None
+        # The monitor left this exit to the stop (Story 22.7, "ADR against the code" 2)
+        self._reapply_pending_config_edits("exit")
         self._player_tracker.reset()
         self._update_mod_service_server_state(False)
 
@@ -1239,6 +1350,8 @@ class ServerService:
 
         # Clear pending restart state since server has been restarted
         self._clear_pending_restart()
+        # Unless the start could not write a pending config edit back (Story 22.7)
+        self._reflag_unapplied_edits()
 
         return LifecycleResponse(
             action=LifecycleAction.RESTART,
@@ -1265,6 +1378,9 @@ class ServerService:
             # Only update state if we weren't already stopping
             if self._server_state != ServerState.STOPPING:
                 self._server_state = ServerState.INSTALLED
+                # An exit by itself: put pending edits back before anything starts the game.
+                # No lock and no await before it (Story 22.7); a stop does this itself
+                self._reapply_pending_config_edits("exit")
                 # Notify mod service that server is no longer running
                 self._update_mod_service_server_state(False)
                 if returncode == 0:

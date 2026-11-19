@@ -87,6 +87,39 @@ def prepare_mod_files_recorder(monkeypatch: pytest.MonkeyPatch) -> PrepareModFil
     return recorder
 
 
+class ReapplyAtApiStartRecorder:
+    """Stands in for `reapply_pending_config_edits_at_api_start` in the lifespan (Story 22.7).
+
+    Appends "reapply_pending_config_edits_at_api_start" to `calls` on each call; raises
+    `error` when it is set. A test that checks the order with `prepare_mod_files` gives both
+    recorders one list.
+    """
+
+    def __init__(self) -> None:
+        self.calls: list[str] = []
+        self.error: Exception | None = None
+
+    def __call__(self) -> None:
+        self.calls.append("reapply_pending_config_edits_at_api_start")
+        if self.error is not None:
+            raise self.error
+
+
+@pytest.fixture(autouse=True)
+def reapply_at_api_start_recorder(monkeypatch: pytest.MonkeyPatch) -> ReapplyAtApiStartRecorder:
+    """Keep every lifespan a test runs away from the real state and serverconfig.json.
+
+    `just test-api` sets VS_DATA_DIR to the dev stack's data (`dev/`); the real start-up
+    step builds the `ServerService` singleton with `Settings()`, reads
+    `dev/vsmanager/state/pending-config-edits.json` and could write
+    `dev/serverdata/serverconfig.json`. Tests of the real step put it back on `main_module`
+    and give it a temporary service.
+    """
+    recorder = ReapplyAtApiStartRecorder()
+    monkeypatch.setattr(main_module, "reapply_pending_config_edits_at_api_start", recorder)
+    return recorder
+
+
 async def _no_op_disk_cleanup() -> None:
     """Stands in for the daily disk cleanup job (Story 22.4)."""
 
