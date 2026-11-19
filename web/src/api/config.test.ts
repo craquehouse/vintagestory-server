@@ -659,7 +659,7 @@ describe('api/config', () => {
     it('maps a response without a data object to an empty read (review LOW-1)', async () => {
       vi.mocked(apiClient).mockResolvedValue({ status: 'ok', data: null });
 
-      const result = await fetchConfigFileContent('x.json');
+      const result = await fetchConfigFileContent(['x.json']);
 
       expect(result.data).toEqual({ filename: 'x.json', content: undefined, parseError: null });
     });
