@@ -1,6 +1,6 @@
 # Story 23.7: Config History in the File Browser
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR324, FR325, Epic 23 ADR-8, ADR-9. Bead: VSS-hb4d (API-098), closed by this story after merge (23.6 carried its API half). Branch story/23-7-config-history-in-the-file-browser, stacked on story/23-6-config-edits-are-kept-as-history at 37a8ff38 (23.6 in review); the PR targets main and merges after 23.6's. Web, plus one API test's list of the web's defaults and bounds. Line references verified at 37a8ff38. -->
 
@@ -67,11 +67,11 @@ so that **I can see what an edit changed and undo it from the web UI**.
   - [x] 5.2: `just test-e2e-ci e2e/config-file-history.spec.ts e2e/config-file-editor.spec.ts e2e/content-security-policy.spec.ts`
   - [x] 5.3: Commit `test(story-23.7/task-5): check comparing and restoring a config file version end to end`
 
-- [ ] Task 6: Validate and move the story to review (AC: all)
-  - [ ] 6.1: `just check`; `just build-web` chunk sizes recorded
-  - [ ] 6.2: `just changelog` lists exactly two entries (Tasks 3 and 4)
-  - [ ] 6.3: Status `review`; sprint status; Dev Agent Record and File List
-  - [ ] 6.4: Commit `chore(story-23.7/task-6): validate and move story 23.7 to review`
+- [x] Task 6: Validate and move the story to review (AC: all)
+  - [x] 6.1: `just check`; `just build-web` chunk sizes recorded
+  - [x] 6.2: `just changelog` lists exactly two entries (Tasks 3 and 4)
+  - [x] 6.3: Status `review`; sprint status; Dev Agent Record and File List
+  - [x] 6.4: Commit `chore(story-23.7/task-6): validate and move story 23.7 to review`
 
 ## Dev Notes
 
@@ -100,8 +100,37 @@ Stub `LazyRevisionCompare` in flow tests (add `src/test/mocks/lazy-revision-comp
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5), as the epic's controller.
+
 ### Debug Log References
+
+- `just check` (2026-11-19, with Stories 23.1 to 23.6 merged in): API 3995 passed, web 3851 passed, 0 skipped; Pyright 0/0; lints green.
+- `just test-e2e-ci e2e/config-file-history.spec.ts e2e/config-file-editor.spec.ts e2e/content-security-policy.spec.ts e2e/file-browser-navigation.spec.ts`: 14 passed; API E2E 4 passed.
+- `just build-web`: CodeMirror is split across lazily loaded chunks (`CodeView-*.js` 45.07 kB, `RevisionCompare-*.js` 28.85 kB, and the shared CodeMirror chunk); `index-*.js` 369.59 kB (118.99 kB gzip), as before the epic's editor.
 
 ### Completion Notes List
 
+- 2026-11-19 (create-story, dev-story): Tasks 1 to 6 done.
+- **What changed.** `@codemirror/merge`. `components/code-view/RevisionCompare.tsx` (`MergeView` side by side, or `unifiedMergeView` with `mergeControls: false`, read-only, JSON5 highlighting) and `LazyRevisionCompare.tsx`. `api/config.ts`: `fetchConfigHistory`, `fetchConfigRevision`, `restoreConfigRevision`, `MAX_CONFIG_HISTORY_KEEP_COUNT`, `MAX_CONFIG_HISTORY_AGE_DAYS`, two defaults; `types.ts`: `ConfigRevision`, `ConfigHistoryData`, `ConfigRevisionData`, two settings fields. Hooks `useConfigHistory`, `useConfigRevision`, `useRestoreConfigRevision`. `features/settings/ConfigHistoryPanel.tsx` (list, compare, show alone, restore with confirmation, `relativeTime`, `formatSize`); `FileManagerPanel.tsx` (History button beside Edit, the panel in the viewer's place, closed by any navigation). `ApiSettingsPanel.tsx`: the Config History group. `api/tests/test_api_settings.py`: `WEB_DEFAULT_KEYS` and `WEB_BOUNDS` gain the new keys and bounds.
+- **Tests.** 3 RevisionCompare (real CodeMirror), 4 config API, 3 hooks, 11 history panel, 3 panel (History button, closed by navigation, Monitor), 7 API Settings rows; existing typed settings fixtures gained the two fields, and the "eight settings" test is now ten. E2E `e2e/config-file-history.spec.ts`.
+- **Deviation.** AC 3's "History disabled while the editor has unsaved changes" holds by construction: while editing, the editor replaces the viewer and its header, so the History button is not shown; there is no separate disabled state.
+- No suppression added; `git diff 37a8ff38 -- api/src` empty (only the web-defaults test changed in `api/tests`). `just changelog`: two entries from this story, 303a00f (Task 3) and 025fc97 (Task 4).
+
 ### File List
+
+- `web/package.json`, `web/bun.lock` (modified)
+- `web/src/components/code-view/RevisionCompare.tsx`, `RevisionCompare.test.tsx`, `LazyRevisionCompare.tsx` (new)
+- `web/src/test/mocks/lazy-revision-compare.tsx` (new)
+- `web/src/api/config.ts`, `config.test.ts`, `types.ts` (modified)
+- `web/src/hooks/use-config-files.ts`, `use-config-files.test.tsx`, `use-api-settings.test.tsx` (modified)
+- `web/src/features/settings/ConfigHistoryPanel.tsx`, `ConfigHistoryPanel.test.tsx` (new)
+- `web/src/features/settings/FileManagerPanel.tsx`, `FileManagerPanel.edit.test.tsx`, `ApiSettingsPanel.tsx`, `ApiSettingsPanel.test.tsx` (modified)
+- `web/e2e/config-file-history.spec.ts` (new)
+- `api/tests/test_api_settings.py` (modified)
+- `_bmad-output/implementation-artifacts/23-7-config-history-in-the-file-browser.md` (this file)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
+
+## Change Log
+
+- 2026-11-19: Story 23.7 created (ready-for-dev).
+- 2026-11-19: Implemented (dev-story): Tasks 1 to 6; status review.
