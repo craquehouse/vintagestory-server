@@ -14,6 +14,8 @@ documentCounts:
 lastUpdated: '2026-11-19'
 updates:
   - date: '2026-11-19'
+    description: 'Added FR309-FR326 for Epic 23 (Config File Editing), with the maintainer''s eight answers of the same day (VSS-o8s and VSS-7z3 pulled in)'
+  - date: '2026-11-19'
     description: 'FR305 names only backup_keep_count, after the maintainer''s "Backups only + docs" decision dropped the two log-archive settings (Story 22.4)'
   - date: '2026-11-19'
     description: 'Added FR308 for Epic 22 Story 22.8 (stopping the container saves the world first), on the maintainer''s thirteenth answer after Story 22.7''s throwaway run'
@@ -937,3 +939,35 @@ If trivial to implement:
 #### Found Inside the Epic (Matt, 2026-11-19, after Story 22.7)
 
 - FR308: When the manager shuts down (its container is stopped, restarted or recreated), it first stops a running game server through the normal stop (SIGTERM, then a kill if the game has not exited after 8 seconds), so the world is saved, and only then exits; nothing starts the game during the shutdown; a restart-required change saved while the game ran is written back on this stop as on any other; the README documents the container's stop grace period (Docker's default 10 seconds is enough; compose `stop_grace_period`, Kubernetes `terminationGracePeriodSeconds`)
+
+### Epic 23: Config File Editing
+
+#### Viewing Configs with Comments (Matt, 2026-11-19)
+
+- FR309: The config viewer reads `.json` files as JSON5 (comments, trailing commas, single-quoted strings, unquoted keys), as the game's own reader is lenient; nesting deeper than 200 levels and values that are Infinity or NaN are reported as parse errors; a file that parses is redacted key by key for roles other than Admin
+- FR310: A file that cannot be parsed is shown as a warning with the parser's message and, when known, its line and column; Admin sees the file's text below it, and other roles see that the text is shown only to an Admin key
+- FR311: For an Admin key, reading a config file also returns its text as stored (with comments) and a version (the SHA-256 of its bytes); other roles get neither
+
+#### File Browser and Roles (Matt, 2026-11-19)
+
+- FR312: The file browser carries the current directory and the selected file as lists of names, so the breadcrumb shows each directory once whatever its name, and joins them into a path only when it calls the API
+- FR313: With a key that is not Admin, the Game Settings page shows every setting disabled with the note "Only an Admin key can change settings", and sends no change; while the key's role is loading or cannot be read, the fields are disabled
+
+#### Saving Config Files (Matt, 2026-11-19)
+
+- FR314: An Admin key can save the text of an existing `.json` file in the server data directory that it can read: at most 2 MiB, parsed as JSON5 before it is written (strict JSON for the root `serverconfig.json`), written exactly as sent (comments, order and formatting kept), atomically, keeping the file's mode and owner; creating, renaming and deleting files are not possible
+- FR315: A save is refused while the game server is running, starting or stopping, or while a start, stop, restart, install or uninstall is in progress; a start requested during a save waits for it to finish
+- FR316: A save carries the version the editor read; if the file changed since, the save is refused and nothing is written
+- FR317: An Admin key can check a text against a file's parser rule without saving it, and gets the error's message, line and column
+- FR318: Saving the root `serverconfig.json` drops each pending restart-required edit (FR307) whose setting the saved text changes, so the edit made in the file is not undone at the next start
+- FR319: In the file browser, an Admin key has an Edit button on a config file; it is disabled with an explanation while the game server is not stopped; the editor highlights the text, checks it as the admin types and shows where an error is, saves or cancels, warns before unsaved changes are lost, and explains a refused save
+- FR320: An Admin key sees a config file that parses as its text with comments, highlighted; other roles keep the highlighted parsed content
+
+#### Config History (Matt, 2026-11-19)
+
+- FR321: Each save or restore through the API first keeps the text it replaces as a revision (time, the saving key's role, size, hash) in the manager's state directory, outside the server data directory; if the revision cannot be kept, the save is refused and the file is unchanged
+- FR322: Two API settings limit each file's history: revisions kept (default 20, 1 to 200) and maximum age in days (default 0, no limit, 0 to 3650); older revisions are deleted when the file is next saved, and the newest revision is never deleted by age
+- FR323: An Admin key can list a file's revisions, read one, and restore one; a restore follows every rule of a save (FR314 to FR318) and keeps the current text as a revision first
+- FR324: In the file browser, an Admin key can open a file's history, compare a revision with the current text (side by side on wide screens, unified on narrow ones) and restore it while the game server is stopped
+- FR325: The API Settings tab edits the two history limits (FR322), saying that history is kept only for files saved in the file browser
+- FR326: The README's file browser section documents editing, the stopped-server rule, JSON5 and its difference from the game's reader, the history location and its limits

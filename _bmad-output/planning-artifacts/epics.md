@@ -7,6 +7,8 @@ inputDocuments:
 lastUpdated: '2026-11-19'
 updates:
   - date: '2026-11-19'
+    description: 'Added Epic 23 (7 stories) for Config File Editing; FR309-FR326, with the maintainer''s eight answers of the same day (VSS-o8s and VSS-7z3 pulled in)'
+  - date: '2026-11-19'
     description: 'Epic 22: the Product changes line and Story 22.6 (fourth criterion, tasks, FR305 row) now name only backup_keep_count, after the maintainer''s "Backups only + docs" decision dropped the two log-archive settings (Story 22.4)'
   - date: '2026-11-19'
     description: 'Added Story 22.8 (stopping the container saves the world first) to Epic 22 with FR308, on the maintainer''s thirteenth answer after Story 22.7''s throwaway run (found in the epic; no bead)'
@@ -528,6 +530,24 @@ This document provides the complete epic and story breakdown for vintagestory-se
 | FR306 | Epic 22 | A restart-required game setting is a pending restart, cleared by a restart |
 | FR307 | Epic 22 | A restart-required change made while the game runs survives a live change |
 | FR308 | Epic 22 | Stopping the container stops the game through the normal stop first, so the world is saved |
+| FR309 | Epic 23 | The config viewer reads JSON5 |
+| FR310 | Epic 23 | An unparseable file shows its error with line and column |
+| FR311 | Epic 23 | Admin's read returns the text and a version |
+| FR312 | Epic 23 | The file browser carries paths as lists of names |
+| FR313 | Epic 23 | Game Settings are read-only for keys that are not Admin |
+| FR314 | Epic 23 | Admin saves an existing config file's text as sent |
+| FR315 | Epic 23 | A save is refused while the game server is not stopped |
+| FR316 | Epic 23 | A save with a stale version is refused |
+| FR317 | Epic 23 | A text can be checked without saving |
+| FR318 | Epic 23 | A serverconfig.json save drops the pending edits it changes |
+| FR319 | Epic 23 | Config files are edited in the file browser |
+| FR320 | Epic 23 | Admin sees config text with comments |
+| FR321 | Epic 23 | Each save keeps the replaced text as a revision |
+| FR322 | Epic 23 | Two API settings limit the history |
+| FR323 | Epic 23 | Revisions can be listed, read and restored through the API |
+| FR324 | Epic 23 | History, comparison and restore in the file browser |
+| FR325 | Epic 23 | History limits edited in the API Settings tab |
+| FR326 | Epic 23 | The README documents editing and history |
 
 ## Epic List
 
@@ -2045,7 +2065,8 @@ So that **I can monitor background task status**.
 | Epic 20: Tooling and Test Health | 20.1, 20.2, 20.3, 20.4, 20.5, 20.6, 20.7 | 7 |
 | Epic 21: Maintainer Decisions and Web Polish | 21.1, 21.2, 21.3, 21.4, 21.5, 21.6, 21.7, 21.8 | 8 |
 | Epic 22: Server Operations and Metrics | 22.1, 22.2, 22.3, 22.4, 22.5, 22.6, 22.7, 22.8 | 8 |
-| **Total** | | **136** |
+| Epic 23: Config File Editing | 23.1, 23.2, 23.3, 23.4, 23.5, 23.6, 23.7 | 7 |
+| **Total** | | **143** |
 
 ---
 
@@ -7862,3 +7883,446 @@ So that **the world is saved and players do not lose their progress when I upgra
 - [ ] The throwaway-container run (a `vss-22-8-*` container and image on its own `127.0.0.1` port, not 9080, 18080, 18081, 18090, 18092 or 18094; plain `docker build`/`docker run`, no compose, no bind mount, no `--env-file`, placeholder key, removed afterwards; never the dev stack or `./data`): `docker stop`, `docker restart`, an open console WebSocket, `docker stop -t` shorter and longer than 10 s, the process tree; recorded in the story and in ADR-16 (ADR-16 decision 9, ADR-14)
 - [ ] The README: stopping and restarting the container, and the stop grace period (ADR-16 decision 6)
 - [ ] `just check` green and the story moved to review; the maintainer's manual check stays unticked
+
+---
+
+## Epic 23: Config File Editing
+
+**Goal:** An administrator can read every mod config the game accepts, including those with comments, and can edit and save config files in the file browser while the game server is stopped, with the text kept exactly as typed. Every edit is kept as history that can be compared and restored. A Monitor key sees Game Settings read-only instead of fields that fail on save. Five open beads are closed.
+
+**Architecture:** `architecture/epic-23-config-file-editing.md` (ADR-1 to ADR-9, with the facts checked at `fc525885`). There is no preparation story. The one thing planning could not check, how `pyjson5` reports an error's position, is Story 23.1's first task.
+
+**Decided by the maintainer (Matt, 2026-11-19):** the scope `VSS-ato4`, `VSS-glz` and `VSS-hb4d`, with `VSS-o8s` and `VSS-7z3` pulled in. Eight answers in two rounds (`sprint-change-proposal-2026-11-19-epic-23.md`, section 5):
+
+1. JSON5 through the `pyjson5` library (ADR-1).
+2. `serverconfig.json` can be edited, but only as strict JSON, and a save drops the Story 22.7 pending edits it changes (ADR-1 decision 5, ADR-4 decision 7).
+3. CodeMirror 6 as the editor (ADR-5).
+4. Every `.json` file Admin can read can be edited (ADR-4).
+5. Errors are checked by an API endpoint as the admin types (ADR-4 decision 10, ADR-5).
+6. History limits are two API settings (ADR-7 decision 5).
+7. Revisions are compared with CodeMirror's merge view (ADR-8).
+8. Game Settings fields are disabled for Monitor, with a note (ADR-6).
+
+Planner decisions not reviewed yet: the read's new fields (ADR-2), the save's lock, state and version rules (ADR-4 decisions 4 to 6), the history store and its failure rule (ADR-7 decisions 1 to 4), the `useIsAdmin` hook (ADR-6 decision 3), and the UI flows of ADR-5 and ADR-8.
+
+**Order:** 23.1, 23.2, 23.3, 23.4, 23.5, 23.6, 23.7.
+
+**Dependencies:**
+
+- Story 23.4 comes after 23.1: the save uses 23.1's parser and returns the `version` that 23.1's read introduces.
+- Story 23.5 comes after 23.2, 23.3 and 23.4. It edits `FileViewer.tsx` and `FileManagerPanel.tsx` after 23.2's refactor, uses 23.3's `useIsAdmin`, and calls 23.4's routes.
+- Story 23.6 comes after 23.4 and hooks into its save path (`services/config_files.py`, `routers/config.py`). It adds two settings to `services/api_settings.py`.
+- Story 23.7 comes after 23.5 and 23.6: it adds to the viewer header 23.5 built, calls 23.6's routes, and edits `ApiSettingsPanel.tsx`.
+- Stories 23.2 and 23.3 are web-only and independent of 23.1. They run second and third so that 23.5 starts on top of both.
+- Stories are run one after another. Each branch starts from the previous story's branch, each pull request targets `main`, and the merge order is the story order.
+
+**Beads:** five in scope, each closed with an AAR by its story after merge: `VSS-ato4` in 23.1, `VSS-o8s` in 23.2, `VSS-7z3` in 23.3, `VSS-glz` in 23.5 (23.4 carries its first half), `VSS-hb4d` in 23.7 (23.6 carries its first half). What planning found is in the stories (the change proposal lists it), not in new beads.
+
+**Product changes:**
+
+- New routes: `PUT /config/files/{path}`, `POST /config/files/validate`, and `GET` and `POST .../restore` under `/config/history/{path}`, all Admin only.
+- New fields in the config file read: `parseError` for every role; `text` and `version` for Admin.
+- Two new API settings: `config_history_keep_count` and `config_history_max_age_days`.
+- A new state directory: `vsmanager/state/config-history/`.
+- A new runtime API dependency, `pyjson5`, and new web dependencies in the `@codemirror` scope, loaded on demand.
+- The viewer accepts JSON5, so files that showed a parse error now show their content.
+- No existing route, field or status code changes, and nothing is breaking.
+
+### Current State
+
+- A mod config with comments or trailing commas shows a parse error; the viewer's fallback shows an escaped string under `_raw` and `_parse_error` keys, and Monitor sees the whole file hidden
+- Config files can only be read; changing one means a shell on the host, while the game is stopped, with no record of the earlier text
+- The file browser keeps paths as slash-joined strings, and its breadcrumb splits them on `/`
+- A Monitor key sees Game Settings as editable and gets "Update failed" after typing
+
+### Target State
+
+- The viewer reads JSON5. An unparseable file shows its error, with its line and column, and Admin sees its text
+- Admin edits a config file in a highlighting editor that checks it as they type. Saving is possible only while the game server is stopped, and only if nobody else changed the file meanwhile. The text is written exactly as typed
+- `serverconfig.json` stays strict JSON, and a save of it is not undone by Story 22.7's write-back
+- Every save keeps the replaced text. Admin can list, compare and restore earlier versions, within limits set in API Settings
+- Paths are lists of names from the panel to the API client
+- Monitor sees Game Settings read-only, with a note
+
+---
+
+### Story 23.1: Configs with Comments Can Be Viewed
+
+**Sprint key:** `23-1-configs-with-comments-can-be-viewed`
+**Beads:** `VSS-ato4` (API-097)
+**FRs:** FR309, FR310, FR311, FR326 (JSON5 part)
+
+As an **administrator**,
+I want **the file browser to show mod configs that have comments**,
+So that **I can read the configs the game itself accepts instead of a parse error**.
+
+**Acceptance Criteria:**
+
+**Given** a `ModConfig` file with `//` line comments, a `/* */` block comment, a comment after the last property, a trailing comma, `null` in an array and a string value containing `http://example.com//path`
+**When** an Admin key and a Monitor key read it
+**Then** both get the parsed `content`, and the string value keeps its `//`; Monitor's content is redacted key by key (a `password` key reads `"[redacted]"`, other values are unchanged)
+
+*(Covers FR309; ADR-1 decisions 1 and 3, ADR-2 decision 2)*
+
+**Given** a file with single-quoted strings and unquoted keys
+**When** it is read
+**Then** it parses
+
+*(Covers FR309; ADR-1 decision 1)*
+
+**Given** a file that nests 201 levels, and a file holding `Infinity`
+**When** they are read
+**Then** each answers 200 with `_raw`/`_parse_error` and `parseError` ("Nested more than 200 levels deep", "Infinity and NaN cannot be shown"), and never a 500
+
+*(Covers FR309; ADR-1 decisions 3 and 4)*
+
+**Given** a file with a missing comma on line 3
+**When** an Admin key reads it
+**Then** `parseError` has the message, `line: 3` and the column; `content` keeps `_raw` (the text) and `_parse_error`; `text` is the text and `version` is the SHA-256 of the bytes; for a Monitor key `_raw` is `"[redacted]"` and there is no `text` or `version`
+
+*(Covers FR310, FR311; ADR-1 decision 2, ADR-2 decision 1)*
+
+**Given** a file that parses
+**When** an Admin key reads it
+**Then** `text` is the file's text with its comments (BOM dropped), `version` is the SHA-256 of its bytes (BOM included), and `parseError` is null; a Monitor key gets neither `text` nor `version`
+
+*(Covers FR311; ADR-2 decision 1)*
+
+**Given** a file that does not parse
+**When** it is opened in the file browser
+**Then** a warning shows the message with line and column; Admin sees the text below it in plain monospace; Monitor sees "The text of a file that cannot be parsed is shown only to an Admin key."
+
+*(Covers FR310; ADR-2 decision 3)*
+
+**Tasks:**
+
+- [ ] Add `pyjson5` (`>=2.0.1,<3`, a `build(api)` commit) and find how its errors expose the position (attribute, `args` or message); pin it in a test (ADR-1 decisions 2 and 7)
+- [ ] `services/config_parse.py`: `parse_config_text` with `strict`, `ConfigParseError` with line and column, `maxdepth`, the Infinity/NaN rule; unit tests from ADR-9 decision 4's fixture; remove `_nesting_depth_exceeds` (ADR-1 decisions 1 to 4)
+- [ ] `read_file` uses it and returns `parseError`, plus `text` and `version` for Admin; router docstring; API tests for both roles; a `fix(api)` commit "show mod configs that contain comments" (ADR-2 decisions 1 and 2)
+- [ ] Web: the type's new fields and `FileViewer`'s parse-error view for both roles, with unit tests; a `fix(web)` commit (ADR-2 decision 3)
+- [ ] README file browser section: JSON5 and its difference from the game's reader (ADR-1 decision 6)
+- [ ] `just check` green; read `seasonalflowers.json` on the dev stack through the viewer (read-only manual check)
+
+---
+
+### Story 23.2: File Browser Paths Are Lists of Names
+
+**Sprint key:** `23-2-file-browser-paths-are-lists-of-names`
+**Beads:** `VSS-o8s` (UI-081)
+**FRs:** FR312
+
+As a **developer**,
+I want **the file browser to carry paths as lists of directory names**,
+So that **a name is never split or joined by mistake, and the editor and history are built on one path representation**.
+
+**Acceptance Criteria:**
+
+**Given** the file browser at `ModConfig/sub` with a file selected
+**When** I use the breadcrumb, open directories and select files
+**Then** behaviour is as before (Story 16.7's breadcrumb tests pass unchanged in what they check), and the panel and breadcrumb state are `string[]`
+
+*(Covers FR312; ADR-3 decision 1)*
+
+**Given** a directory listing that returns a name containing `/`, `.`, `..` or an empty name (a mocked response)
+**When** it is opened
+**Then** the request is not sent and the panel shows an error instead of requesting another path
+
+*(Covers FR312; ADR-3 decision 2)*
+
+**Given** the API client
+**When** a path is built for a request
+**Then** it is built only by `toConfigPath`, which has unit tests for joining and for each rejected name
+
+*(Covers FR312; ADR-3 decisions 2 and 3)*
+
+**Tasks:**
+
+- [ ] `toConfigPath` and the fetch functions taking `string[]`, and the query keys, with unit tests (ADR-3 decisions 2 and 3)
+- [ ] `PathBreadcrumb` with `segments`, and `FileManagerPanel` with `string[]` state and the selected file as `{ directory, name }`; tests updated; a `refactor(web)` commit (ADR-3 decisions 1 and 4)
+- [ ] `just check` green
+
+---
+
+### Story 23.3: Game Settings Are Read-Only for Monitor Keys
+
+**Sprint key:** `23-3-game-settings-are-read-only-for-monitor-keys`
+**Beads:** `VSS-7z3` (UI-084)
+**FRs:** FR313
+
+As an **operator with a Monitor key**,
+I want **Game Settings to show me the values without letting me edit them**,
+So that **I do not type a change that then fails with "Update failed"**.
+
+**Acceptance Criteria:**
+
+**Given** a Monitor key
+**When** I open Game Settings
+**Then** every field and switch is disabled, the note "Only an Admin key can change settings." is shown once at the top, Password keeps its status display, and no request is sent when I click or type
+
+*(Covers FR313; ADR-6 decision 1)*
+
+**Given** an Admin key
+**When** I open Game Settings
+**Then** the page is as before and no note is shown
+
+*(Covers FR313; ADR-6 decision 1)*
+
+**Given** the role is loading, or `GET /auth/me` fails
+**When** I open Game Settings
+**Then** the fields are disabled; while it loads there is no note, and on failure the note says the role could not be checked
+
+*(Covers FR313; ADR-6 decision 2)*
+
+**Given** `useIsAdmin`
+**When** the file browser's note and `SettingsPage`'s tab hiding use it
+**Then** their tests pass unchanged
+
+*(ADR-6 decision 3)*
+
+**Tasks:**
+
+- [ ] `useIsAdmin` with unit tests; move the file browser note and `SettingsPage` to it with behaviour unchanged (a `refactor(web)` commit) (ADR-6 decision 3)
+- [ ] `GameConfigPanel` disabled state and note, with unit tests for Admin, Monitor, loading and error; a `fix(web)` commit "show game settings read-only to Monitor keys" (ADR-6 decisions 1, 2 and 4)
+- [ ] An E2E check with the Monitor key (skipped when the key is not configured, as the existing Monitor specs are) that the fields are disabled
+- [ ] `just check` green
+
+---
+
+### Story 23.4: Config Files Can Be Saved Through the API
+
+**Sprint key:** `23-4-config-files-can-be-saved-through-the-api`
+**Beads:** `VSS-glz` (UI-025), first half
+**FRs:** FR314, FR315, FR316, FR317, FR318
+
+As an **administrator**,
+I want **an API that saves a config file's text while the game server is stopped**,
+So that **the web editor can change configs safely, keeping comments and formatting**.
+
+**Acceptance Criteria:**
+
+**Given** the game server is stopped, and an Admin key with the `version` from a read
+**When** it sends `PUT /config/files/ModConfig/x.json` with text containing comments and odd spacing
+**Then** the file holds exactly that text (and a BOM if it had one), its mode is kept, the answer is 200 with the new `version`, and the log has `config_file_saved` without the text
+
+*(Covers FR314; ADR-4 decisions 1, 2, 6 and 9)*
+
+**Given** a Monitor key, a path with `..`, a non-`.json` name, a missing file, a directory, or a text over 2 MiB
+**When** it is saved
+**Then** the answer is 403, 400, 400, 404, 400 or 413 as for a read (413 for size), and nothing is written
+
+*(Covers FR314; ADR-4 decision 2)*
+
+**Given** a text that does not parse, or a root `serverconfig.json` text with a comment
+**When** it is saved
+**Then** the answer is 422 `CONFIG_FILE_INVALID` with message, line and column, and nothing is written
+
+*(Covers FR314; ADR-1 decision 5, ADR-4 decision 3)*
+
+**Given** the game server is running, starting or stopping, or a lifecycle operation holds its lock
+**When** a file is saved
+**Then** the answer is 409 `CONFIG_FILE_SERVER_RUNNING` or `CONFIG_FILE_SERVER_BUSY`, and nothing is written
+
+*(Covers FR315; ADR-4 decision 4)*
+
+**Given** a save is in progress
+**When** a start is requested
+**Then** the start waits for the save to finish (a test with a stub start)
+
+*(Covers FR315; ADR-4 decision 4, ADR-9 decision 2)*
+
+**Given** the file changed after the read
+**When** it is saved with the old `version`
+**Then** the answer is 409 `CONFIG_FILE_CHANGED` and nothing is written
+
+*(Covers FR316; ADR-4 decision 5)*
+
+**Given** the temporary file cannot be written or the replace fails
+**When** a file is saved
+**Then** the answer is 500 `CONFIG_FILE_WRITE_FAILED` without a path, the original is unchanged, and no temporary file is left
+
+*(Covers FR314; ADR-4 decision 6)*
+
+**Given** a pending Story 22.7 edit for `Port`, and one for `Ip`
+**When** `serverconfig.json` is saved with a changed `Port` and an unchanged `Ip`
+**Then** the `Port` edit is dropped (reason `file_edited`) and the `Ip` edit stays
+
+*(Covers FR318; ADR-4 decision 7)*
+
+**Given** an Admin key
+**When** it sends `POST /config/files/validate` with a valid or an invalid text, for `ModConfig/x.json` and for `serverconfig.json`
+**Then** it gets `{valid, error}` under the same parser rule as a save, nothing is written, and the server state does not matter
+
+*(Covers FR317; ADR-4 decision 10)*
+
+**Tasks:**
+
+- [ ] Error codes and exceptions; `ServerService.config_write()` with the zero-wait lock and the state rule, with tests including the waiting start (ADR-4 decision 4, ADR-9 decision 2)
+- [ ] `ConfigFilesService.save_file`: path rules, size, parser, version, atomic write keeping BOM, mode and owner, clean-up on failure; a test for each refusal (ADR-4 decisions 2, 3, 5, 6 and 9)
+- [ ] The pending-edit drop for `serverconfig.json` with the `file_edited` reason, with tests (ADR-4 decision 7)
+- [ ] The `PUT` and `POST /validate` routes, with docstrings and router tests; a `feat(api)` commit "save config files through the API while the game server is stopped" (ADR-4 decisions 1 and 10)
+- [ ] `just check` green
+
+---
+
+### Story 23.5: Config Files Are Edited in the File Browser
+
+**Sprint key:** `23-5-config-files-are-edited-in-the-file-browser`
+**Beads:** `VSS-glz` (UI-025), closes
+**FRs:** FR319, FR320, FR326 (editing part)
+
+As an **administrator**,
+I want **to edit a config file in the file browser while the game server is stopped**,
+So that **I can change mod and server configs without a shell on the host**.
+
+**Acceptance Criteria:**
+
+**Given** an Admin key and a stopped game server
+**When** I open a file and press Edit
+**Then** a CodeMirror editor shows the file's text with comments and highlighting; the status line shows "Valid", or the error with line and column (a click moves the cursor there), from the API check 500 ms after typing stops
+
+*(Covers FR319; ADR-5 decisions 1, 3 and 4)*
+
+**Given** valid, changed text
+**When** I press Save
+**Then** the file is saved, a toast says so, and the viewer shows the new text; Save is disabled for unchanged or invalid text, while a check is pending, and while the server is not stopped
+
+*(Covers FR319; ADR-5 decisions 4 and 5)*
+
+**Given** a 409 changed, running or busy answer, or a 422
+**When** I save
+**Then** my text is kept and the message explains it; for a change on disk, Reload discards my text after confirmation
+
+*(Covers FR319; ADR-5 decision 5)*
+
+**Given** unsaved changes
+**When** I cancel, select another file or directory, use the breadcrumb, switch tabs or routes, or close the tab
+**Then** I am asked before the changes are lost
+
+*(Covers FR319; ADR-5 decision 6)*
+
+**Given** the game server is running, starting or stopping
+**When** I view a file as Admin
+**Then** Edit is disabled with the explanation and a link to the server controls; a Monitor key sees no Edit button
+
+*(Covers FR319; ADR-5 decision 3, ADR-6 decision 3)*
+
+**Given** an Admin key and a file that parses
+**When** I view it
+**Then** it is shown as its text with comments in a read-only highlighted view, with word wrap working; a Monitor key sees the highlighted parsed content as before
+
+*(Covers FR320; ADR-5 decision 7)*
+
+**Given** the production build served with the CSP enforced
+**When** the editor is opened
+**Then** no CSP violation is reported, and the editor is in its own chunk
+
+*(Covers FR319; ADR-5 decisions 1 and 2)*
+
+**Tasks:**
+
+- [ ] CodeMirror packages and the language choice (lang-json or lang-javascript, ADR-5 decision 1), with the editor and read-only view as one lazily loaded component; `build(web)` commit
+- [ ] Edit mode: Edit button and its disabled state, the check-as-you-type status line, Save/Cancel, outcomes and 409/422 handling, with unit tests (ADR-5 decisions 3 to 5)
+- [ ] Unsaved-change guards (dialog, `useBlocker`, `beforeunload`), with unit tests (ADR-5 decision 6)
+- [ ] Admin's read-only text view and word wrap (ADR-5 decision 7); a `feat(web)` commit "edit config files in the file browser while the game server is stopped"
+- [ ] E2E in the CI set only: create `ModConfig/e2e-<random>.json`, edit, save, reload and check, remove it; check for no CSP violations; Monitor sees no Edit button (ADR-9 decision 3)
+- [ ] README file browser section: editing and the stopped-server rule
+- [ ] `just check` green; the bundle report in the completion notes
+
+---
+
+### Story 23.6: Config Edits Are Kept as History
+
+**Sprint key:** `23-6-config-edits-are-kept-as-history`
+**Beads:** `VSS-hb4d` (API-098), first half
+**FRs:** FR321, FR322, FR323, FR326 (history part)
+
+As an **administrator**,
+I want **each config save to keep the text it replaced**,
+So that **I can see what changed and undo a bad edit**.
+
+**Acceptance Criteria:**
+
+**Given** a file saved through `PUT`
+**When** the save succeeds
+**Then** `vsmanager/state/config-history/<relative path>/` holds the replaced bytes as `<id>.json` and `index.json` lists it first with `savedAt`, `savedBy: "admin"`, `size` and `sha256`
+
+*(Covers FR321; ADR-7 decisions 1 to 3)*
+
+**Given** the history store cannot be written
+**When** a file is saved
+**Then** the answer is 500 `CONFIG_HISTORY_WRITE_FAILED` and the file is unchanged; if the file replace fails after the revision was written, the revision is removed
+
+*(Covers FR321; ADR-7 decision 4)*
+
+**Given** `config_history_keep_count` 3, and `config_history_max_age_days` 1 with revisions two days old
+**When** the file is saved
+**Then** only the newest 3, and none older than a day except the newest, remain; bounds outside 1 to 200 and 0 to 3650 are refused like other settings
+
+*(Covers FR322; ADR-7 decision 5)*
+
+**Given** an Admin key
+**When** it lists, reads and restores a revision
+**Then** the list is newest first; the read returns the text; the restore follows every save rule (stopped server, version, parser, pending edits), stores the current text as a new revision, and answers like `PUT`
+
+*(Covers FR323; ADR-7 decision 6)*
+
+**Given** a Monitor key, a malformed id (`../x`, `20261119T000000000000Z/../a`) or an unknown id
+**When** it calls the history routes
+**Then** the answers are 403, 400 and 404 `CONFIG_REVISION_NOT_FOUND`, and no path is built from the id
+
+*(Covers FR323; ADR-7 decisions 2 and 6)*
+
+**Tasks:**
+
+- [ ] The history store (paths, ids, index, atomic index write, prune) with unit tests (ADR-7 decisions 1, 2 and 5)
+- [ ] The two API settings with bounds and tests (ADR-7 decision 5)
+- [ ] Hook the store into the save path with the failure rule, with tests (ADR-7 decisions 3 and 4)
+- [ ] The three routes and restore through the save path, with router tests; a `feat(api)` commit "keep earlier versions of config files saved through the API, and restore them" (ADR-7 decisions 6 and 7)
+- [ ] README: history location, what is and is not recorded, and the two settings
+- [ ] `just check` green
+
+---
+
+### Story 23.7: Config History in the File Browser
+
+**Sprint key:** `23-7-config-history-in-the-file-browser`
+**Beads:** `VSS-hb4d` (API-098), closes
+**FRs:** FR324, FR325
+
+As an **administrator**,
+I want **to browse a file's earlier versions, compare one with the current text and restore it**,
+So that **I can see what an edit changed and undo it from the web UI**.
+
+**Acceptance Criteria:**
+
+**Given** an Admin key and a file with revisions
+**When** I press History
+**Then** a panel lists the revisions newest first with time, relative time, saved by and size; a file with none shows the empty message
+
+*(Covers FR324; ADR-8 decision 1)*
+
+**Given** a revision is chosen
+**When** the screen is `md` or wider, and when it is narrower
+**Then** it is compared with the current text side by side, or unified; "Show this version" shows it alone
+
+*(Covers FR324; ADR-8 decision 2)*
+
+**Given** the game server is stopped
+**When** I restore a revision and confirm
+**Then** the file holds that text, the viewer refreshes, and the history gains the replaced text; while the server is not stopped Restore is disabled with the explanation; while the editor has unsaved changes History is disabled
+
+*(Covers FR324; ADR-8 decision 3)*
+
+**Given** the API Settings tab
+**When** an Admin opens it
+**Then** a Config History group edits both limits within the API's bounds, with the help text of ADR-8 decision 4
+
+*(Covers FR325; ADR-8 decision 4)*
+
+**Tasks:**
+
+- [ ] `@codemirror/merge` in the lazily loaded chunk; the history panel, comparison and Restore, with unit tests (ADR-8 decisions 1 to 3 and 5)
+- [ ] The Config History group in `ApiSettingsPanel.tsx`, with unit tests (ADR-8 decision 4)
+- [ ] A `feat(web)` commit "see, compare and restore earlier versions of config files" (ADR-8 decision 6)
+- [ ] E2E in the CI set only: save a test file twice, compare, restore, check, remove it (ADR-9 decision 3)
+- [ ] `just check` green
