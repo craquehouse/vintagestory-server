@@ -243,7 +243,7 @@ development_status:
   22-2-prometheus-metrics-endpoint: done
   22-3-scheduled-restarts: done
   22-4-log-archive-and-backup-cleanup: review
-  22-5-interval-fields-can-turn-jobs-off: backlog
+  22-5-interval-fields-can-turn-jobs-off: ready-for-dev
   22-6-restart-and-cleanup-settings-in-the-ui: backlog
   22-7-restart-required-settings-survive-a-live-change: review
   22-8-container-stop-saves-the-world: review
