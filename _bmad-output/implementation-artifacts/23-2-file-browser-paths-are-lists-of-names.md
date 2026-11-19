@@ -1,6 +1,6 @@
 # Story 23.2: File Browser Paths Are Lists of Names
 
-Status: review
+Status: done
 
 <!-- Implements FR312, Epic 23 ADR-3. Bead: VSS-o8s (UI-081), closed by this story after merge. Branch story/23-2-file-browser-paths-are-lists-of-names, stacked on story/23-1-configs-with-comments-can-be-viewed at 03218c12 (23.1 in review); the PR targets main and merges after 23.1's. Web only: no API change, no new dependency. Line references verified at 03218c12. -->
 
@@ -120,7 +120,17 @@ Claude Opus 5.5 (claude-opus-5-5), as the epic's controller.
 - `_bmad-output/implementation-artifacts/23-2-file-browser-paths-are-lists-of-names.md` (this file)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode. Verdict: approve. 0 HIGH, 0 MEDIUM, four LOW:
+
+1. **LOW: the selection shared its `directory` array with the panel's state.** Fixed: a copy is stored.
+2. **LOW: `join('/')` query keys let `['a/b']` and `['a', 'b']` share a key.** Accepted (prescribed by Task 1.3): only names `toConfigPath` refuses can produce it, and the refetch on mount corrects the entry. Recorded in ADR-3 decision 3.
+3. **LOW: ADR-3 decision 3 said the keys use `toConfigPath`.** Fixed: the ADR now says they join with `/` and why (a key must not throw during render).
+4. **LOW: AC 2's panel row covers an invalid directory, not a file.** Accepted: the file route is covered at the fetch level (`config.test.ts`) and the viewer's error state by existing tests.
+
 ## Change Log
 
 - 2026-11-19: Story 23.2 created (ready-for-dev).
 - 2026-11-19: Implemented (dev-story): Tasks 1 to 4; status review.
+- 2026-11-19: Code review (GLM-5.3-Flash via opencode): approve; 0 HIGH, 0 MEDIUM, four LOW (two fixed: a copied selection directory and the ADR-3 wording; two accepted) (see "Review"). Status done.
