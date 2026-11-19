@@ -63,10 +63,10 @@ so that **the web editor can change configs safely, keeping comments and formatt
 
 <!-- Red first. Subjects: type(story-23.4/task-N): ... One user-visible commit: Task 4 (feat(api)). -->
 
-- [ ] Task 1: `ServerService.config_write()` + tests (AC: 4, 5, 10)
-  - [ ] 1.1: Red first: `api/tests/server/test_config_write.py`: free and stopped -> enters; `_process` alive with state RUNNING, and state STARTING / STOPPING -> `GameServerNotStoppedError(reason="running")`; `_lifecycle_lock` held, `_install_lock` held -> `reason="busy"`; inside the context the lifecycle lock is held; a `start_server()` task created inside the context does not take the lock until the context exits (assert with an `asyncio.Event` and the lock state, with a stubbed `_start_server_locked`)
-  - [ ] 1.2: `services/server.py`: `class GameServerNotStoppedError(Exception)` with `reason: Literal["running", "busy"]`; `@asynccontextmanager async def config_write(self) -> AsyncIterator[None]` (Dev Notes "The lock")
-  - [ ] 1.3: Commit `refactor(story-23.4/task-1): add a lock for writing config files while the game server is stopped`
+- [x] Task 1: `ServerService.config_write()` + tests (AC: 4, 5, 10)
+  - [x] 1.1: Red first: `api/tests/server/test_config_write.py`: free and stopped -> enters; `_process` alive with state RUNNING, and state STARTING / STOPPING -> `GameServerNotStoppedError(reason="running")`; `_lifecycle_lock` held, `_install_lock` held -> `reason="busy"`; inside the context the lifecycle lock is held; a `start_server()` task created inside the context does not take the lock until the context exits (assert with an `asyncio.Event` and the lock state, with a stubbed `_start_server_locked`)
+  - [x] 1.2: `services/server.py`: `class GameServerNotStoppedError(Exception)` with `reason: Literal["running", "busy"]`; `@asynccontextmanager async def config_write(self) -> AsyncIterator[None]` (Dev Notes "The lock")
+  - [x] 1.3: Commit `refactor(story-23.4/task-1): add a lock for writing config files while the game server is stopped`
 
 - [ ] Task 2: `ConfigFilesService.save_file` and `check_text` + tests (AC: 1, 2, 3, 6, 7, 9, 10)
   - [ ] 2.1: Red first: `api/tests/test_config_files_save.py` with a row per AC case (Dev Notes "API tests")
