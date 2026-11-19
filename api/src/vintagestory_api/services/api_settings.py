@@ -36,6 +36,8 @@ RESTART_TIMES_SETTING = "scheduled_restart_times"
 MAX_RESTART_TIMES = 24
 MIN_RESTART_GAP_MINUTES = 16
 """Each sequence runs from 15 minutes before its time to the restart (Epic 22 ADR-6 decision 6)."""
+ScheduledSettingValue = int | list[str]
+"""The value the scheduler callback gets: an interval in seconds, or restart times (Story 22.3)."""
 _RESTART_TIME = re.compile(r"([01][0-9]|2[0-3]):[0-5][0-9]")
 _MINUTES_PER_DAY = 1440
 _SHOWN_ENTRY_LENGTH = 16
@@ -162,6 +164,7 @@ SCHEDULED_SETTINGS = frozenset(
         "mod_list_refresh_interval",
         "server_versions_refresh_interval",
         "metrics_collection_interval",
+        RESTART_TIMES_SETTING,
     }
 )
 """Settings whose saved value is passed to the scheduler callback (Story 17.6, Story 22.3).
@@ -245,16 +248,17 @@ class ApiSettingsService:
     def __init__(
         self,
         settings: Settings | None = None,
-        scheduler_callback: Callable[[str, int], None] | None = None,
+        scheduler_callback: Callable[[str, ScheduledSettingValue], None] | None = None,
     ) -> None:
         """Initialize the API settings service.
 
         Args:
             settings: Application settings. If None, creates new Settings instance.
-            scheduler_callback: Optional callback invoked after a refresh interval
-                setting is saved, with (setting_key, new_value). The config router
-                passes `apply_interval_setting` bound to the scheduler, so the job
-                follows the saved value (Story 17.6).
+            scheduler_callback: Optional callback invoked after a scheduled setting
+                (a refresh interval or the restart times) is saved, with
+                (setting_key, stored_value). The config router passes `apply_setting`
+                bound to the scheduler, so the jobs follow the saved value (Story 17.6,
+                Story 22.3).
         """
         self._settings = settings or Settings()
         self._scheduler_callback = scheduler_callback

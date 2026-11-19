@@ -41,7 +41,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, Path, Response
 from pydantic import BaseModel, Field
 
-from vintagestory_api.jobs import apply_interval_setting
+from vintagestory_api.jobs import apply_setting
 from vintagestory_api.middleware.auth import get_current_user
 from vintagestory_api.middleware.permissions import RequireAdmin
 from vintagestory_api.models.errors import ErrorCode
@@ -264,15 +264,16 @@ def get_api_settings_service(
 
     Args:
         server_service: ServerService for accessing application settings.
-        scheduler: The running scheduler; a saved interval setting is applied to it
-            through `apply_interval_setting` (Story 17.6, Epic 17 ADR-5).
+        scheduler: The running scheduler; a saved interval setting or restart times
+            are applied to it through `apply_setting` (Story 17.6, Epic 17 ADR-5;
+            Story 22.3, Epic 22 ADR-7).
 
     Returns:
         ApiSettingsService instance with settings and scheduler callback injected.
     """
     return ApiSettingsService(
         settings=server_service.settings,
-        scheduler_callback=partial(apply_interval_setting, scheduler),
+        scheduler_callback=partial(apply_setting, scheduler),
     )
 
 
@@ -332,6 +333,12 @@ async def update_api_setting(
     one new interval after the save, and 0 removes the job (Story 17.6).
     Intervals are at most 31,536,000 seconds (365 days).
 
+    For scheduled_restart_times (a list of daily HH:MM times in the container's
+    time zone, at most 24, at least 16 minutes apart; stored sorted without
+    duplicates) the restart jobs are made to match at once: one
+    `scheduled_restart_HHMM` cron job per time, firing 15 minutes before it to
+    warn the players; `[]` removes them all (Story 22.3).
+
     **Admin role required.**
 
     Args:
@@ -348,7 +355,7 @@ async def update_api_setting(
         HTTPException: 401 if not authenticated
         HTTPException: 403 if not Admin role
         HTTPException: 500 API_SETTING_NOT_APPLIED if the value was saved but its
-            job could not be rescheduled (the value applies at the next API start)
+            jobs could not be rescheduled (the value applies at the next API start)
     """
     try:
         result = await service.update_setting(key, request.value)

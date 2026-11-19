@@ -43,6 +43,7 @@ from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
+from structlog.testing import capture_logs
 
 from vintagestory_api.config import Settings
 from vintagestory_api.jobs import INTERVAL_JOBS
@@ -2240,6 +2241,10 @@ async def _no_op_job() -> None:
     """Stands in for a real job so no test reaches the network or the game server."""
 
 
+async def _no_op_restart(**_: object) -> None:
+    """Stands in for the scheduled restart job (Story 22.3)."""
+
+
 @pytest.fixture
 async def reschedule_scheduler(
     monkeypatch: pytest.MonkeyPatch,
@@ -2248,6 +2253,8 @@ async def reschedule_scheduler(
     monkeypatch.setattr("vintagestory_api.jobs.mod_cache_refresh.refresh_mod_cache", _no_op_job)
     monkeypatch.setattr("vintagestory_api.jobs.server_versions.check_server_versions", _no_op_job)
     monkeypatch.setattr("vintagestory_api.jobs.metrics_collection.collect_metrics", _no_op_job)
+    # Story 22.3: a saved restart time must never reach the game server.
+    monkeypatch.setattr("vintagestory_api.jobs.scheduled_restart.scheduled_restart", _no_op_restart)
     svc = SchedulerService()
     svc.start()
     yield svc
@@ -2478,3 +2485,61 @@ class TestScheduledRestartTimesSetting:
 
         assert response.status_code == 403
         assert await _restart_times(reschedule_client) == []
+
+
+class TestScheduledRestartTimesReschedule:
+    """Saving restart times changes the scheduler's restart jobs (Story 22.3, AC 3 and 4)."""
+
+    async def test_save_adds_and_empty_removes(self, reschedule_client: httpx.AsyncClient) -> None:
+        await _save(reschedule_client, "mod_list_refresh_interval", 600)
+        interval_jobs = {
+            job_id: job
+            for job_id, job in (await _jobs(reschedule_client)).items()
+            if not job_id.startswith("scheduled_restart_")
+        }
+
+        response = await reschedule_client.post(
+            RESTART_TIMES_PATH, json={"value": ["04:00"]}, headers=ADMIN
+        )
+
+        assert response.status_code == 200
+        jobs = await _jobs(reschedule_client)
+        job = jobs["scheduled_restart_0400"]
+        assert job["trigger_type"] == "cron"
+        local = datetime.fromisoformat(job["next_run_time"]).astimezone()
+        assert (local.hour, local.minute) == (3, 45)
+
+        response = await reschedule_client.post(
+            RESTART_TIMES_PATH, json={"value": []}, headers=ADMIN
+        )
+
+        assert response.status_code == 200
+        assert await _jobs(reschedule_client) == interval_jobs
+
+    async def test_scheduler_failure_is_reported_and_the_value_stays_saved(
+        self,
+        reschedule_client: httpx.AsyncClient,
+        reschedule_scheduler: SchedulerService,
+        temp_settings: Settings,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        def failing_add_cron_job(*_args: object, **_kwargs: object) -> None:
+            raise RuntimeError("scheduler unavailable")
+
+        monkeypatch.setattr(reschedule_scheduler, "add_cron_job", failing_add_cron_job)
+
+        with capture_logs() as logs:
+            response = await reschedule_client.post(
+                RESTART_TIMES_PATH, json={"value": ["04:00"]}, headers=ADMIN
+            )
+
+        assert response.status_code == 500
+        detail = response.json()["detail"]
+        assert detail["code"] == ErrorCode.API_SETTING_NOT_APPLIED
+        assert "scheduled_restart_times" in detail["message"]
+        saved = json.loads((temp_settings.state_dir / "api-settings.json").read_text())
+        assert saved["scheduled_restart_times"] == ["04:00"]
+        not_applied = [log for log in logs if log["event"] == "api_setting_not_applied"]
+        assert len(not_applied) == 1
+        assert not_applied[0]["log_level"] == "error"
+        assert not_applied[0]["value"] == ["04:00"]

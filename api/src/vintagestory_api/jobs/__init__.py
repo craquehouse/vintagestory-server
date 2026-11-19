@@ -5,6 +5,7 @@ Story 8.1: Mod Cache Refresh Job
 Story 8.2: Server Versions Check Job
 Story 12.2: Metrics Collection Job
 Story 17.6: Settings behave as saved (Epic 17 ADR-5)
+Story 22.3: Scheduled restarts (Epic 22 ADR-6, ADR-7)
 
 This module provides the infrastructure for registering and managing periodic
 background jobs.
@@ -13,6 +14,10 @@ Interval settings drive their jobs, at API startup and whenever a setting change
 `apply_interval_setting()` makes the scheduler match one interval setting, and
 `register_default_jobs()` (called from the main.py lifespan) applies each of them
 once at startup. An interval of 0 means the job is not registered.
+
+Restart times drive one cron job each, `scheduled_restart_HHMM`, that fires 15 minutes
+before the time: `apply_restart_schedule()` makes the restart jobs match the saved times,
+at startup and on save. `apply_setting()` is the one callback for every scheduled setting.
 
 Example:
     >>> from vintagestory_api.jobs import register_default_jobs
@@ -26,7 +31,12 @@ from typing import TYPE_CHECKING
 
 import structlog
 
-from vintagestory_api.services.api_settings import ApiSettingsService
+from vintagestory_api.models.jobs import job_to_info
+from vintagestory_api.services.api_settings import (
+    RESTART_TIMES_SETTING,
+    ApiSettingsService,
+    ScheduledSettingValue,
+)
 
 if TYPE_CHECKING:
     from vintagestory_api.services.scheduler import SchedulerService
@@ -106,6 +116,72 @@ def apply_interval_setting(
         logger.info("job_registered", job_id=job_id, interval_seconds=seconds)
 
 
+def apply_restart_schedule(scheduler: SchedulerService, times: list[str]) -> None:
+    """Make the restart jobs match the saved times (Epic 22 ADR-7 decision 1).
+
+    Removes every `scheduled_restart_*` job whose time is no longer wanted and adds or
+    replaces one cron job per time, firing 15 minutes before it in the process's local
+    zone (TZ). A time less than 15 minutes ahead first fires the next day. A sequence in
+    its warnings is not cancelled here; it ends at its next step when its job is gone.
+
+    Args:
+        scheduler: The SchedulerService to update.
+        times: The saved restart times, validated HH:MM.
+    """
+    from vintagestory_api.jobs.scheduled_restart import (
+        RESTART_JOB_PREFIX,
+        restart_job_id,
+        scheduled_restart,
+        warning_start,
+    )
+
+    wanted = {restart_job_id(restart_time): restart_time for restart_time in times}
+    removed: list[str] = []
+    for job in scheduler.get_jobs():
+        job_id = job_to_info(job).id
+        if job_id.startswith(RESTART_JOB_PREFIX) and job_id not in wanted:
+            scheduler.remove_job(job_id)
+            removed.append(job_id)
+
+    for job_id, restart_time in wanted.items():
+        hour, minute = warning_start(restart_time)
+        scheduler.add_cron_job(
+            scheduled_restart,
+            f"{minute} {hour} * * *",
+            job_id=job_id,
+            kwargs={"restart_time": restart_time, "scheduler": scheduler},
+        )
+        logger.info(
+            "job_registered",
+            job_id=job_id,
+            restart_time=restart_time,
+            first_warning=f"{hour:02d}:{minute:02d}",
+        )
+
+    logger.info("restart_schedule_applied", times=times, removed=removed)
+
+
+def apply_setting(scheduler: SchedulerService, key: str, value: ScheduledSettingValue) -> None:
+    """The scheduler callback for every scheduled setting (Epic 22 ADR-7 decisions 1 and 2).
+
+    Args:
+        scheduler: The SchedulerService to update.
+        key: The saved setting's key.
+        value: Its stored value.
+
+    Raises:
+        TypeError: If the value does not fit the key (a programming error).
+    """
+    if key in INTERVAL_JOBS:
+        if not isinstance(value, int):
+            raise TypeError(f"{key} takes an int, got {type(value).__name__}")
+        apply_interval_setting(scheduler, key, value)
+    elif key == RESTART_TIMES_SETTING:
+        if not isinstance(value, list):
+            raise TypeError(f"{key} takes a list, got {type(value).__name__}")
+        apply_restart_schedule(scheduler, value)
+
+
 def register_default_jobs(scheduler: SchedulerService) -> None:
     """Register all default periodic jobs with the scheduler.
 
@@ -124,6 +200,8 @@ def register_default_jobs(scheduler: SchedulerService) -> None:
         - server_versions_check (Story 8.2): Checks for new VintageStory versions,
           also once at startup
         - metrics_collection (Story 12.2): Collects server metrics periodically
+        - scheduled_restart_HHMM (Story 22.3): One per saved restart time, through
+          `apply_restart_schedule`
     """
     settings = ApiSettingsService().get_settings()
     jobs_registered = 0
@@ -134,4 +212,10 @@ def register_default_jobs(scheduler: SchedulerService) -> None:
         if seconds > 0:
             jobs_registered += 1
 
-    logger.info("default_jobs_registered", count=jobs_registered)
+    apply_restart_schedule(scheduler, settings.scheduled_restart_times)
+
+    logger.info(
+        "default_jobs_registered",
+        count=jobs_registered,
+        restart_jobs=len(settings.scheduled_restart_times),
+    )

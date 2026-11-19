@@ -13,7 +13,6 @@ import pytest
 from pydantic import ValidationError
 from structlog.testing import capture_logs
 
-import vintagestory_api.services.api_settings as api_settings_module
 from vintagestory_api.config import Settings
 from vintagestory_api.jobs import INTERVAL_JOBS
 from vintagestory_api.services.api_settings import (
@@ -27,6 +26,7 @@ from vintagestory_api.services.api_settings import (
     ApiSettings,
     ApiSettingsService,
     ApiSettingUnknownError,
+    ScheduledSettingValue,
 )
 
 
@@ -957,7 +957,7 @@ class TestSchedulerCallbackFailure:
     async def test_failed_callback_raises_after_saving(
         self, settings: Settings, key: str, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        def failing_callback(_key: str, _value: int) -> None:
+        def failing_callback(_key: str, _value: ScheduledSettingValue) -> None:
             raise RuntimeError("scheduler exploded")
 
         service = ApiSettingsService(settings=settings, scheduler_callback=failing_callback)
@@ -1101,6 +1101,7 @@ class TestScheduledRestartTimesService:
         service = ApiSettingsService(settings=settings, scheduler_callback=callback)
         await service.update_setting(RESTART_KEY, ["08:00"])
         before = service.settings_file.read_bytes()
+        callback.reset_mock()
 
         with pytest.raises(ApiSettingInvalidError) as exc_info:
             await service.update_setting(RESTART_KEY, value)
@@ -1122,14 +1123,7 @@ class TestScheduledRestartTimesService:
         assert sorted(updated[0]["value"]) == ["04:00", "16:00"]
         assert updated[0]["old_value"] == ["08:00"]
 
-    async def test_callback_gets_the_stored_value(
-        self, settings: Settings, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        monkeypatch.setattr(
-            api_settings_module,
-            "SCHEDULED_SETTINGS",
-            frozenset({*INTERVAL_JOBS, RESTART_KEY}),
-        )
+    async def test_callback_gets_the_stored_value(self, settings: Settings) -> None:
         callback = MagicMock()
         service = ApiSettingsService(settings=settings, scheduler_callback=callback)
 
@@ -1148,3 +1142,21 @@ class TestScheduledRestartTimesService:
 
     def test_scheduled_settings_holds_the_interval_keys(self) -> None:
         assert set(INTERVAL_JOBS) <= SCHEDULED_SETTINGS
+
+    def test_restart_times_are_a_scheduled_setting(self) -> None:
+        assert RESTART_TIMES_SETTING in SCHEDULED_SETTINGS
+
+    async def test_failed_callback_raises_after_saving(self, settings: Settings) -> None:
+        def failing_callback(_key: str, _value: ScheduledSettingValue) -> None:
+            raise RuntimeError("scheduler exploded")
+
+        service = ApiSettingsService(settings=settings, scheduler_callback=failing_callback)
+
+        with capture_logs() as logs, pytest.raises(ApiSettingNotAppliedError) as exc_info:
+            await service.update_setting(RESTART_KEY, ["16:00", "04:00"])
+
+        assert exc_info.value.key == RESTART_KEY
+        assert "scheduler exploded" in exc_info.value.message
+        assert service.get_settings().scheduled_restart_times == ["04:00", "16:00"]
+        not_applied = [log for log in logs if log["event"] == "api_setting_not_applied"]
+        assert [log["value"] for log in not_applied] == [["04:00", "16:00"]]
