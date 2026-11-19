@@ -2010,4 +2010,31 @@ describe('FileManagerPanel', () => {
       expect(screen.getByTestId('file-viewer-content').textContent).toContain('"spawn_rate"');
     });
   });
+
+  // Story 23.2 (FR312, AC 2): a name that cannot be part of a path sends no request
+  describe('paths are lists of names', () => {
+    it('refuses a listed directory name with a slash, without requesting it', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/config/directories')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve({ status: 'ok', data: { directories: ['a/b'] } }),
+          };
+        }
+        return { ok: true, json: () => Promise.resolve(mockEmptyFilesResponse) };
+      });
+      globalThis.fetch = mockFetch;
+
+      render(<FileManagerPanel />, { wrapper: createWrapper(createTestQueryClient()) });
+      await waitFor(() => expect(screen.getByTestId('file-item-a/b')).toBeInTheDocument());
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-a/b'));
+      });
+
+      await waitFor(() => expect(screen.getByTestId('file-manager-error')).toBeInTheDocument());
+      expect(screen.getByTestId('file-manager-error')).toHaveTextContent('Invalid name in path');
+      const urls = mockFetch.mock.calls.map(([url]) => String(url));
+      expect(urls.some((url) => url.includes('a%2Fb') || url.includes('a/b'))).toBe(false);
+    });
+  });
 });

@@ -8,6 +8,7 @@
  * Story 9.7: Dynamic File Browser - Directory navigation
  * Story 16.7: File Browser Breadcrumbs - path segments replace the Back button
  * Story 19.1: a note for roles other than Admin, which see fewer folders (FR233)
+ * Story 23.2: paths are lists of directory names, joined only by the API client (FR312)
  */
 
 import { useState, useMemo } from 'react';
@@ -17,6 +18,7 @@ import { FileList, type FileListItem } from '@/components/FileList';
 import { FileViewer } from '@/components/FileViewer';
 import { PathBreadcrumb } from '@/components/PathBreadcrumb';
 import { useAuthMe } from '@/api/hooks/use-auth-me';
+import { toConfigPath } from '@/api/config';
 import {
   useConfigFiles,
   useConfigFileContent,
@@ -25,6 +27,23 @@ import {
 
 /** Label of the breadcrumb root: the serverdata directory the API lists (Story 16.7). */
 const ROOT_LABEL = 'serverdata';
+
+/** A selected file: the directory names it is in, and its name (Story 23.2). */
+interface SelectedFile {
+  directory: string[];
+  name: string;
+}
+
+/** The selected file's path for display; the plain join when a name is invalid. */
+function displayPath(file: SelectedFile): string {
+  const segments = [...file.directory, file.name];
+  try {
+    return toConfigPath(segments);
+  } catch {
+    // The read refuses the same name and shows its error; the header still names the file
+    return segments.join('/');
+  }
+}
 
 /**
  * Props for the FileManagerPanel component.
@@ -48,10 +67,10 @@ export interface FileManagerPanelProps {
  * <FileManagerPanel />
  */
 export function FileManagerPanel({ className }: FileManagerPanelProps) {
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null);
   const [wordWrap, setWordWrap] = useState(false);
-  // Story 9.7: Current directory path (null = root)
-  const [currentDirectory, setCurrentDirectory] = useState<string | null>(null);
+  // Story 9.7: Current directory; Story 23.2: a list of names ([] = root)
+  const [currentDirectory, setCurrentDirectory] = useState<string[]>([]);
 
   // Story 19.1 (FR233): roles other than Admin are shown fewer folders by the API. Hidden
   // while the role is loading or could not be loaded (role undefined).
@@ -60,24 +79,22 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
   const showAdminNote = role !== undefined && role !== 'admin';
 
   // Fetch directories for the current path (Story 9.7 - nested directory support)
-  // Story 23.2 Task 1: the hooks take lists of names; the state becomes lists in Task 2
-  const directorySegments = currentDirectory ? currentDirectory.split('/') : [];
   const { data: directoriesData, isLoading: isLoadingDirectories } =
-    useConfigDirectories(directorySegments);
+    useConfigDirectories(currentDirectory);
 
   // Fetch file list (with directory support - Story 9.7)
   const {
     data: filesData,
     isLoading: isLoadingFiles,
     error: filesError,
-  } = useConfigFiles(directorySegments);
+  } = useConfigFiles(currentDirectory);
 
   // Fetch selected file content
   const {
     data: contentData,
     isLoading: isLoadingContent,
     error: contentError,
-  } = useConfigFileContent(selectedFile ? selectedFile.split('/') : null);
+  } = useConfigFileContent(selectedFile ? [...selectedFile.directory, selectedFile.name] : null);
 
   // Combine directories and files into items list
   const items = useMemo<FileListItem[]>(() => {
@@ -104,28 +121,30 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
 
   // Handle file selection
   const handleSelectFile = (filename: string) => {
-    // If in a subdirectory, prepend the directory path
-    const fullPath = currentDirectory ? `${currentDirectory}/${filename}` : filename;
-    setSelectedFile(fullPath);
+    setSelectedFile({ directory: currentDirectory, name: filename });
   };
 
   // Handle directory navigation (Story 9.7 - nested directory support)
   const handleSelectDirectory = (dirname: string) => {
-    // Build full path by appending to current directory
-    const newPath = currentDirectory ? `${currentDirectory}/${dirname}` : dirname;
-    setCurrentDirectory(newPath);
+    setCurrentDirectory([...currentDirectory, dirname]);
     setSelectedFile(null); // Clear selection when changing directories
   };
 
-  // Breadcrumb navigation to the root (null) or an ancestor of the current path (Story 16.7)
-  const handleNavigate = (path: string | null) => {
-    setCurrentDirectory(path);
+  // Breadcrumb navigation to the root ([]) or an ancestor of the current path (Story 16.7)
+  const handleNavigate = (segments: string[]) => {
+    setCurrentDirectory(segments);
     setSelectedFile(null);
   };
 
   const breadcrumb = (
-    <PathBreadcrumb path={currentDirectory} rootLabel={ROOT_LABEL} onNavigate={handleNavigate} />
+    <PathBreadcrumb
+      segments={currentDirectory}
+      rootLabel={ROOT_LABEL}
+      onNavigate={handleNavigate}
+    />
   );
+
+  const selectedPath = selectedFile ? displayPath(selectedFile) : null;
 
   // Combined loading state
   const isLoading = isLoadingFiles || isLoadingDirectories;
@@ -135,7 +154,7 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
     return (
       <div className={className} data-testid="file-manager-error">
         {/* Keep the breadcrumb so a failed subdirectory is not a dead end (Story 16.7) */}
-        {currentDirectory && <div className="mb-2 px-1">{breadcrumb}</div>}
+        {currentDirectory.length > 0 && <div className="mb-2 px-1">{breadcrumb}</div>}
         <div className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-4">
           <AlertCircle className="h-5 w-5 text-destructive" />
           <div>
@@ -173,7 +192,7 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
         <div className="w-56 shrink-0 border-r flex flex-col">
           <FileList
             items={items}
-            selectedFile={selectedFile}
+            selectedFile={selectedPath}
             isLoading={isLoading}
             onSelectFile={handleSelectFile}
             onSelectDirectory={handleSelectDirectory}
@@ -184,7 +203,7 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
         {/* File Viewer - Right Side */}
         <div className="flex-1 min-w-0">
           <FileViewer
-            filename={selectedFile}
+            filename={selectedPath}
             content={contentData?.data?.content ?? null}
             isLoading={isLoadingContent}
             error={contentError?.message ?? null}
