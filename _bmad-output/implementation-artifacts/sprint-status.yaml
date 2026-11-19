@@ -242,7 +242,7 @@ development_status:
   22-1-players-online-are-counted: done
   22-2-prometheus-metrics-endpoint: done
   22-3-scheduled-restarts: review
-  22-4-log-archive-and-backup-cleanup: ready-for-dev
+  22-4-log-archive-and-backup-cleanup: in-progress
   22-5-interval-fields-can-turn-jobs-off: backlog
   22-6-restart-and-cleanup-settings-in-the-ui: backlog
   22-7-restart-required-settings-survive-a-live-change: backlog

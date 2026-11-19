@@ -1,6 +1,6 @@
 # Story 22.4: Log Archive and Backup Cleanup
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Implements FR297, FR298, FR299, Epic 22 ADR-7 (decisions 3 and 4), ADR-9, ADR-10 and ADR-14. Bead: VSS-29p (API-011), closes here (Story 22.3 carried its first half). Maintainer answers 8 and 9 (Matt, 2026-11-18); four controller decisions during validation (2026-11-18, Dev Notes), for the maintainer to review. Order: 22.1, 22.2, 22.3, 22.4, 22.7, 22.5, 22.6. This branch, story/22-4-log-archive-and-backup-cleanup, is stacked on story/22-3-scheduled-restarts (22.3 in review) at 6fd76056 (the Story 22.7 planning commit; the code is that of 36dd18cf). The PR targets main and merges after 22.3's. Line references were verified at 6fd76056 and must be re-checked at implementation time. API and documentation only; no web source change (the UI for the three settings is Story 22.6). No new dependency, no new route, one new service, one new job module, no change to services/scheduler.py, models/jobs.py, routers/jobs.py, main.py or services/cache_eviction.py. -->
 
@@ -85,11 +85,11 @@ so that **the disk does not fill up over months of restarts, and my world and it
 
 <!-- Each functional task includes its tests in the same commit, red first (run the new tests, see them fail, then implement). Subjects: type(story-22.4/task-N): ..., the type chosen by what an admin notices. One commit is user-visible: Task 4 (feat), the commit that makes the cleanup run; its subject is written for admins and its body names Story 22.4, the task, and that archives older than 14 days are now deleted by default. -->
 
-- [ ] Task 1: The three cleanup settings with their bounds + tests (AC: 10, 13)
-  - [ ] 1.1: Red first: the Task 1 rows of Dev Notes "API tests" in `api/tests/test_api_settings.py` and `api/tests/test_routers_config.py`; see the new tests fail
-  - [ ] 1.2: `services/api_settings.py`: the three constants and fields of Dev Notes "The settings", after `scheduled_restart_times` and before the webhook. They are plain `int` fields, so `update_setting`'s existing `int` branch (`:357-368`) coerces them and Pydantic's `ge`/`le` enforce the bounds; no change to `update_setting`. They are **not** added to `SCHEDULED_SETTINGS` (`:162-175`; ADR-7 decision 4): the router's callback is not called for them
-  - [ ] 1.3: `cd api && uv run ruff format <changed files>`; `just test-api tests/test_api_settings.py tests/test_routers_config.py tests/test_jobs_registration.py` green; `just typecheck-api` 0 errors, 0 warnings
-  - [ ] 1.4: Commit `refactor(story-22.4/task-1): accept the disk cleanup limits in the API settings` (nothing acts on them yet; precedent `refactor(story-22.3/task-2)`)
+- [x] Task 1: The three cleanup settings with their bounds + tests (AC: 10, 13)
+  - [x] 1.1: Red first: the Task 1 rows of Dev Notes "API tests" in `api/tests/test_api_settings.py` and `api/tests/test_routers_config.py`; see the new tests fail
+  - [x] 1.2: `services/api_settings.py`: the three constants and fields of Dev Notes "The settings", after `scheduled_restart_times` and before the webhook. They are plain `int` fields, so `update_setting`'s existing `int` branch (`:357-368`) coerces them and Pydantic's `ge`/`le` enforce the bounds; no change to `update_setting`. They are **not** added to `SCHEDULED_SETTINGS` (`:162-175`; ADR-7 decision 4): the router's callback is not called for them
+  - [x] 1.3: `cd api && uv run ruff format <changed files>`; `just test-api tests/test_api_settings.py tests/test_routers_config.py tests/test_jobs_registration.py` green; `just typecheck-api` 0 errors, 0 warnings
+  - [x] 1.4: Commit `refactor(story-22.4/task-1): accept the disk cleanup limits in the API settings` (nothing acts on them yet; precedent `refactor(story-22.3/task-2)`)
 
 - [ ] Task 2: `DiskCleanupService` with the archive and backup rules and the path and link checks + tests (AC: 1, 2, 3, 4, 5, 6, 7, 8, 13)
   - [ ] 2.1: Red first: new `api/tests/test_disk_cleanup.py` with every Task 2 row of Dev Notes "API tests" (temporary directories, a fixed clock, no real `serverdata`); see them fail
@@ -490,11 +490,15 @@ The story's open questions 1, 2, 3 and 5 were settled by the controller during v
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive
+
 ### Throwaway-container results
 
 <!-- Task 3.6: host architecture, game version, the archive listing after each start (with the logger-start line and date/date -u), the Backups listing, the four service runs, the commands. -->
 
 ### Debug Log References
+
+- Task 1: red first (`ImportError` for `MAX_BACKUP_KEEP_COUNT`; the router's defaults and save tests failed), then green: `just test-api tests/test_api_settings.py tests/test_routers_config.py tests/test_jobs_registration.py` 410 passed; pyright 0/0.
 
 ### Completion Notes List
 
@@ -502,6 +506,12 @@ The story's open questions 1, 2, 3 and 5 were settled by the controller during v
 - 2026-11-18: Validated (create-story checklist, fresh context) against the epic, ADR-7/9/10/14, project-context.md, CLAUDE.md and the code at `4bc01ea1` (every line reference re-checked; the Python 3.14.10 `shutil.rmtree`, `re` and `strptime` claims re-run). Applied the four controller decisions (Dev Notes "Controller decisions during validation"; ADR-9, ADR-10 and the change proposal updated). Fixed: AC 2 and AC 4 for decisions 1 and 2, the archive rules ("What is deleted"), the settings' descriptions, the test rows (explicit directory mtimes in `make_archive`, decision 1 and 2 cases, mtime boundary, keep order), Task 3's old copies (`touch -m` so decision 2 does not keep them) and the mtime record; `disk_cleanup_delete_failed` logs `e.strerror` and `errno`, not `str(e)` (an `OSError`'s text holds the absolute path); `_delete_tree` must not pass `onexc`/`ignore_errors`; the link check comes before the directory check; the conftest fixture lands once `jobs/disk_cleanup.py` exists (its string target imports it).
 
 ### File List
+
+- `api/src/vintagestory_api/services/api_settings.py` (Task 1: three constants and fields)
+- `api/tests/test_api_settings.py` (Task 1)
+- `api/tests/test_routers_config.py` (Task 1)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint` only: in-progress, then review)
+- `_bmad-output/implementation-artifacts/22-4-log-archive-and-backup-cleanup.md` (this file)
 
 ## Change Log
 

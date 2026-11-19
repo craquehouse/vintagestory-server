@@ -3,6 +3,7 @@
 Story 6.3: API Settings Service
 Story 17.6: Settings behave as saved (interval bound, ApiSettingNotAppliedError)
 Story 22.3: Scheduled restarts (scheduled_restart_times, Epic 22 ADR-5)
+Story 22.4: Disk cleanup limits (Epic 22 ADR-9 decision 1)
 
 This service provides read and update operations for API operational settings
 stored in api-settings.json. Unlike game settings, these are direct file
@@ -31,6 +32,11 @@ MAX_INTERVAL_SECONDS = 31_536_000
 Longer intervals cannot be scheduled reliably (now + interval can pass the largest date
 the scheduler holds), and 0 already disables a job, so anything longer means "never".
 """
+
+MAX_LOG_ARCHIVE_RETENTION_DAYS = 3650
+MAX_LOG_ARCHIVE_KEEP_MIN = 1000
+MAX_BACKUP_KEEP_COUNT = 1000
+"""Upper bounds of the disk cleanup limits (Epic 22 ADR-9 decision 1)."""
 
 RESTART_TIMES_SETTING = "scheduled_restart_times"
 MAX_RESTART_TIMES = 24
@@ -99,6 +105,34 @@ class ApiSettings(BaseModel):
             "unset). Players are warned 15, 5 and 1 minutes before; a stopped server is not "
             "started; a time less than 15 minutes ahead first runs the next day. At most 24, "
             "at least 16 minutes apart."
+        ),
+    )
+    log_archive_retention_days: int = Field(
+        default=14,
+        ge=0,
+        le=MAX_LOG_ARCHIVE_RETENTION_DAYS,
+        description=(
+            "Days the game's log archives (serverdata/Logs/Archive) are kept by the daily "
+            "cleanup, from the later of the start time in their names and their folder's "
+            "modification time (0 = keep all, at most 3650)"
+        ),
+    )
+    log_archive_keep_min: int = Field(
+        default=5,
+        ge=0,
+        le=MAX_LOG_ARCHIVE_KEEP_MIN,
+        description=(
+            "Newest log archives always kept, whatever their age (0 to 1000). "
+            "The newest archive is always kept, also with 0"
+        ),
+    )
+    backup_keep_count: int = Field(
+        default=0,
+        ge=0,
+        le=MAX_BACKUP_KEEP_COUNT,
+        description=(
+            "Newest files kept in serverdata/Backups by the daily cleanup "
+            "(0 = keep all, at most 1000). BackupSaves is never touched"
         ),
     )
     mod_update_webhook_url: str | None = Field(
