@@ -656,6 +656,14 @@ describe('api/config', () => {
       });
     });
 
+    it('maps a response without a data object to an empty read (review LOW-1)', async () => {
+      vi.mocked(apiClient).mockResolvedValue({ status: 'ok', data: null });
+
+      const result = await fetchConfigFileContent('x.json');
+
+      expect(result.data).toEqual({ filename: 'x.json', content: undefined, parseError: null });
+    });
+
     it('treats a missing parse_error as null and drops a text that is not a string', async () => {
       vi.mocked(apiClient).mockResolvedValue({
         status: 'ok',
