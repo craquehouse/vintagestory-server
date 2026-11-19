@@ -11,8 +11,10 @@ documentCounts:
   research: 0
   brainstorming: 1
   projectDocs: 1
-lastUpdated: '2026-11-18'
+lastUpdated: '2026-11-19'
 updates:
+  - date: '2026-11-19'
+    description: 'Added FR308 for Epic 22 Story 22.8 (stopping the container saves the world first), on the maintainer''s thirteenth answer after Story 22.7''s throwaway run'
   - date: '2026-11-18'
     description: 'Added FR287-FR305 for Epic 22 (Server Operations and Metrics), with the maintainer''s answers of the same day; revised the same day: FR306 added for the pending-restart fix pulled into Story 22.2 during its validation, and FR307 for Story 22.7 (VSS-zws, after Story 22.3 confirmed it)'
   - date: '2026-11-17'
@@ -929,3 +931,7 @@ If trivial to implement:
 #### Fixed Inside the Epic (Matt, 2026-11-18, after Story 22.3)
 
 - FR307: A game setting change that needs a restart, saved while the game server runs, is not lost when the game writes its own config (after a live setting change): the manager keeps it across API restarts and writes it to `serverconfig.json` again after the game exits and before any start (Start button, restart, scheduled restart, auto-start), and drops it once a start has loaded it or the same setting is changed again
+
+#### Found Inside the Epic (Matt, 2026-11-19, after Story 22.7)
+
+- FR308: When the manager shuts down (its container is stopped, restarted or recreated), it first stops a running game server through the normal stop (SIGTERM, then a kill if the game has not exited after 8 seconds), so the world is saved, and only then exits; nothing starts the game during the shutdown; a restart-required change saved while the game ran is written back on this stop as on any other; the README documents the container's stop grace period (Docker's default 10 seconds is enough; compose `stop_grace_period`, Kubernetes `terminationGracePeriodSeconds`)
