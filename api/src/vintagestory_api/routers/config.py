@@ -539,7 +539,7 @@ async def read_config_file(
 ) -> ApiResponse:
     """Read raw content of a configuration file.
 
-    Returns the raw JSON content of the specified configuration file.
+    Returns the parsed content of the specified configuration file.
     Path traversal attempts (e.g., ../secrets.json) are rejected with 400.
 
     Both Admin and Monitor roles can access this read-only endpoint. A Monitor key
@@ -551,8 +551,8 @@ async def read_config_file(
     Monitor receives secrets redacted at every depth (Story 19.1, FR207): the value of a key
     whose name looks like a secret (Password, token, secret, API key, webhook and
     similar, any letter case or separator), StartupCommands, URLs with user info and
-    Discord webhook URLs are "[redacted]" (null and "" stay), and a file that is not
-    valid JSON has `_raw: "[redacted]"` instead of its text (Story 17.5, FR186).
+    Discord webhook URLs are "[redacted]" (null and "" stay), and a file that does
+    not parse has `_raw: "[redacted]"` instead of its text (Story 17.5, FR186).
     The response is never cached (Cache-Control: no-store), an error response
     included.
 
@@ -562,12 +562,16 @@ async def read_config_file(
     Returns:
         ApiResponse with data containing:
         - filename: The requested filename
-        - content: Parsed JSON content from the file
+        - content: Parsed content from the file
+        - parse_error: null, or {message, line, column} when it does not parse
+        - text, version: Admin only; the file's text (with comments) and the SHA-256
+          of its bytes (Story 23.1)
 
     Only regular files whose requested and resolved names end in .json (any letter
-    case), of at most 2 MiB and UTF-8 text, are served (Story 19.1); content that
-    does not parse or nests more than 200 levels deep is returned as `_raw` and
-    `_parse_error`.
+    case), of at most 2 MiB and UTF-8 text, are served (Story 19.1). Files are
+    parsed as JSON5: comments, trailing commas, single quotes and unquoted keys
+    (Story 23.1, FR309); content that does not parse, nests more than 200 levels
+    deep or holds Infinity or NaN is returned as `_raw` and `_parse_error`.
 
     Raises:
         HTTPException: 400 CONFIG_PATH_INVALID if path traversal detected

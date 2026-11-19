@@ -12,6 +12,12 @@ most 2 MiB and UTF-8 text (a leading byte order mark is allowed). The listing
 uses the same file rule. Content that does not parse, or that nests more than
 CONFIG_FILE_MAX_DEPTH levels deep, is returned as `_raw` and `_parse_error`.
 
+Story 23.1 (FR309-FR311, Epic 23 ADR-1, ADR-2): files are parsed as JSON5
+(config_parse.parse_config_text: comments, trailing commas, single quotes, unquoted
+keys), as the game's own reader is lenient. Every read returns `parse_error`
+(null, or the message with its 1-based line and column); an Admin read also returns
+the file's `text` and its `version` (the SHA-256 of its bytes).
+
 Story 19.1 (FR208, Epic 19 ADR-3): roles other than Admin list and read the root
 of the server data directory and MONITOR_CONFIG_DIRECTORIES (ModConfig) only,
 decided on resolved paths; any other directory is ConfigDirectoryForbiddenError.
@@ -22,22 +28,26 @@ any other role, in every file and at every depth, the value of a key that names 
 secret (game_config.is_secret_key: Password, StartupCommands, or a name containing
 password, token, secret, API key, webhook and similar) is replaced by "[redacted]"
 unless it is null or "", and so is any string that is a URL with user info or a
-Discord webhook URL (game_config.is_secret_value); a file that does not parse as
-JSON is returned without its text (`_raw` is "[redacted]").
+Discord webhook URL (game_config.is_secret_value); a file that does not parse is
+returned without its text (`_raw` is "[redacted]").
 
 Security:
     Path traversal prevention is critical. All file paths are validated
     using the _safe_path() pattern to prevent escaping the serverdata_dir.
 """
 
-import json
+import hashlib
 from pathlib import Path
-from typing import TypeGuard
 
 import structlog
 
 from vintagestory_api.config import Settings
 from vintagestory_api.middleware.auth import UserRole
+from vintagestory_api.services.config_parse import (
+    ConfigParseError,
+    ParseErrorInfo,
+    parse_config_text,
+)
 from vintagestory_api.services.game_config import REDACTED, redact_secrets
 
 logger = structlog.get_logger()
@@ -49,13 +59,6 @@ MONITOR_CONFIG_DIRECTORIES: frozenset[str] = frozenset({"ModConfig"})
 """Directories, besides the root, that roles other than Admin may list and read (Epic 19 ADR-3)."""
 
 _MONITOR_CONFIG_DIRECTORIES_FOLDED = frozenset(d.casefold() for d in MONITOR_CONFIG_DIRECTORIES)
-
-CONFIG_FILE_MAX_DEPTH = 200
-"""How deeply parsed content may nest objects and arrays before it is returned as `_raw`.
-
-Deeper content cannot be serialized into the response (about 254 levels at Story 19.1),
-and the limit keeps the recursive redaction far below Python's recursion limit.
-"""
 
 
 class ConfigFileNotFoundError(Exception):
@@ -132,36 +135,9 @@ def _is_viewable_file(path: Path) -> bool:
     return path.is_file() and _has_json_suffix(path.name) and _has_json_suffix(path.resolve().name)
 
 
-def _is_json_object(value: object) -> TypeGuard[dict[str, object]]:
-    """Whether parsed JSON is an object. `json.loads` only builds dicts with string keys."""
-    return isinstance(value, dict)
-
-
-def _is_json_array(value: object) -> TypeGuard[list[object]]:
-    """Whether parsed JSON is an array."""
-    return isinstance(value, list)
-
-
-def _nesting_depth_exceeds(value: object, limit: int) -> bool:
-    """Whether parsed JSON nests objects and arrays more than `limit` levels deep.
-
-    Iterative, so it cannot hit the recursion limit itself.
-    """
-    stack: list[tuple[object, int]] = [(value, 0)]
-    while stack:
-        item, depth = stack.pop()
-        children: list[object]
-        if _is_json_object(item):
-            children = list(item.values())
-        elif _is_json_array(item):
-            children = item
-        else:
-            continue
-        depth += 1
-        if depth > limit:
-            return True
-        stack.extend((child, depth) for child in children)
-    return False
+def content_version(data: bytes) -> str:
+    """The version of a config file: the SHA-256 hex digest of its bytes (Epic 23 ADR-2)."""
+    return hashlib.sha256(data).hexdigest()
 
 
 class ConfigFilesService:
@@ -354,14 +330,16 @@ class ConfigFilesService:
         CONFIG_FILE_MAX_BYTES (checked before it is read); it is UTF-8 text (a leading
         byte order mark is dropped).
 
-        Content that does not parse, that the parser gives up on, or that nests more
-        than CONFIG_FILE_MAX_DEPTH levels deep is returned as `_raw` and `_parse_error`.
+        The text is parsed as JSON5 (Story 23.1, Epic 23 ADR-1). Content that does not
+        parse, that nests more than CONFIG_FILE_MAX_DEPTH levels deep, or that holds
+        Infinity or NaN is returned as `_raw` and `_parse_error`, and `parse_error`
+        says why and, when known, where.
 
         Secrets are redacted unless the Admin role is passed (Story 17.5, Epic 17
         ADR-4 decision 4): for any other role, None included, secrets are "[redacted]"
         at every depth by key name and by value (game_config.redact_secrets, Story
         19.1) and `_raw` is "[redacted]" instead of the text.
-        The Admin role gets the file as is.
+        The Admin role gets the file as is, and also its text and version (Story 23.1).
 
         Args:
             filename: Name of the file to read (must be in serverdata_dir).
@@ -371,8 +349,12 @@ class ConfigFilesService:
         Returns:
             Dictionary with:
             - filename: The requested filename
-            - content: Parsed JSON content from the file, or `_raw` and
-              `_parse_error` when it does not parse or nests too deeply
+            - content: Parsed content from the file, or `_raw` and
+              `_parse_error` when it does not parse
+            - parse_error: None, or {message, line, column} (line and column 1-based,
+              None when unknown)
+            - text (Admin only): the file's text, a leading byte order mark dropped
+            - version (Admin only): content_version() of the bytes read
 
         Raises:
             ConfigPathInvalidError: If filename contains path traversal.
@@ -425,30 +407,30 @@ class ConfigFilesService:
 
         reveal_secrets = role == UserRole.ADMIN
         content: object
+        parse_error: ParseErrorInfo | None = None
         try:
-            content = json.loads(text)
-        except (json.JSONDecodeError, RecursionError) as e:
-            # Log but still return - let caller handle malformed JSON
-            logger.warning("config_file_json_invalid", filename=filename, error=str(e))
+            content = parse_config_text(text)
+        except ConfigParseError as e:
+            # Log but still return - let caller handle malformed content
+            parse_error = e.info
+            logger.warning("config_file_json_invalid", filename=filename, error=e.info.message)
             # The text cannot be redacted structurally: only Admin receives it
-            content = {"_raw": text if reveal_secrets else REDACTED, "_parse_error": str(e)}
-        except ValueError as e:
-            # Not a JSONDecodeError (caught above): Python's limit on converting long
-            # integers, for example. Its message is not shown, so no file content can
-            # reach the response (Story 19.1 review M2).
-            logger.warning("config_file_json_invalid", filename=filename, error=type(e).__name__)
             content = {
                 "_raw": text if reveal_secrets else REDACTED,
-                "_parse_error": "A value in the file could not be converted (for example, "
-                "a number with too many digits)",
+                "_parse_error": e.info.message,
             }
         else:
-            if _nesting_depth_exceeds(content, CONFIG_FILE_MAX_DEPTH):
-                error = f"Nested more than {CONFIG_FILE_MAX_DEPTH} levels deep"
-                logger.warning("config_file_json_invalid", filename=filename, error=error)
-                content = {"_raw": text if reveal_secrets else REDACTED, "_parse_error": error}
-            elif not reveal_secrets:
+            if not reveal_secrets:
                 content = redact_secrets(content)
 
+        result: dict[str, object] = {
+            "filename": filename,
+            "content": content,
+            "parse_error": parse_error.to_dict() if parse_error is not None else None,
+        }
+        # The text and its version only for Admin (Story 23.1, Epic 23 ADR-2 decision 1)
+        if reveal_secrets:
+            result["text"] = text
+            result["version"] = content_version(data)
         logger.debug("config_file_read", filename=filename)
-        return {"filename": filename, "content": content}
+        return result

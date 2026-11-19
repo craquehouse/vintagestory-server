@@ -69,11 +69,11 @@ so that **I can read the configs the game itself accepts instead of a parse erro
   - [x] 2.3: `just test-api tests/test_config_parse.py`; `just typecheck-api` 0/0; `just lint-api`
   - [x] 2.4: Commit `refactor(story-23.1/task-2): add a JSON5 parser for config files`
 
-- [ ] Task 3: `read_file` uses it and returns `parse_error`, `text`, `version` + tests (AC: 1-5, 9)
-  - [ ] 3.1: Red first: the service and router rows of Dev Notes "API tests"; update the tests whose expectations change (Dev Notes "Existing tests that change"); see them fail
-  - [ ] 3.2: `services/config_files.py` as in Dev Notes "The read"; remove `_nesting_depth_exceeds`, `_is_json_object`/`_is_json_array` if no longer used, and `import json` if unused; update the module and method docstrings and the router docstring (`routers/config.py`, `read_config_file`)
-  - [ ] 3.3: `just test-api`; `just typecheck-api` 0/0; `just lint-api`
-  - [ ] 3.4: Commit `fix(story-23.1/task-3): show mod configs that contain comments` (body: Story 23.1 / task 3; config files are read as JSON5, like the game's own reader accepts comments and trailing commas; an Admin read also returns the text and a version; unparseable files report the line and column)
+- [x] Task 3: `read_file` uses it and returns `parse_error`, `text`, `version` + tests (AC: 1-5, 9)
+  - [x] 3.1: Red first: the service and router rows of Dev Notes "API tests"; update the tests whose expectations change (Dev Notes "Existing tests that change"); see them fail
+  - [x] 3.2: `services/config_files.py` as in Dev Notes "The read"; remove `_nesting_depth_exceeds`, `_is_json_object`/`_is_json_array` if no longer used, and `import json` if unused; update the module and method docstrings and the router docstring (`routers/config.py`, `read_config_file`)
+  - [x] 3.3: `just test-api`; `just typecheck-api` 0/0; `just lint-api`
+  - [x] 3.4: Commit `fix(story-23.1/task-3): show mod configs that contain comments` (body: Story 23.1 / task 3; config files are read as JSON5, like the game's own reader accepts comments and trailing commas; an Admin read also returns the text and a version; unparseable files report the line and column)
 
 - [ ] Task 4: The web: untransformed content, the new fields, the parse-error view + tests (AC: 6, 7, 9)
   - [ ] 4.1: Red first: the rows of Dev Notes "Web tests"; see them fail

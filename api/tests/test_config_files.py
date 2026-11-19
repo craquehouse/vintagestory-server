@@ -6,6 +6,7 @@ Tests the config files service for listing and reading raw configuration files.
 Focuses heavily on path traversal prevention as the core security requirement.
 """
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -15,7 +16,6 @@ import pytest
 
 from vintagestory_api.services.config_files import (
     CONFIG_FILE_MAX_BYTES,
-    CONFIG_FILE_MAX_DEPTH,
     ConfigDirectoryForbiddenError,
     ConfigFileNotFoundError,
     ConfigFileNotSupportedError,
@@ -24,6 +24,7 @@ from vintagestory_api.services.config_files import (
     ConfigFileTooLargeError,
     ConfigPathInvalidError,
 )
+from vintagestory_api.services.config_parse import CONFIG_FILE_MAX_DEPTH
 from vintagestory_api.services.game_config import REDACTED
 
 # Story 17.5: a made-up password for the redaction tests; never a real value.
@@ -265,7 +266,7 @@ class TestReadFile:
 
         result = service.read_file("serverconfig.json")
 
-        assert result == {"filename": "serverconfig.json", "content": content}
+        assert result == {"filename": "serverconfig.json", "content": content, "parse_error": None}
 
     def test_read_file_not_found(self, service: ConfigFilesService) -> None:
         """Should raise ConfigFileNotFoundError for missing files."""
@@ -577,7 +578,8 @@ class TestReadFileSecrets:
         self, service: ConfigFilesService, mock_settings: MagicMock
     ) -> None:
         """AC 4: a serverconfig.json that does not parse returns no text to Monitor."""
-        text = '{"Password": "' + SECRET + '", }'
+        # Story 23.1: a trailing comma is JSON5 now; a missing brace still does not parse
+        text = '{"Password": "' + SECRET + '", "Port": 1'
         (mock_settings.serverdata_dir / "serverconfig.json").write_text(text)
 
         monitor = service.read_file("serverconfig.json", "monitor")
@@ -965,3 +967,143 @@ class TestMissingDataDirectory:
     def test_admin_gets_an_empty_list(self, service: ConfigFilesService) -> None:
         assert service.list_directories("Playerdata", "admin") == []
         assert service.list_files("Playerdata", "admin") == []
+
+
+# Story 23.1 (Epic 23 ADR-9 decision 4): the shape of ModConfig/seasonalflowers.json
+COMMENTED_MOD_CONFIG = """{
+  // How often flowers bloom
+  "BloomChance": 0.5, /* a block comment */
+  "Homepage": "http://example.com//path",
+  "password": "pw-in-a-mod-config",
+  "Seasons": [null, "spring", null,],
+  "Enabled": true, // a comment after the last property
+}
+"""
+
+PARSED_MOD_CONFIG = {
+    "BloomChance": 0.5,
+    "Homepage": "http://example.com//path",
+    "password": "pw-in-a-mod-config",
+    "Seasons": [None, "spring", None],
+    "Enabled": True,
+}
+
+
+class TestJson5Read:
+    """Story 23.1 (FR309-FR311): JSON5, parse_error, and text/version for Admin."""
+
+    def _write(self, mock_settings: MagicMock, name: str, data: bytes) -> None:
+        mod_config = mock_settings.serverdata_dir / "ModConfig"
+        mod_config.mkdir(exist_ok=True)
+        (mod_config / name).write_bytes(data)
+
+    def test_comments_parse_for_admin(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """AC 1: Admin gets the parsed content, the text with comments and a version."""
+        data = COMMENTED_MOD_CONFIG.encode()
+        self._write(mock_settings, "flowers.json", data)
+
+        result = service.read_file("ModConfig/flowers.json", "admin")
+
+        assert result == {
+            "filename": "ModConfig/flowers.json",
+            "content": PARSED_MOD_CONFIG,
+            "parse_error": None,
+            "text": COMMENTED_MOD_CONFIG,
+            "version": hashlib.sha256(data).hexdigest(),
+        }
+
+    def test_comments_parse_and_are_redacted_by_key_for_monitor(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """AC 1: Monitor gets the content redacted key by key, no text, no version."""
+        self._write(mock_settings, "flowers.json", COMMENTED_MOD_CONFIG.encode())
+
+        result = service.read_file("ModConfig/flowers.json", "monitor")
+
+        assert result == {
+            "filename": "ModConfig/flowers.json",
+            "content": {**PARSED_MOD_CONFIG, "password": REDACTED},
+            "parse_error": None,
+        }
+
+    @pytest.mark.parametrize("role", ROLES)
+    def test_single_quotes_unquoted_keys_and_hex(
+        self, service: ConfigFilesService, mock_settings: MagicMock, role: str
+    ) -> None:
+        """AC 2."""
+        self._write(mock_settings, "loose.json", b"{name: 'x', 'n': 0x1F}")
+
+        assert service.read_file("ModConfig/loose.json", role)["content"] == {"name": "x", "n": 31}
+
+    @pytest.mark.parametrize("role", ROLES)
+    @pytest.mark.parametrize("value", ["Infinity", "-Infinity", "NaN"])
+    def test_infinity_and_nan_are_a_parse_error(
+        self, service: ConfigFilesService, mock_settings: MagicMock, role: str, value: str
+    ) -> None:
+        """AC 3."""
+        text = '{"a": ' + value + "}"
+        self._write(mock_settings, "inf.json", text.encode())
+
+        result = service.read_file("ModConfig/inf.json", role)
+
+        assert result["parse_error"] == {
+            "message": "Infinity and NaN cannot be shown",
+            "line": None,
+            "column": None,
+        }
+        assert result["content"] == {
+            "_raw": text if role == "admin" else REDACTED,
+            "_parse_error": "Infinity and NaN cannot be shown",
+        }
+
+    def test_unparseable_file_for_admin(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """AC 4: the position, the text and the version for Admin."""
+        text = '{\n  "a": 1\n  "b": 2\n}\n'
+        self._write(mock_settings, "broken.json", text.encode())
+
+        result = service.read_file("ModConfig/broken.json", "admin")
+
+        parse_error = result["parse_error"]
+        assert isinstance(parse_error, dict)
+        assert parse_error["line"] == 3
+        assert parse_error["column"] == 3
+        assert result["content"] == {"_raw": text, "_parse_error": parse_error["message"]}
+        assert result["text"] == text
+        assert result["version"] == hashlib.sha256(text.encode()).hexdigest()
+
+    def test_unparseable_file_for_monitor(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """AC 4: Monitor gets the position, but not the text or a version."""
+        text = '{\n  "a": 1\n  "b": 2\n}\n'
+        self._write(mock_settings, "broken.json", text.encode())
+
+        admin = service.read_file("ModConfig/broken.json", "admin")
+        monitor = service.read_file("ModConfig/broken.json", "monitor")
+
+        admin_content = admin["content"]
+        assert isinstance(admin_content, dict)
+        assert monitor["parse_error"] == admin["parse_error"]
+        assert monitor["content"] == {
+            "_raw": REDACTED,
+            "_parse_error": admin_content["_parse_error"],
+        }
+        assert "text" not in monitor
+        assert "version" not in monitor
+
+    def test_byte_order_mark_is_not_in_the_text_but_in_the_version(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """AC 5: the text drops the BOM; the version hashes the bytes as read."""
+        data = b"\xef\xbb\xbf" + b'{"a": 1} // note\n'
+        self._write(mock_settings, "bom.json", data)
+
+        result = service.read_file("ModConfig/bom.json", "admin")
+
+        assert result["text"] == '{"a": 1} // note\n'
+        assert result["version"] == hashlib.sha256(data).hexdigest()
+        assert result["parse_error"] is None

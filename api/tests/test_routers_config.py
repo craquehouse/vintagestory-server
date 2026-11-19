@@ -28,6 +28,7 @@ dependency chain (`TestIntervalSettingsReschedule`).
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
 import shutil
@@ -62,9 +63,9 @@ from vintagestory_api.routers.jobs import get_scheduler
 from vintagestory_api.services.api_settings import ApiSettingsService
 from vintagestory_api.services.config_files import (
     CONFIG_FILE_MAX_BYTES,
-    CONFIG_FILE_MAX_DEPTH,
     ConfigFilesService,
 )
+from vintagestory_api.services.config_parse import CONFIG_FILE_MAX_DEPTH
 from vintagestory_api.services.game_config import GameConfigService
 from vintagestory_api.services.pending_restart import PendingRestartState
 from vintagestory_api.services.scheduler import SchedulerService
@@ -1477,7 +1478,8 @@ class TestReadConfigFileSecrets:
 
     def test_broken_serverconfig(self, config_files_client: TestClient, config_file: Path) -> None:
         """AC 4, 5: a file that does not parse returns its text to Admin only."""
-        config_file.write_text('{"Password": "' + SECRET + '", }')
+        # Story 23.1: a trailing comma is JSON5 now; a missing brace still does not parse
+        config_file.write_text('{"Password": "' + SECRET + '", "Port": 1')
 
         monitor = self._get(config_files_client, "serverconfig.json", TEST_MONITOR_KEY)
         admin = self._get(config_files_client, "serverconfig.json", TEST_ADMIN_KEY)
@@ -2627,3 +2629,61 @@ class TestBackupKeepCountLeavesTheJobsAlone:
 
         assert response.status_code == 200
         assert await _jobs(reschedule_client) == before
+
+
+class TestJson5ReadOverHttp:
+    """Story 23.1 (FR309-FR311): the read's new fields over HTTP, for both keys."""
+
+    def _get(self, client: TestClient, path: str, key: str):
+        return client.get(f"{FILES_URL}/{path}", headers={"X-API-Key": key})
+
+    @pytest.mark.parametrize("key", BOTH_KEYS)
+    def test_unparseable_file(
+        self, config_files_client: TestClient, config_file: Path, key: str
+    ) -> None:
+        """AC 4: parse_error with a position; text and version for Admin only."""
+        text = '{\n  "a": 1\n  "b": 2\n}\n'
+        (config_file.parent / "broken.json").write_text(text)
+
+        response = self._get(config_files_client, "broken.json", key)
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["parse_error"]["line"] == 3
+        assert data["parse_error"]["column"] == 3
+        if key == TEST_ADMIN_KEY:
+            assert data["text"] == text
+            assert data["version"] == hashlib.sha256(text.encode()).hexdigest()
+        else:
+            assert "text" not in data
+            assert "version" not in data
+
+    @pytest.mark.parametrize("key", BOTH_KEYS)
+    def test_commented_file(
+        self, config_files_client: TestClient, config_file: Path, key: str
+    ) -> None:
+        """AC 5: a file with comments parses; parse_error is null."""
+        text = '{\n  // c\n  "a": 1,\n}\n'
+        (config_file.parent / "commented.json").write_text(text)
+
+        response = self._get(config_files_client, "commented.json", key)
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["content"] == {"a": 1}
+        assert data["parse_error"] is None
+        assert ("text" in data) is (key == TEST_ADMIN_KEY)
+
+    @pytest.mark.parametrize("key", BOTH_KEYS)
+    def test_infinity_is_200_not_500(
+        self, config_files_client: TestClient, config_file: Path, key: str
+    ) -> None:
+        """AC 3: a non-finite number cannot break the response."""
+        (config_file.parent / "inf.json").write_text('{"a": Infinity}')
+
+        response = self._get(config_files_client, "inf.json", key)
+
+        assert response.status_code == 200
+        assert response.json()["data"]["parse_error"]["message"] == (
+            "Infinity and NaN cannot be shown"
+        )
