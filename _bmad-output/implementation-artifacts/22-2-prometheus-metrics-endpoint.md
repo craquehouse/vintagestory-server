@@ -1,6 +1,6 @@
 # Story 22.2: A Prometheus `/metrics` Endpoint
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Implements FR289-FR291 and FR306, Epic 22 ADR-3, ADR-4 and ADR-14. Bead: VSS-bhw (API-023), closes here (Story 22.1 carried its first half). Maintainer answers 1, 2 and 3 (Matt, 2026-11-18). Stories run in order 22.1 to 22.6; this branch, story/22-2-prometheus-metrics-endpoint, is stacked on story/22-1-players-online-are-counted at 7672fc90 (22.1 in review: it adds ServerService.players_online and the PlayerTracker). The PR targets main and merges after 22.1's. Line references were verified at 7672fc90 (re-checked in validation at e2b55388) and must be re-checked at implementation time. API and documentation only; no web source change. One new runtime dependency (prometheus-client), one new open route, two new modules, one API E2E test, and one fix pulled in by the controller during validation (backlog drawdown, FR306): game settings and mods share one pending-restart state ("ADR against the code" 8). -->
 
@@ -80,11 +80,11 @@ so that **I can graph players, CPU, memory and uptime, and alert when the server
 
 <!-- Each functional task includes its tests in the same commit, red first (run the new tests, see them fail, then implement). Subjects: type(story-22.2/task-N): ..., the type chosen by what an admin notices. Two commits are user-visible: Task 2 (fix) and Task 4 (feat), each with a subject written for admins; their bodies name Story 22.2 and the task. -->
 
-- [ ] Task 1: Add `prometheus-client` + tests (AC: 1, 11)
-  - [ ] 1.1: Red first: new `api/tests/test_prometheus_metrics.py` with one test, `test_plain_text_content_type_is_version_0_0_4`: `from prometheus_client import CONTENT_TYPE_PLAIN_0_0_4` equals `"text/plain; version=0.0.4; charset=utf-8"` (it pins the constant the route uses, so a Renovate bump that changes it fails here). Run `just test-api tests/test_prometheus_metrics.py`; it fails at import
-  - [ ] 1.2: `cd api && uv add "prometheus-client>=0.26.0,<1"` (no `just` recipe adds a dependency; precedent: Stories 7.0 and 12.2). Check `api/pyproject.toml` `dependencies` (`:6-13`) gains exactly that line in alphabetical order and `api/uv.lock` gains `prometheus-client` 0.26.x and nothing else changes version (`git diff --stat`; the Dockerfile installs with `uv sync --frozen`, `Dockerfile:59`, `:63`, so the lock must be committed with it)
-  - [ ] 1.3: `just test-api tests/test_prometheus_metrics.py` green; `just typecheck-api` 0 errors, 0 warnings (the package ships `py.typed`; checked in planning and again in validation with pyright strict)
-  - [ ] 1.4: Commit `build(story-22.2/task-1): add the prometheus-client dependency`
+- [x] Task 1: Add `prometheus-client` + tests (AC: 1, 11)
+  - [x] 1.1: Red first: new `api/tests/test_prometheus_metrics.py` with one test, `test_plain_text_content_type_is_version_0_0_4`: `from prometheus_client import CONTENT_TYPE_PLAIN_0_0_4` equals `"text/plain; version=0.0.4; charset=utf-8"` (it pins the constant the route uses, so a Renovate bump that changes it fails here). Run `just test-api tests/test_prometheus_metrics.py`; it fails at import
+  - [x] 1.2: `cd api && uv add "prometheus-client>=0.26.0,<1"` (no `just` recipe adds a dependency; precedent: Stories 7.0 and 12.2). Check `api/pyproject.toml` `dependencies` (`:6-13`) gains exactly that line in alphabetical order and `api/uv.lock` gains `prometheus-client` 0.26.x and nothing else changes version (`git diff --stat`; the Dockerfile installs with `uv sync --frozen`, `Dockerfile:59`, `:63`, so the lock must be committed with it)
+  - [x] 1.3: `just test-api tests/test_prometheus_metrics.py` green; `just typecheck-api` 0 errors, 0 warnings (the package ships `py.typed`; checked in planning and again in validation with pyright strict)
+  - [x] 1.4: Commit `build(story-22.2/task-1): add the prometheus-client dependency`
 
 - [ ] Task 2: One pending-restart state for game settings and mods + tests (AC: 11, 13)
   - [ ] 2.1: Red first: new `api/tests/test_shared_pending_restart.py` with the Task 2 rows of Dev Notes "API tests"; rewrite `test_get_pending_restart_state_singleton_initialization` (`api/tests/test_routers_config.py:2129-2146`, it resets `config_module._pending_restart_state`, which goes away) to assert `get_pending_restart_state() is get_restart_state()`. See them fail
@@ -430,7 +430,7 @@ One: `test_get_pending_restart_state_singleton_initialization` (`api/tests/test_
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive
 
 ### Debug Log References
 
@@ -440,6 +440,10 @@ One: `test_get_pending_restart_state_singleton_initialization` (`api/tests/test_
 - 2026-11-18: Validated against the create-story checklist, the epic, ADR-3, ADR-4, ADR-14, project-context.md, CLAUDE.md and the code at e2b55388; prometheus-client 0.26.0 re-checked on Python 3.14 in a scratch environment (pyright strict 0/0 on the collector shape). Pulled in by the controller during validation (backlog drawdown): one pending-restart state for game settings and mods (new Task 2, AC 13, FR306, "ADR against the code" 8); the route and the E2E test merged into Task 4 to stay at 6 tasks. Corrected: the exception `generate_latest` lets through, the counter's `# HELP`/`# TYPE` lines, the README Features line, `register_frontend`'s call lines, the disk-space patch in the router tests, a players-failure seam that type-checks.
 
 ### File List
+
+- `api/pyproject.toml` (modified: `prometheus-client>=0.26.0,<1`)
+- `api/uv.lock` (modified: `prometheus-client` 0.26.0 added, no other version changed)
+- `api/tests/test_prometheus_metrics.py` (new)
 
 ## Change Log
 
