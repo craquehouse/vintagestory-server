@@ -3,7 +3,7 @@
  *
  * Provides tabbed interface for different settings domains:
  * - UI Preferences: Theme, console font size, layout defaults
- * - API Settings: Server auto-start, environment handling, refresh intervals
+ * - API Settings: Server auto-start, environment handling, refresh intervals (Admin only)
  * - File Manager: Browse and view server configuration files
  * - Scheduled Jobs: View registered background jobs (Admin only)
  *
@@ -12,6 +12,7 @@
  * Story 8.3: Job Configuration UI
  * Story UI-017: User preferences cookie persistence
  * Story 17.8: the tab list wraps on phones instead of widening the page
+ * Story 22.5: API Settings is Admin only (Epic 22 ADR-12)
  */
 
 import { Settings, FolderOpen, Palette, Clock } from 'lucide-react';
@@ -27,7 +28,7 @@ import { useAuthMe } from '@/api/hooks/use-auth-me';
  *
  * Displays different settings domains in separate tabs:
  * - UI Preferences: Local appearance and behavior preferences
- * - API Settings: Operational configuration for the API server
+ * - API Settings: Operational configuration for the API server (Admin only)
  * - File Manager: Browse and view server configuration files
  * - Scheduled Jobs: View registered background jobs (Admin only)
  */
@@ -48,10 +49,12 @@ export function SettingsPage() {
             <Palette className="h-4 w-4" />
             UI Preferences
           </TabsTrigger>
-          <TabsTrigger value="api-settings" data-testid="api-settings-tab">
-            <Settings className="h-4 w-4" />
-            API Settings
-          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="api-settings" data-testid="api-settings-tab">
+              <Settings className="h-4 w-4" />
+              API Settings
+            </TabsTrigger>
+          )}
           <TabsTrigger value="file-manager" data-testid="file-manager-tab">
             <FolderOpen className="h-4 w-4" />
             File Manager
@@ -68,9 +71,11 @@ export function SettingsPage() {
           <UIPreferencesPanel />
         </TabsContent>
 
-        <TabsContent value="api-settings" className="flex-1 mt-4">
-          <ApiSettingsPanel />
-        </TabsContent>
+        {isAdmin && (
+          <TabsContent value="api-settings" className="flex-1 mt-4">
+            <ApiSettingsPanel />
+          </TabsContent>
+        )}
 
         <TabsContent value="file-manager" className="flex-1 mt-4">
           <FileManagerPanel />

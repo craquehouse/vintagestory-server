@@ -7,6 +7,9 @@ import {
   fetchConfigDirectories,
   fetchConfigFiles,
   fetchConfigFileContent,
+  API_SETTING_DEFAULTS,
+  INTERVAL_API_SETTINGS,
+  MAX_INTERVAL_SECONDS,
 } from './config';
 import type {
   ApiResponse,
@@ -254,6 +257,7 @@ describe('api/config', () => {
             enforceEnvOnRestart: false,
             modListRefreshInterval: 300,
             serverVersionsRefreshInterval: 3600,
+            metricsCollectionInterval: 10,
             modUpdateWebhookConfigured: false,
           },
         },
@@ -277,6 +281,7 @@ describe('api/config', () => {
             enforceEnvOnRestart: true,
             modListRefreshInterval: 600,
             serverVersionsRefreshInterval: 7200,
+            metricsCollectionInterval: 10,
             modUpdateWebhookConfigured: false,
           },
         },
@@ -623,5 +628,31 @@ describe('updateApiSetting secret keys (Story 14.6)', () => {
       updateApiSetting('mod_update_webhook_url', 'https://discord.com/api/webhooks/1/t')
     ).rejects.toThrow('setModUpdateWebhook');
     expect(apiClient).not.toHaveBeenCalled();
+  });
+});
+
+describe('API_SETTING_DEFAULTS (Story 22.5)', () => {
+  it('has exactly the six settings the API Settings tab shows', () => {
+    expect(Object.keys(API_SETTING_DEFAULTS).sort()).toEqual([
+      'auto_start_server',
+      'block_env_managed_settings',
+      'enforce_env_on_restart',
+      'metrics_collection_interval',
+      'mod_list_refresh_interval',
+      'server_versions_refresh_interval',
+    ]);
+  });
+
+  it('gives every interval a default above 0 and at most MAX_INTERVAL_SECONDS', () => {
+    const intervals = [
+      API_SETTING_DEFAULTS.mod_list_refresh_interval,
+      API_SETTING_DEFAULTS.server_versions_refresh_interval,
+      API_SETTING_DEFAULTS.metrics_collection_interval,
+    ];
+    expect(intervals).toHaveLength(INTERVAL_API_SETTINGS.size);
+    for (const seconds of intervals) {
+      expect(seconds).toBeGreaterThan(0);
+      expect(seconds).toBeLessThanOrEqual(MAX_INTERVAL_SECONDS);
+    }
   });
 });

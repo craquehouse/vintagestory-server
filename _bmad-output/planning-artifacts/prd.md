@@ -917,7 +917,7 @@ If trivial to implement:
 
 #### API Settings Tab (Matt, 2026-11-18)
 
-- FR300: Each interval setting in the API Settings tab has an On switch: off saves 0 and the job stops; on saves the API's default; the tab shows Off for a saved 0
+- FR300: Each interval setting in the API Settings tab has an On switch: off saves 0 and the job stops; on restores the last non-zero value the page has seen for the setting since it loaded, else the API's default; the tab shows Off for a saved 0
 - FR301: The API Settings tab has a Metrics Collection field (1 second to 1 hour) whose help text says the dashboard charts stop updating when it is off and `/metrics` keeps working
 - FR302: The refresh interval fields accept 60 seconds to 365 days, as the API does, and the tab's fallback values equal the API's defaults
 - FR303: A Monitor key does not see the API Settings tab, whose data only an Admin key can read

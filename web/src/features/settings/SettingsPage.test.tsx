@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import { SettingsPage } from './SettingsPage';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
+import { forgetRememberedDurations } from '@/components/DurationSettingField';
 
 // Mock cookies module
 vi.mock('@/lib/cookies', () => ({
@@ -57,6 +58,7 @@ const mockApiSettings = {
       enforceEnvOnRestart: true,
       modListRefreshInterval: 300,
       serverVersionsRefreshInterval: 3600,
+      metricsCollectionInterval: 10,
     },
   },
 };
@@ -71,14 +73,23 @@ const mockConfigFiles = {
 
 describe('SettingsPage', () => {
   const originalFetch = globalThis.fetch;
+  // Story 22.5: the role /auth/me answers with (Admin unless a test changes it)
+  let role = 'admin';
 
   beforeEach(() => {
     vi.resetAllMocks();
     import.meta.env.VITE_API_KEY = 'test-api-key';
     import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
+    role = 'admin';
 
     // Default mock that returns appropriate responses
     globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/auth/me')) {
+        return {
+          ok: true,
+          json: () => Promise.resolve({ status: 'ok', data: { role } }),
+        };
+      }
       if (url.includes('/config/files')) {
         return {
           ok: true,
@@ -94,6 +105,7 @@ describe('SettingsPage', () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    forgetRememberedDurations();
   });
 
   describe('rendering', () => {
@@ -136,13 +148,13 @@ describe('SettingsPage', () => {
       expect(screen.getByRole('tab', { name: /ui preferences/i })).toBeInTheDocument();
     });
 
-    it('renders API Settings tab', async () => {
+    it('renders API Settings tab for an Admin', async () => {
       const queryClient = createTestQueryClient();
       render(<SettingsPage />, {
         wrapper: createWrapper(queryClient),
       });
 
-      expect(screen.getByTestId('api-settings-tab')).toBeInTheDocument();
+      expect(await screen.findByTestId('api-settings-tab')).toBeInTheDocument();
       expect(screen.getByRole('tab', { name: /api settings/i })).toBeInTheDocument();
     });
 
@@ -173,7 +185,7 @@ describe('SettingsPage', () => {
         wrapper: createWrapper(queryClient),
       });
 
-      const apiTab = screen.getByTestId('api-settings-tab');
+      const apiTab = await screen.findByTestId('api-settings-tab');
       await user.click(apiTab);
 
       await waitFor(() => {
@@ -230,7 +242,7 @@ describe('SettingsPage', () => {
       });
 
       // Switch to API Settings tab
-      await user.click(screen.getByTestId('api-settings-tab'));
+      await user.click(await screen.findByTestId('api-settings-tab'));
 
       await waitFor(() => {
         // Should show API settings content (loading or loaded)
@@ -248,7 +260,7 @@ describe('SettingsPage', () => {
       });
 
       // Switch to API Settings tab
-      await user.click(screen.getByTestId('api-settings-tab'));
+      await user.click(await screen.findByTestId('api-settings-tab'));
 
       await waitFor(() => {
         expect(screen.getByTestId('api-settings-panel')).toBeInTheDocument();
@@ -256,6 +268,81 @@ describe('SettingsPage', () => {
 
       // Verify settings are displayed
       expect(screen.getByText('Server Behavior')).toBeInTheDocument();
+    });
+  });
+
+  // Story 22.5 (Epic 22 ADR-12): only an Admin key can read the API settings
+  describe('API Settings tab for each role (Story 22.5)', () => {
+    function fetchedUrls(): string[] {
+      return vi
+        .mocked(globalThis.fetch)
+        .mock.calls.map((call) => (typeof call[0] === 'string' ? call[0] : String(call[0])));
+    }
+
+    async function renderAsMonitor() {
+      role = 'monitor';
+      const queryClient = createTestQueryClient();
+      render(<SettingsPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+      await waitFor(() => {
+        expect(fetchedUrls().some((url) => url.includes('/auth/me'))).toBe(true);
+      });
+      await waitFor(() => {
+        expect(queryClient.getQueryState(['auth', 'me'])?.status).toBe('success');
+      });
+      return queryClient;
+    }
+
+    it('a Monitor sees UI Preferences and File Manager only', async () => {
+      await renderAsMonitor();
+
+      expect(screen.queryByTestId('api-settings-tab')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('scheduled-jobs-tab')).not.toBeInTheDocument();
+      const tabs = screen.getAllByRole('tab');
+      expect(tabs).toHaveLength(2);
+      expect(tabs[0]).toHaveTextContent('UI Preferences');
+      expect(tabs[1]).toHaveTextContent('File Manager');
+      expect(screen.getByTestId('ui-preferences-tab')).toHaveAttribute('data-state', 'active');
+    });
+
+    it('a Monitor never gets the API Settings panel or its request', async () => {
+      await renderAsMonitor();
+
+      expect(screen.queryByTestId('api-settings-panel')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('api-settings-loading')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('api-settings-error')).not.toBeInTheDocument();
+      expect(screen.queryByText('Failed to load settings')).not.toBeInTheDocument();
+      expect(fetchedUrls().filter((url) => url.includes('/config/api'))).toHaveLength(0);
+    });
+
+    it('an Admin sees the API Settings tab, which opens its panel', async () => {
+      const user = userEvent.setup();
+      const queryClient = createTestQueryClient();
+      render(<SettingsPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await user.click(await screen.findByTestId('api-settings-tab'));
+
+      expect(await screen.findByTestId('api-settings-panel')).toBeInTheDocument();
+    });
+
+    it('shows no API Settings tab while the role is loading', async () => {
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/auth/me')) return new Promise(() => {});
+        return { ok: true, json: () => Promise.resolve(mockApiSettings) };
+      });
+      const queryClient = createTestQueryClient();
+      render(<SettingsPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(queryClient.getQueryState(['auth', 'me'])?.fetchStatus).toBe('fetching');
+      });
+      expect(screen.queryByTestId('api-settings-tab')).not.toBeInTheDocument();
+      expect(screen.getAllByRole('tab')).toHaveLength(2);
     });
   });
 

@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { ApiSettingsPanel } from './ApiSettingsPanel';
+import { forgetRememberedDurations } from '@/components/DurationSettingField';
 
 /**
  * Tests for ApiSettingsPanel component.
@@ -50,6 +51,7 @@ const mockApiSettingsCamelCase = {
       enforceEnvOnRestart: true,
       modListRefreshInterval: 300,
       serverVersionsRefreshInterval: 3600,
+      metricsCollectionInterval: 10,
       modUpdateWebhookConfigured: true,
     },
   },
@@ -70,6 +72,60 @@ const mockDebugStatusDisabled = {
   },
 };
 
+type FetchCall = [string, RequestInit | undefined];
+
+/**
+ * Story 22.5: serve the given settings for every GET and answer every POST with
+ * `postResponse` (a successful save by default); returns the fetch mock.
+ */
+function serveSettings(
+  settings: Record<string, unknown>,
+  postResponse?: (url: string, saved: Record<string, unknown>) => unknown
+) {
+  // The server's settings: a successful save changes what the next GET returns
+  const saved: Record<string, unknown> = { ...settings };
+  const mockFetch = vi.fn().mockImplementation(async (url: string, options?: RequestInit) => {
+    if (options?.method === 'POST') {
+      if (postResponse) return postResponse(url, saved);
+      const body: { value: unknown } = JSON.parse(String(options.body));
+      const key = url.slice(url.lastIndexOf('/') + 1);
+      saved[toCamel(key)] = body.value;
+      return {
+        ok: true,
+        json: () => Promise.resolve({ status: 'ok', data: { key, value: body.value } }),
+      };
+    }
+    if (url.includes('/debug')) {
+      return { ok: true, json: () => Promise.resolve(mockDebugStatusDisabled) };
+    }
+    return {
+      ok: true,
+      json: () => Promise.resolve({ status: 'ok', data: { settings: { ...saved } } }),
+    };
+  });
+  globalThis.fetch = mockFetch;
+  return mockFetch;
+}
+
+function toCamel(key: string): string {
+  return key.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+}
+
+function postCalls(mockFetch: ReturnType<typeof vi.fn>): FetchCall[] {
+  return mockFetch.mock.calls.filter(
+    (call): call is FetchCall => typeof call[0] === 'string' && call[1]?.method === 'POST'
+  );
+}
+
+async function renderPanel() {
+  const queryClient = createTestQueryClient();
+  render(<ApiSettingsPanel />, { wrapper: createWrapper(queryClient) });
+  await waitFor(() => {
+    expect(screen.getByTestId('api-settings-panel')).toBeInTheDocument();
+  });
+  return queryClient;
+}
+
 describe('ApiSettingsPanel', () => {
   const originalFetch = globalThis.fetch;
 
@@ -81,6 +137,7 @@ describe('ApiSettingsPanel', () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    forgetRememberedDurations();
   });
 
   describe('loading state', () => {
@@ -201,15 +258,15 @@ describe('ApiSettingsPanel', () => {
       const blockEnvToggle = screen.getByLabelText('Block Env-Managed Settings');
       expect(blockEnvToggle).toHaveAttribute('data-state', 'checked');
 
-      // enforce_env_on_restart should default to true
+      // Story 22.5: enforce_env_on_restart defaults to false, as in the API
       const enforceEnvToggle = screen.getByLabelText('Enforce Env on Restart');
-      expect(enforceEnvToggle).toHaveAttribute('data-state', 'checked');
+      expect(enforceEnvToggle).toHaveAttribute('data-state', 'unchecked');
 
       // mod_list_refresh_interval should default to 14400 (4h)
       expect(screen.getByLabelText('Mod List Refresh')).toHaveValue('4h');
 
-      // server_versions_refresh_interval should default to 3600 (1h)
-      expect(screen.getByLabelText('Server Versions Refresh')).toHaveValue('1h');
+      // Story 22.5: server_versions_refresh_interval defaults to 86400 (1d), as in the API
+      expect(screen.getByLabelText('Server Versions Refresh')).toHaveValue('1d');
     });
 
     it('renders the Update Alerts group with the webhook status (Story 14.6)', async () => {
@@ -686,13 +743,13 @@ describe('ApiSettingsPanel', () => {
         expect(screen.getByTestId('api-settings-panel')).toBeInTheDocument();
       });
 
-      // Enter invalid value (too high - 2d > 86400s/1d max)
+      // Story 22.5: too high - 400d > 365d, the API's maximum
       const input = screen.getByLabelText('Mod List Refresh');
-      fireEvent.change(input, { target: { value: '2d' } });
+      fireEvent.change(input, { target: { value: '400d' } });
       fireEvent.blur(input);
 
       await waitFor(() => {
-        expect(screen.getByText('Must be at most 1d')).toBeInTheDocument();
+        expect(screen.getByText('Must be at most 365d')).toBeInTheDocument();
       });
     });
 
@@ -711,14 +768,299 @@ describe('ApiSettingsPanel', () => {
         expect(screen.getByTestId('api-settings-panel')).toBeInTheDocument();
       });
 
-      // Enter invalid value (too high - 8d > 604800s/7d max)
+      // Story 22.5: too high - 400d > 365d, the API's maximum
       const input = screen.getByLabelText('Server Versions Refresh');
-      fireEvent.change(input, { target: { value: '8d' } });
+      fireEvent.change(input, { target: { value: '400d' } });
       fireEvent.blur(input);
 
       await waitFor(() => {
-        expect(screen.getByText('Must be at most 7d')).toBeInTheDocument();
+        expect(screen.getByText('Must be at most 365d')).toBeInTheDocument();
       });
+    });
+  });
+
+  describe('refresh bounds and defaults (Story 22.5)', () => {
+    const loaded = { ...mockApiSettingsCamelCase.data.settings };
+
+    for (const label of ['Mod List Refresh', 'Server Versions Refresh']) {
+      it(`${label}: refuses 30s with the min message and saves nothing`, async () => {
+        const mockFetch = serveSettings(loaded);
+        await renderPanel();
+
+        const input = screen.getByLabelText(label);
+        fireEvent.change(input, { target: { value: '30s' } });
+        fireEvent.blur(input);
+
+        await waitFor(() => {
+          expect(screen.getByText('Must be at least 1m')).toBeInTheDocument();
+        });
+        expect(postCalls(mockFetch)).toHaveLength(0);
+      });
+
+      it(`${label}: refuses 400d with the max message and saves nothing`, async () => {
+        const mockFetch = serveSettings(loaded);
+        await renderPanel();
+
+        const input = screen.getByLabelText(label);
+        fireEvent.change(input, { target: { value: '400d' } });
+        fireEvent.blur(input);
+
+        await waitFor(() => {
+          expect(screen.getByText('Must be at most 365d')).toBeInTheDocument();
+        });
+        expect(postCalls(mockFetch)).toHaveLength(0);
+      });
+
+      it(`${label}: saves 2d`, async () => {
+        const mockFetch = serveSettings(loaded);
+        await renderPanel();
+
+        const input = screen.getByLabelText(label);
+        fireEvent.change(input, { target: { value: '2d' } });
+        fireEvent.blur(input);
+
+        await waitFor(() => {
+          expect(toast.success).toHaveBeenCalledTimes(1);
+        });
+        const posts = postCalls(mockFetch);
+        expect(posts).toHaveLength(1);
+        expect(JSON.parse(String(posts[0][1]?.body))).toEqual({ value: 172800 });
+      });
+    }
+
+    it('shows the API defaults when the settings are missing', async () => {
+      serveSettings({});
+      await renderPanel();
+
+      expect(screen.getByLabelText('Server Versions Refresh')).toHaveValue('1d');
+      expect(screen.getByLabelText('Enforce Env on Restart')).toHaveAttribute(
+        'data-state',
+        'unchecked'
+      );
+      expect(screen.getByLabelText('Mod List Refresh')).toHaveValue('4h');
+      expect(screen.getByLabelText('Auto-Start Server')).toHaveAttribute('data-state', 'unchecked');
+      expect(screen.getByLabelText('Block Env-Managed Settings')).toHaveAttribute(
+        'data-state',
+        'checked'
+      );
+    });
+  });
+
+  describe('interval switches (Story 22.5)', () => {
+    const loaded = { ...mockApiSettingsCamelCase.data.settings };
+    const switches = [
+      ['Mod List Refresh', 'mod_list_refresh_interval'],
+      ['Server Versions Refresh', 'server_versions_refresh_interval'],
+      ['Metrics Collection', 'metrics_collection_interval'],
+    ] as const;
+
+    function failWith(code: string | null, message: string) {
+      return {
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+        json: () => Promise.resolve({ detail: code ? { code, message } : { message } }),
+      };
+    }
+
+    it('shows an On switch per interval, checked with the loaded values', async () => {
+      serveSettings(loaded);
+      await renderPanel();
+
+      for (const [label] of switches) {
+        expect(screen.getByRole('switch', { name: `${label} On` })).toHaveAttribute(
+          'aria-checked',
+          'true'
+        );
+      }
+    });
+
+    it('describes each switch by its help text', async () => {
+      serveSettings(loaded);
+      await renderPanel();
+
+      for (const [label, key] of switches) {
+        expect(screen.getByRole('switch', { name: `${label} On` })).toHaveAttribute(
+          'aria-describedby',
+          `${key}-desc`
+        );
+      }
+    });
+
+    it('shows Metrics Collection from the settings', async () => {
+      serveSettings({ ...loaded, metricsCollectionInterval: 30 });
+      await renderPanel();
+      expect(screen.getByLabelText('Metrics Collection')).toHaveValue('30s');
+    });
+
+    it('shows Metrics Collection at 10s when the setting is missing', async () => {
+      serveSettings({});
+      await renderPanel();
+      expect(screen.getByLabelText('Metrics Collection')).toHaveValue('10s');
+    });
+
+    it('says what stops and what keeps working when Metrics Collection is off', async () => {
+      serveSettings(loaded);
+      await renderPanel();
+
+      expect(
+        screen.getByText(/charts and its memory and players cards stop updating/)
+      ).toBeInTheDocument();
+      expect(screen.getByText(/\/metrics is read live and keeps working/)).toBeInTheDocument();
+    });
+
+    it.each([
+      ['0', 'Must be at least 1s'],
+      ['2h', 'Must be at most 1h'],
+    ])('Metrics Collection refuses %s and saves nothing', async (typed, message) => {
+      const mockFetch = serveSettings(loaded);
+      await renderPanel();
+
+      const input = screen.getByLabelText('Metrics Collection');
+      fireEvent.change(input, { target: { value: typed } });
+      fireEvent.blur(input);
+
+      await waitFor(() => {
+        expect(screen.getByText(message)).toBeInTheDocument();
+      });
+      expect(postCalls(mockFetch)).toHaveLength(0);
+    });
+
+    it('Metrics Collection saves 30s', async () => {
+      const mockFetch = serveSettings(loaded);
+      await renderPanel();
+
+      const input = screen.getByLabelText('Metrics Collection');
+      fireEvent.change(input, { target: { value: '30s' } });
+      fireEvent.blur(input);
+
+      await waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1));
+      const posts = postCalls(mockFetch);
+      expect(posts).toHaveLength(1);
+      expect(posts[0][0]).toMatch(/\/config\/api\/settings\/metrics_collection_interval$/);
+      expect(JSON.parse(String(posts[0][1]?.body))).toEqual({ value: 30 });
+    });
+
+    it('turning Mod List Refresh off saves 0 with one success toast and shows Off', async () => {
+      const mockFetch = serveSettings(loaded);
+      await renderPanel();
+
+      fireEvent.click(screen.getByRole('switch', { name: 'Mod List Refresh On' }));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod_list_refresh_interval-off')).toHaveTextContent('Off');
+      });
+      await waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1));
+      expect(toast.success).toHaveBeenCalledWith('mod_list_refresh_interval updated');
+      expect(toast.error).not.toHaveBeenCalled();
+      const posts = postCalls(mockFetch);
+      expect(posts).toHaveLength(1);
+      expect(posts[0][0]).toMatch(/\/config\/api\/settings\/mod_list_refresh_interval$/);
+      expect(posts[0][1]?.body).toBe('{"value":0}');
+      expect(screen.queryByLabelText('Mod List Refresh')).not.toBeInTheDocument();
+    });
+
+    it.each([
+      ['Mod List Refresh', 'mod_list_refresh_interval', 'modListRefreshInterval', 14400, '4h'],
+      [
+        'Server Versions Refresh',
+        'server_versions_refresh_interval',
+        'serverVersionsRefreshInterval',
+        86400,
+        '1d',
+      ],
+      ['Metrics Collection', 'metrics_collection_interval', 'metricsCollectionInterval', 10, '10s'],
+    ])(
+      '%s loaded off shows Off, and turning it on saves the API default',
+      async (label, key, camelKey, seconds, shown) => {
+        const mockFetch = serveSettings({ ...loaded, [camelKey]: 0 });
+        await renderPanel();
+
+        const toggle = screen.getByRole('switch', { name: `${label} On` });
+        expect(toggle).toHaveAttribute('aria-checked', 'false');
+        expect(screen.getByTestId(`${key}-off`)).toHaveTextContent('Off');
+
+        fireEvent.click(toggle);
+
+        await waitFor(() => expect(screen.getByLabelText(label)).toHaveValue(shown));
+        const posts = postCalls(mockFetch);
+        expect(posts).toHaveLength(1);
+        expect(JSON.parse(String(posts[0][1]?.body))).toEqual({ value: seconds });
+      }
+    );
+
+    it('a failed switch save shows one error toast and puts the switch back', async () => {
+      serveSettings(loaded, () => failWith(null, 'Server exploded'));
+      await renderPanel();
+
+      const toggle = screen.getByRole('switch', { name: 'Mod List Refresh On' });
+      fireEvent.click(toggle);
+
+      await waitFor(() => expect(toast.error).toHaveBeenCalledTimes(1));
+      expect(toast.error).toHaveBeenCalledWith('Update failed', expect.anything());
+      expect(toast.success).not.toHaveBeenCalled();
+      await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', 'true'));
+      expect(screen.getByLabelText('Mod List Refresh')).toHaveValue('5m');
+    });
+
+    // TanStack Query notifies listeners with setTimeout(0), so a save's optimistic value
+    // reaches the panel after a round trip of a timer tick, but after the answer when the
+    // answer comes at once, as it may on localhost (Story 22.5 review)
+    it.each([
+      ['a 0 ms round trip', true],
+      ['an answer that comes at once', false],
+    ])('a not-applied switch save shows one warning and stays Off, after %s', async (_, wait) => {
+      const notApplied = 'Saved, but its job could not be rescheduled';
+      serveSettings(loaded, async (_url, saved) => {
+        if (wait) await new Promise((resolve) => setTimeout(resolve, 0));
+        saved.modListRefreshInterval = 0;
+        return failWith('API_SETTING_NOT_APPLIED', notApplied);
+      });
+      await renderPanel();
+
+      const toggle = screen.getByRole('switch', { name: 'Mod List Refresh On' });
+      const states: (string | null)[] = [];
+      const observer = new MutationObserver(() => {
+        states.push(toggle.getAttribute('aria-checked'));
+      });
+      observer.observe(toggle, { attributes: true, attributeFilter: ['aria-checked'] });
+
+      fireEvent.click(toggle);
+
+      await waitFor(() => expect(toast.warning).toHaveBeenCalledTimes(1));
+      expect(toast.warning).toHaveBeenCalledWith('Saved, not applied yet', {
+        description: notApplied,
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId('mod_list_refresh_interval-off')).toHaveTextContent('Off');
+      });
+      // Let the refetch land
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      observer.disconnect();
+
+      expect(toggle).toHaveAttribute('aria-checked', 'false');
+      expect(states[0]).toBe('false');
+      expect(states).not.toContain('true');
+      expect(toast.error).not.toHaveBeenCalled();
+      expect(toast.success).not.toHaveBeenCalled();
+      expect(screen.getByRole('alert')).toHaveTextContent(notApplied);
+    });
+
+    it('turning a job back on restores the value shown before it was turned off', async () => {
+      const mockFetch = serveSettings({ ...loaded, modListRefreshInterval: 7200 });
+      await renderPanel();
+
+      const toggle = screen.getByRole('switch', { name: 'Mod List Refresh On' });
+      fireEvent.click(toggle);
+      await waitFor(() => {
+        expect(screen.getByTestId('mod_list_refresh_interval-off')).toBeInTheDocument();
+      });
+      await waitFor(() => expect(toggle).not.toBeDisabled());
+      fireEvent.click(toggle);
+
+      await waitFor(() => expect(screen.getByLabelText('Mod List Refresh')).toHaveValue('2h'));
+      const bodies = postCalls(mockFetch).map((call) => JSON.parse(String(call[1]?.body)));
+      expect(bodies).toEqual([{ value: 0 }, { value: 7200 }]);
     });
   });
 

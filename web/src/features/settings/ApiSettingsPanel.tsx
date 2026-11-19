@@ -8,10 +8,13 @@
  * VSS-c9o: Debug logging toggle
  * Story 14.6: Mod update webhook
  * Story 17.6: A saved interval that could not be applied shows a warning
+ * Story 22.5: bounds and defaults match the API
+ * Story 22.5: interval jobs can be turned off; Metrics Collection field
  */
 
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { API_SETTING_DEFAULTS, MAX_INTERVAL_SECONDS } from '@/api/config';
 import { ApiError } from '@/api/errors';
 import { DurationSettingField } from '@/components/DurationSettingField';
 import { SettingField } from '@/components/SettingField';
@@ -119,7 +122,7 @@ export function ApiSettingsPanel({ className }: ApiSettingsPanelProps) {
           <SettingField
             settingKey="auto_start_server"
             label="Auto-Start Server"
-            value={settings?.autoStartServer ?? false}
+            value={settings?.autoStartServer ?? API_SETTING_DEFAULTS.auto_start_server}
             type="bool"
             description="Automatically start the game server when the API starts"
             onSave={handleSave}
@@ -134,7 +137,9 @@ export function ApiSettingsPanel({ className }: ApiSettingsPanelProps) {
           <SettingField
             settingKey="block_env_managed_settings"
             label="Block Env-Managed Settings"
-            value={settings?.blockEnvManagedSettings ?? true}
+            value={
+              settings?.blockEnvManagedSettings ?? API_SETTING_DEFAULTS.block_env_managed_settings
+            }
             type="bool"
             description="Prevent changes to settings managed by environment variables"
             onSave={handleSave}
@@ -142,7 +147,7 @@ export function ApiSettingsPanel({ className }: ApiSettingsPanelProps) {
           <SettingField
             settingKey="enforce_env_on_restart"
             label="Enforce Env on Restart"
-            value={settings?.enforceEnvOnRestart ?? true}
+            value={settings?.enforceEnvOnRestart ?? API_SETTING_DEFAULTS.enforce_env_on_restart}
             type="bool"
             description="Re-apply environment variable values when the server restarts"
             onSave={handleSave}
@@ -158,23 +163,48 @@ export function ApiSettingsPanel({ className }: ApiSettingsPanelProps) {
           <DurationSettingField
             settingKey="mod_list_refresh_interval"
             label="Mod List Refresh"
-            value={settings?.modListRefreshInterval ?? 14400}
+            value={
+              settings?.modListRefreshInterval ?? API_SETTING_DEFAULTS.mod_list_refresh_interval
+            }
             min={60}
-            max={86400}
+            max={MAX_INTERVAL_SECONDS}
             minMessage="Must be at least {min}"
             maxMessage="Must be at most {max}"
             description="How often to refresh the installed mods list"
+            offValue={0}
+            onValue={API_SETTING_DEFAULTS.mod_list_refresh_interval}
             onSave={handleSave}
           />
           <DurationSettingField
             settingKey="server_versions_refresh_interval"
             label="Server Versions Refresh"
-            value={settings?.serverVersionsRefreshInterval ?? 3600}
+            value={
+              settings?.serverVersionsRefreshInterval ??
+              API_SETTING_DEFAULTS.server_versions_refresh_interval
+            }
             min={60}
-            max={604800}
+            max={MAX_INTERVAL_SECONDS}
             minMessage="Must be at least {min}"
             maxMessage="Must be at most {max}"
             description="How often to check for new game server versions"
+            offValue={0}
+            onValue={API_SETTING_DEFAULTS.server_versions_refresh_interval}
+            onSave={handleSave}
+          />
+          <DurationSettingField
+            settingKey="metrics_collection_interval"
+            label="Metrics Collection"
+            value={
+              settings?.metricsCollectionInterval ??
+              API_SETTING_DEFAULTS.metrics_collection_interval
+            }
+            min={1}
+            max={3600}
+            minMessage="Must be at least {min}"
+            maxMessage="Must be at most {max}"
+            description="How often the dashboard's metrics are collected. When off, the dashboard's charts and its memory and players cards stop updating; /metrics is read live and keeps working."
+            offValue={0}
+            onValue={API_SETTING_DEFAULTS.metrics_collection_interval}
             onSave={handleSave}
           />
         </SettingGroup>

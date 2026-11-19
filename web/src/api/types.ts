@@ -308,6 +308,8 @@ export interface ApiSettingsData {
     enforceEnvOnRestart: boolean;
     modListRefreshInterval: number;
     serverVersionsRefreshInterval: number;
+    /** Story 22.5: seconds between metrics collections (0: off) */
+    metricsCollectionInterval: number;
     /** Story 14.6: whether a mod update webhook is set; the URL is never returned */
     modUpdateWebhookConfigured: boolean;
   };

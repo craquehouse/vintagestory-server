@@ -14,18 +14,34 @@ import { fetchOnNewConnection, pretendServerInstalled, serveConfigKey } from './
  *   the restored mod_cache_refresh job's next run is one interval after the restore,
  *   not the time it had before the run (an API restart would do the same).
  *
+ * Story 22.5 (FR300-FR303; VSS-9jv):
+ * - The On switch turns Mod List Refresh off and on again from the API Settings tab:
+ *   off saves 0 and the job leaves Scheduled Jobs; on restores the value the page showed
+ *   before (also after another tab was opened), and after a reload the API default (4h).
+ *   This writes the real `mod_list_refresh_interval`, inside the serial describe whose
+ *   snapshot and restore guard it; the residue is the one above (the restored job's next
+ *   run is one interval after the restore).
+ * - Read-only: the Metrics Collection field and its help text, the refresh bounds (every
+ *   settings POST is stubbed to fail the test), the switch's 44px tap target at 390px, and
+ *   the API Settings tab for each role. The Monitor check needs VS_API_KEY_MONITOR and
+ *   is skipped, with the reason, when it is not set (`just test-e2e-ci` sets it).
+ *
  * Requirements:
  * - Docker stack on E2E_BASE_URL (default http://localhost:9080), rebuilt from this
  *   branch: `just docker restart`, then
  *   `cd web && bunx playwright test e2e/settings-as-saved.spec.ts`
- *   with VS_API_KEY_ADMIN exported. The game server is neither started nor stopped.
+ *   with VS_API_KEY_ADMIN exported (and VS_API_KEY_MONITOR for the Monitor check). Or
+ *   `just test-e2e-ci e2e/settings-as-saved.spec.ts`, on a throwaway container. The game
+ *   server is neither started nor stopped.
  */
 
-// API key from environment or default from docker-compose.dev.yaml
+// API keys from environment or default from docker-compose.dev.yaml
 const API_KEY = process.env.VS_API_KEY_ADMIN || 'changeme';
+const MONITOR_KEY = process.env.VS_API_KEY_MONITOR || '';
 const HEADERS = { 'X-API-Key': API_KEY };
 
 const INTERVAL_KEY = 'mod_list_refresh_interval';
+const SETTINGS_POST = '**/api/v1alpha1/config/api/settings/**';
 const JOB_ID = 'mod_cache_refresh';
 
 interface JobInfo {
@@ -41,12 +57,15 @@ async function usePageKey(page: Page): Promise<void> {
   await page.setViewportSize({ width: 1440, height: 900 });
 }
 
-async function apiInterval(request: APIRequestContext): Promise<number> {
+async function apiInterval(
+  request: APIRequestContext,
+  key: string = INTERVAL_KEY
+): Promise<number> {
   const response = await request.get('/api/v1alpha1/config/api', { headers: HEADERS });
   expect(response.ok()).toBe(true);
   const body = (await response.json()) as { data: { settings: Record<string, unknown> } };
-  const value = body.data.settings[INTERVAL_KEY];
-  if (typeof value !== 'number') throw new Error(`${INTERVAL_KEY} is not a number`);
+  const value = body.data.settings[key];
+  if (typeof value !== 'number') throw new Error(`${key} is not a number`);
   return value;
 }
 
@@ -220,5 +239,179 @@ test.describe('A changed refresh interval applies at once: real API (Story 17.6)
     const restored = (await jobs(request)).get(JOB_ID);
     expect(restored?.trigger_details).toBe(snapshotJob?.trigger_details);
     expect(restored?.trigger_details).toBe(`every ${snapshotInterval} seconds`);
+  });
+
+  // Story 22.5 (AC 1, 2, 11): runs last, when the API value is the snapshot again
+  test('the On switch turns Mod List Refresh off and on again', async ({ page, request }) => {
+    const toggle = page.getByRole('switch', { name: 'Mod List Refresh On' });
+    const input = page.getByLabel('Mod List Refresh', { exact: true });
+    const off = page.getByTestId(`${INTERVAL_KEY}-off`);
+    const schedule = page.getByTestId(`job-schedule-${JOB_ID}`);
+
+    await page.goto('/config');
+    // Open Scheduled Jobs first, so its data is cached before the change
+    await page.getByTestId('scheduled-jobs-tab').click();
+    await expect(page.getByTestId('scheduled-jobs-panel')).toBeVisible({ timeout: 30000 });
+    await page.getByTestId('api-settings-tab').click();
+    await expect(toggle).toBeVisible({ timeout: 30000 });
+
+    if (snapshotInterval === 0) {
+      // Off on load: on saves the API default, off, then on restores it (remembered)
+      await expect(toggle).not.toBeChecked();
+      await toggle.click();
+      await expect.poll(() => apiInterval(request)).toBe(14400);
+      await expect(input).toHaveValue('4h');
+      await toggle.click();
+      await expect.poll(() => apiInterval(request)).toBe(0);
+      await expect(off).toHaveText('Off');
+      await toggle.click();
+      await expect.poll(() => apiInterval(request)).toBe(14400);
+      return;
+    }
+
+    await expect(toggle).toBeChecked();
+    const shownBefore = await input.inputValue();
+
+    // Off: 0 is saved, one toast, "Off" in place of the input, the job is gone
+    await toggle.click();
+    await expect(off).toHaveText('Off');
+    await expect(input).toHaveCount(0);
+    // Only this save's toast: an earlier test's may still be showing
+    await expect(
+      page.locator('[data-sonner-toast]', { hasText: `${INTERVAL_KEY} updated` })
+    ).toHaveCount(1);
+    await expect.poll(() => apiInterval(request)).toBe(0);
+    await page.getByTestId('scheduled-jobs-tab').click();
+    await expect(schedule).toHaveCount(0, { timeout: 5000 });
+
+    // On, after another tab unmounted the panel: the value shown before comes back
+    await page.getByTestId('api-settings-tab').click();
+    await expect(toggle).not.toBeChecked();
+    await toggle.click();
+    await expect(input).toHaveValue(shownBefore);
+    await expect.poll(() => apiInterval(request)).toBe(snapshotInterval);
+    await page.getByTestId('scheduled-jobs-tab').click();
+    await expect(schedule).toHaveText(scheduleText(snapshotInterval), { timeout: 5000 });
+
+    // Off again, then a reload: still Off, and on saves the API default
+    await page.getByTestId('api-settings-tab').click();
+    await toggle.click();
+    await expect(off).toHaveText('Off');
+    await expect.poll(() => apiInterval(request)).toBe(0);
+    await page.reload();
+    await page.getByTestId('api-settings-tab').click();
+    await expect(off).toHaveText('Off', { timeout: 30000 });
+    await expect(toggle).not.toBeChecked();
+    await toggle.click();
+    await expect(input).toHaveValue('4h');
+    await expect.poll(() => apiInterval(request)).toBe(14400);
+    await page.getByTestId('scheduled-jobs-tab').click();
+    await expect(schedule).toHaveText('every 4h', { timeout: 5000 });
+    // afterAll restores the snapshot
+  });
+});
+
+// Story 22.5: read-only checks; nothing is saved
+test.describe('API Settings tab (Story 22.5)', () => {
+  test.beforeEach(async ({ page }) => {
+    await usePageKey(page);
+  });
+
+  test('Metrics Collection is shown and the refresh bounds refuse values', async ({
+    page,
+    request,
+  }) => {
+    test.skip(
+      (await apiInterval(request, 'server_versions_refresh_interval')) === 0,
+      'server_versions_refresh_interval is 0 on this stack (no input to type into)'
+    );
+    const posts: string[] = [];
+    await page.route(SETTINGS_POST, async (route) => {
+      posts.push(route.request().url());
+      await route.fulfill({ status: 500, json: { detail: { code: 'E2E', message: 'stubbed' } } });
+    });
+
+    await openApiSettings(page);
+
+    await expect(page.getByLabel('Metrics Collection', { exact: true })).toBeVisible();
+    await expect(page.getByRole('switch', { name: 'Metrics Collection On' })).toBeVisible();
+    await expect(
+      page.getByText(/charts and its memory and players cards stop updating/)
+    ).toBeVisible();
+    await expect(page.getByText(/\/metrics is read live and keeps working/)).toBeVisible();
+
+    // Not Mod List Refresh: the serial describe may have it Off at this moment
+    const input = page.getByLabel('Server Versions Refresh', { exact: true });
+    await input.fill('400d');
+    await input.blur();
+    await expect(page.getByText('Must be at most 365d')).toBeVisible();
+    await input.fill('30s');
+    await input.blur();
+    await expect(page.getByText('Must be at least 1m')).toBeVisible();
+
+    expect(posts).toEqual([]);
+  });
+
+  test('the switch has a 44px tap target at 390px and nothing scrolls sideways', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openApiSettings(page);
+
+    const target = page.getByTestId(`${INTERVAL_KEY}-switch-target`);
+    const box = await target.boundingBox();
+    expect(box, 'tap target').not.toBeNull();
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+    // Below the fold on a phone: scrolled to, it is wholly inside the viewport (not cut off
+    // at the side)
+    const toggle = page.getByRole('switch', { name: 'Mod List Refresh On' });
+    await toggle.scrollIntoViewIfNeeded();
+    await expect(toggle).toBeInViewport({ ratio: 1 });
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth
+    );
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+});
+
+async function openApiSettings(page: Page): Promise<void> {
+  await page.goto('/config');
+  await page.getByTestId('api-settings-tab').click();
+  await expect(page.getByTestId('api-settings-panel')).toBeVisible({ timeout: 30000 });
+}
+
+// Story 22.5 (AC 7, Epic 22 ADR-12): only an Admin key can read the API settings
+test.describe('API Settings tab for each role (Story 22.5)', () => {
+  test('an Admin sees the API Settings tab, which opens its panel', async ({ page }) => {
+    await usePageKey(page);
+    await openApiSettings(page);
+  });
+
+  test('a Monitor never sees the API Settings tab or requests its data', async ({ page }) => {
+    test.skip(!MONITOR_KEY, 'VS_API_KEY_MONITOR is not set for this stack');
+    await serveConfigKey(page, MONITOR_KEY);
+    await pretendServerInstalled(page);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const apiSettingsRequests: string[] = [];
+    page.on('request', (req) => {
+      if (new URL(req.url()).pathname.endsWith('/api/v1alpha1/config/api')) {
+        apiSettingsRequests.push(req.url());
+      }
+    });
+
+    for (const path of ['/config', '/config?tab=api-settings']) {
+      const authMe = page.waitForResponse((res) => res.url().includes('/api/v1alpha1/auth/me'));
+      await page.goto(path);
+      const role: { data: { role: string } } = await (await authMe).json();
+      expect(role.data.role, 'the Monitor key').toBe('monitor');
+
+      await expect(page.getByTestId('ui-preferences-tab')).toHaveAttribute('aria-selected', 'true');
+      await expect(page.getByTestId('file-manager-tab')).toBeVisible();
+      await expect(page.getByTestId('api-settings-tab')).toHaveCount(0);
+      await expect(page.getByTestId('scheduled-jobs-tab')).toHaveCount(0);
+      await expect(page.getByText('Failed to load settings')).not.toBeVisible();
+    }
+
+    expect(apiSettingsRequests).toEqual([]);
   });
 });

@@ -77,13 +77,37 @@ export const SECRET_API_SETTINGS: ReadonlySet<string> = new Set(['mod_update_web
  * API settings whose change reschedules a job (Story 17.6).
  *
  * Keep in step with the API: `INTERVAL_JOBS` in `api/src/vintagestory_api/jobs/__init__.py`
- * (and `INTERVAL_SETTINGS` in `services/api_settings.py`, which an API test ties to it).
+ * (and `SCHEDULED_SETTINGS` in `services/api_settings.py`, which an API test ties to it).
  */
 export const INTERVAL_API_SETTINGS: ReadonlySet<string> = new Set([
   'mod_list_refresh_interval',
   'server_versions_refresh_interval',
   'metrics_collection_interval',
 ]);
+
+/**
+ * The API's maximum for an interval setting: 365 days (`MAX_INTERVAL_SECONDS` in
+ * `api/src/vintagestory_api/services/api_settings.py`; pinned by `TestWebDefaults` in
+ * `api/tests/test_api_settings.py`).
+ */
+export const MAX_INTERVAL_SECONDS = 31_536_000;
+
+/**
+ * The API's default for each setting the API Settings tab shows (Story 22.5, Epic 22
+ * ADR-11 decision 4): the tab's fallback when a value is missing, and the value an
+ * interval's On switch saves when the page has seen no earlier value for it. Keys are the
+ * API's setting keys. Keep each value a plain
+ * literal on its own line: `TestWebDefaults` in `api/tests/test_api_settings.py` reads
+ * this block and compares it with `ApiSettings()`.
+ */
+export const API_SETTING_DEFAULTS = {
+  auto_start_server: false,
+  block_env_managed_settings: true,
+  enforce_env_on_restart: false,
+  mod_list_refresh_interval: 14400,
+  server_versions_refresh_interval: 86400,
+  metrics_collection_interval: 10,
+} as const;
 
 /**
  * Set or clear the mod update webhook (Story 14.6). `null` clears it.
