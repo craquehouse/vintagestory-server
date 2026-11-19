@@ -10,7 +10,7 @@ Story 19.1 (FR205, FR206, Epic 19 ADR-1): the viewer serves only regular files
 whose requested and resolved names end in .json (any letter case), that are at
 most 2 MiB and UTF-8 text (a leading byte order mark is allowed). The listing
 uses the same file rule. Content that does not parse, or that nests more than
-CONFIG_FILE_MAX_DEPTH levels deep, is returned as `_raw` and `_parse_error`.
+config_parse.CONFIG_FILE_MAX_DEPTH levels deep, is returned as `_raw` and `_parse_error`.
 
 Story 23.1 (FR309-FR311, Epic 23 ADR-1, ADR-2): files are parsed as JSON5
 (config_parse.parse_config_text: comments, trailing commas, single quotes, unquoted
@@ -331,7 +331,7 @@ class ConfigFilesService:
         byte order mark is dropped).
 
         The text is parsed as JSON5 (Story 23.1, Epic 23 ADR-1). Content that does not
-        parse, that nests more than CONFIG_FILE_MAX_DEPTH levels deep, or that holds
+        parse, that nests more than config_parse.CONFIG_FILE_MAX_DEPTH levels deep, or that holds
         Infinity or NaN is returned as `_raw` and `_parse_error`, and `parse_error`
         says why and, when known, where.
 

@@ -1,6 +1,6 @@
 # Story 23.1: Configs with Comments Can Be Viewed
 
-Status: review
+Status: done
 
 <!-- Implements FR309, FR310, FR311 and FR326 (JSON5 part), Epic 23 ADR-1, ADR-2 and ADR-9. Bead: VSS-ato4 (API-097), closed by this story after merge. Branch story/23-1-configs-with-comments-can-be-viewed from main at fc525885 with the epic's planning commit f759ee24. Line references verified at f759ee24. -->
 
@@ -259,7 +259,17 @@ Claude Opus 5.5 (claude-opus-5-5), as the epic's controller.
 - `_bmad-output/implementation-artifacts/23-1-configs-with-comments-can-be-viewed.md` (this file)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode. Verdict: approve. 0 HIGH, 0 MEDIUM, two LOW, both fixed:
+
+1. **LOW: `fetchConfigFileContent` read `raw.data`'s fields without checking it is an object** (`web/src/api/config.ts:259`); a 200 with `data: null` would throw a `TypeError` inside the query. Fixed: a non-object `data` maps to an empty read, with a test.
+2. **LOW: `config_files.py`'s module and `read_file` docstrings named `CONFIG_FILE_MAX_DEPTH`**, which moved to `config_parse.py`. Fixed: they name `config_parse.CONFIG_FILE_MAX_DEPTH`.
+
+The reviewer also checked that no pyjson5 error message echoes file text (nine error shapes probed: messages name token types and single code points only), that pyjson5 refuses integers over 4,300 digits (the interpreter's conversion limit, so an accepted file always serializes), and noted that an unparseable file's Admin response carries the text twice (`content._raw` and `text`), by design (ADR-2 decision 1).
+
 ## Change Log
 
 - 2026-11-19: Story 23.1 created (ready-for-dev).
 - 2026-11-19: Implemented (dev-story): Tasks 1 to 6; status review. Task 6.3 waits for the maintainer.
+- 2026-11-19: Code review (GLM-5.3-Flash via opencode): approve; 0 HIGH, 0 MEDIUM, two LOW fixed (a null `data` guard in the web mapper; two docstrings naming the moved depth constant) (see "Review"). Status done.
