@@ -33,8 +33,8 @@
 | Restart schedule | Daily `HH:MM` times, empty by default, in the container's time zone (answer 5) |
 | Warnings | `/announce` at 15, 5 and 1 minutes, fixed text (answer 6) |
 | Condition | Restart whenever the game runs, players or not; never start a stopped game (answer 7) |
-| Disk cleanup | Log archives older than 14 days, newest 5 kept; backups kept to N only when N is set (default keep all); `BackupSaves` never (answer 8) |
-| Log rotation | The game's; the manager only prunes archives (answer 9) |
+| Disk cleanup | Log archives older than 14 days, newest 5 kept; backups kept to N only when N is set (default keep all); `BackupSaves` never (answer 8). Changed 2026-11-19 ("Backups only + docs"): backups only, with `backup_keep_count`; the game keeps its log archives to 5 |
+| Log rotation | The game's; the manager only prunes archives (answer 9). Changed 2026-11-19: the manager prunes nothing in `Logs/` |
 | Interval fields | An On switch per interval; refresh fields 60 s to 365 days; Metrics Collection 1 s to 1 h (answer 10) |
 
 **Grouping:**
@@ -87,17 +87,18 @@
 | 22.3 | API setting `scheduled_restart_times` | New: list of `HH:MM`, default `[]` | New setting |
 | 22.3 | Jobs | New `scheduled_restart_HHMM` jobs, listed by `GET /api/v1alpha1/jobs` | New jobs |
 | 22.3 | `TZ` | Documented: scheduled restarts and cleanup follow it (UTC when unset) | Documentation |
-| 22.4 | API settings `log_archive_retention_days`, `log_archive_keep_min`, `backup_keep_count` | New, defaults 14, 5, 0 | New settings |
-| 22.4 | Job `disk_cleanup` | New, daily at 03:00 container time; deletes old log archives by default | New behaviour |
+| 22.4 | API setting `backup_keep_count` | New, default 0 (keep all), 0 to 1000; `log_archive_retention_days` and `log_archive_keep_min` were dropped (amended 2026-11-19, "Backups only + docs") | New setting |
+| 22.4 | Job `disk_cleanup` | New, daily at 03:00 container time; deletes old backups only when `backup_keep_count` is above 0, nothing by default; never touches log archives, which the game keeps to 5 (amended 2026-11-19) | New behaviour |
+| 22.6 | API Settings tab | Scheduled Restarts editor (`scheduled_restart_times`) and a Backup Cleanup field (`backup_keep_count` only, 0 to 1000, 0 = keep all) | Web-only |
 | 22.5 | API Settings tab | Shown to Admin only | Web-only |
 | 22.7 | `serverconfig.json`, `vsmanager/state/pending-config-edits.json` | A restart-required game setting saved while the game runs is written again after the game exits and before any start; the new state file keeps it across API restarts | Fix, new state file |
 | 22.8 | Container stop (SIGTERM to the manager) | A running game is stopped through the normal stop (SIGTERM, killed after 8 s) before the manager exits, so the world is saved; no start once the shutdown has begun; no new setting, compose file unchanged | Fix |
 
-No route is removed, no existing field changes, and nothing is breaking. The cleanup's default deletes log archives older than 14 days (the newest 5 kept); the release note says so, and setting `log_archive_retention_days` to 0 keeps all.
+No route is removed, no existing field changes, and nothing is breaking. The cleanup deletes nothing by default: backups only when `backup_keep_count` is set above 0, log archives never (amended by the maintainer's "Backups only + docs" decision, 2026-11-19; the plan was to delete log archives older than 14 days by default).
 
 **Draft release-note text** (commit subjects; the story scope is removed by git-cliff):
 
-- Features: `feat(api): count the players online and include them in the metrics`; `feat(web): show the players online on the dashboard`; `feat(api): serve game server metrics for Prometheus at /metrics`; `feat(api): restart the game server at scheduled times, warning players first`; `feat(api): delete old game log archives every day, and old backups when a limit is set`; `feat(web): turn scheduled jobs off and on, and set metrics collection, in API Settings`; `feat(web): set restart times in API Settings`; `feat(web): set disk cleanup limits in API Settings`
+- Features: `feat(api): count the players online and include them in the metrics`; `feat(web): show the players online on the dashboard`; `feat(api): serve game server metrics for Prometheus at /metrics`; `feat(api): restart the game server at scheduled times, warning players first`; `feat(api): delete old backups every day when a limit is set` (Story 22.4 as amended 2026-11-19; was `delete old game log archives every day, and old backups when a limit is set`); `feat(web): turn scheduled jobs off and on, and set metrics collection, in API Settings`; `feat(web): set restart times in API Settings`; `feat(web): set the backup limit in API Settings` (amended 2026-11-19; was `set disk cleanup limits in API Settings`)
 - Fixes: `fix(api): show Restart required when a game setting change needs a restart` (Story 22.2, pulled in during its validation); `fix(web): hide the API Settings tab from read-only keys`; `fix(web): allow refresh intervals up to 365 days, as the API does`; and, from Story 22.7, `fix(api): keep a Port or Ip change saved while the server runs when a later live setting change rewrites the config` (Story 22.3 made no code change for `VSS-zws`); from Story 22.8, `fix(api): stop the game server, saving the world, when the container stops or restarts`
 - No note: the dependency (`build`), tests, documentation, the throwaway-container measurements
 
@@ -121,7 +122,7 @@ No route is removed, no existing field changes, and nothing is breaking. The cle
 - Story 22.3: a restart while players are online loses their progress if the 10-second stop cuts the world save short. The stop is measured first; a slow stop stops the story for the maintainer's decision (ADR-8).
 - Story 22.3: time zones. A wrong `TZ` restarts at the wrong hour. The README documents it and the job's next run is visible in Scheduled Jobs.
 - Story 22.3: the jobs' next run shown in Scheduled Jobs is the warning time, 15 minutes before the restart. The job id names the restart time (ADR-6 decision 7).
-- Story 22.4: deleting files. The rules are narrow (two directories, named entries, no links, a resolve check) and each refusal has a test. The default deletes archives, which no operator asked for before; the release note says so.
+- Story 22.4: deleting files. The rules are narrow (two directories, named entries, no links, a resolve check) and each refusal has a test. The default deletes archives, which no operator asked for before; the release note says so. (Amended 2026-11-19: only `Backups/` is cleaned, and only when `backup_keep_count` is above 0; nothing is deleted by default.)
 - Story 22.4: whether the game prunes its own archives is not observed; the throwaway run checks it before the job ships.
 - Stories 22.3, 22.4: tests must not restart the dev stack's game server. Stubs, a fake sleep and throwaway `vss-22-*` containers only (ADR-14).
 - Stories 22.5, 22.6: both edit `ApiSettingsPanel.tsx` and run one after the other.
@@ -248,9 +249,9 @@ Seen and not proposed, because they share no file with a story: `VSS-2n2` (white
 - The stop time and `VSS-zws` are recorded from a throwaway container
 - A `Port` change saved while the game runs survives a live setting change, a stop, a crash and an API restart, and the next start uses it (Story 22.7)
 - `docker stop` of a throwaway container with a running game shows the game's save and stop lines before the manager exits, inside the default grace period (Story 22.8)
-- The cleanup deletes only old named archives (and backups when asked), refuses links and every other directory, and logs what it deleted
+- The cleanup deletes only old backups, and only when `backup_keep_count` is set; it refuses links and every other directory, and logs what it deleted (amended 2026-11-19, "Backups only + docs")
 - Each interval job can be turned off and on in the UI; Metrics Collection has a field; bounds and fallbacks match the API; a Monitor key does not see the tab
-- Restart times and cleanup limits are edited in the UI
+- Restart times and the backup limit (`backup_keep_count`) are edited in the UI
 - Each of the four in-scope beads is closed with an AAR by its story after merge
 - `just check` and CI pass throughout, with 0 Pyright warnings and 0 skipped web tests
 
@@ -260,7 +261,7 @@ Seen and not proposed, because they share no file with a story: `VSS-2n2` (white
 |---|---|
 | 1. Trigger and context | [x] 1.1 trigger: the maintainer named the epic and three beads after Epic 21's release. [x] 1.2 type: two new capabilities (metrics, operations) and one UI gap. [x] 1.3 evidence: section 1 and the ADR file |
 | 2. Epic impact | [x] 2.1 no current epic is blocked. [x] 2.2 add one epic. [x] 2.3 no remaining epic changes. [x] 2.4 nothing made obsolete; the PRD's post-MVP Prometheus line is built. [x] 2.5 no resequencing; order inside Epic 22 is set |
-| 3. Artifact conflicts | [x] 3.1 PRD: FR287-FR305 added, MVP unaffected. [x] 3.2 architecture: new Epic 22 ADRs. [x] 3.3 UX spec: no text change. [!] 3.4 one new runtime dependency, one new open route, and a default that deletes old log archives |
+| 3. Artifact conflicts | [x] 3.1 PRD: FR287-FR305 added, MVP unaffected. [x] 3.2 architecture: new Epic 22 ADRs. [x] 3.3 UX spec: no text change. [!] 3.4 one new runtime dependency, one new open route, and a default that deletes old log archives (amended 2026-11-19: no longer; nothing is deleted by default) |
 | 4. Path forward | [x] 4.1 Direct Adjustment: viable. [x] 4.2 Rollback: not viable. [x] 4.3 MVP Review: not needed. [x] 4.4 selected Option 1 |
 | 5. Proposal components | [x] 5.1 to 5.5: sections 1 to 5 |
 | 6. Review and handoff | [x] 6.1 scope named by the maintainer (2026-11-18). [x] 6.2, 6.3 the eleven questions were answered one at a time on 2026-11-18 and are written in, a twelfth (Story 22.7) after Story 22.3's finding, and a thirteenth (Story 22.8, 2026-11-19) after Story 22.7's Run C; the planner decisions listed in section 5 are not reviewed yet. [x] 6.4 handoff in section 5 |

@@ -7,6 +7,8 @@ inputDocuments:
 lastUpdated: '2026-11-19'
 updates:
   - date: '2026-11-19'
+    description: 'Epic 22: the Product changes line and Story 22.6 (fourth criterion, tasks, FR305 row) now name only backup_keep_count, after the maintainer''s "Backups only + docs" decision dropped the two log-archive settings (Story 22.4)'
+  - date: '2026-11-19'
     description: 'Added Story 22.8 (stopping the container saves the world first) to Epic 22 with FR308, on the maintainer''s thirteenth answer after Story 22.7''s throwaway run (found in the epic; no bead)'
   - date: '2026-11-18'
     description: 'Added Epic 22 (6 stories) for Server Operations and Metrics; FR287-FR305, with the maintainer''s eleven answers of the same day (VSS-zws pulled in); revised the same day: FR306 (one pending-restart state) pulled into Story 22.2 during its validation, and Story 22.7 with FR307 (VSS-zws fixed, after Story 22.3 confirmed it; maintainer''s twelfth answer)'
@@ -522,7 +524,7 @@ This document provides the complete epic and story breakdown for vintagestory-se
 | FR302 | Epic 22 | Interval bounds and fallbacks match the API |
 | FR303 | Epic 22 | No API Settings tab for a Monitor key |
 | FR304 | Epic 22 | Restart times edited in the API Settings tab |
-| FR305 | Epic 22 | Cleanup limits edited in the API Settings tab |
+| FR305 | Epic 22 | Backup limit edited in the API Settings tab |
 | FR306 | Epic 22 | A restart-required game setting is a pending restart, cleared by a restart |
 | FR307 | Epic 22 | A restart-required change made while the game runs survives a live change |
 | FR308 | Epic 22 | Stopping the container stops the game through the normal stop first, so the world is saved |
@@ -7251,7 +7253,7 @@ So that **content has room at tablet widths and stays readable on large monitors
 
 **Beads:** four in scope, each closed with an AAR by its story after merge: `VSS-bhw` in 22.2 (22.1 carries its first half), `VSS-29p` in 22.4 (22.3 carries its first half), `VSS-zws` in 22.7 (22.3 confirmed it), `VSS-9jv` in 22.5. Story 22.6 has no bead: it is the web half of `VSS-29p`'s settings. What planning found is in the stories (the change proposal lists it), not in new beads. Story 22.8 has no bead either: it was found inside the epic (Story 22.7's Run C) and is drawn down there.
 
-**Product changes:** one new route (`GET /metrics`, open); one new field in the JSON metrics (`playersOnline`); four new API settings (`scheduled_restart_times`, `log_archive_retention_days`, `log_archive_keep_min`, `backup_keep_count`; the existing settings' API bounds do not change); two new background jobs (`scheduled_restart_HHMM`, `disk_cleanup`); one new state file (`vsmanager/state/pending-config-edits.json`, Story 22.7); a stop of the running game when the manager shuts down (Story 22.8, no new setting; the shipped compose file is not changed); `TZ` documented; one new runtime dependency (`prometheus-client`). No existing route, field or status code changes. Nothing is breaking. Deleting old log archives by default (14 days, 5 kept) is new behaviour an operator should read about in the release note.
+**Product changes:** one new route (`GET /metrics`, open); one new field in the JSON metrics (`playersOnline`); two new API settings (`scheduled_restart_times`, `backup_keep_count`; the existing settings' API bounds do not change; amended 2026-11-19 by the maintainer's "Backups only + docs" decision, which dropped `log_archive_retention_days` and `log_archive_keep_min`); two new background jobs (`scheduled_restart_HHMM`, `disk_cleanup`); one new state file (`vsmanager/state/pending-config-edits.json`, Story 22.7); a stop of the running game when the manager shuts down (Story 22.8, no new setting; the shipped compose file is not changed); `TZ` documented; one new runtime dependency (`prometheus-client`). No existing route, field or status code changes. Nothing is breaking. Nothing is deleted by default: the game keeps its own log archives to 5, and old backups are deleted only when `backup_keep_count` is set above 0 (amended 2026-11-19, "Backups only + docs"; the plan was to delete old log archives by default).
 
 ### Current State
 
@@ -7272,7 +7274,7 @@ So that **content has room at tablet widths and stays readable on large monitors
 - A `Port` or `Ip` change made while the game runs reaches the next start, even after a live setting change made the game rewrite its config
 - Stopping, restarting or recreating the container stops the game through its normal stop first, so the world is saved
 - Every interval job can be turned off and on in the UI, Metrics Collection has a field, the bounds and fallbacks match the API, and a Monitor key does not see the tab
-- Restart times and cleanup limits are edited in the API Settings tab
+- Restart times and the backup limit (`backup_keep_count`) are edited in the API Settings tab
 
 ---
 
@@ -7671,8 +7673,10 @@ So that **I do not have to call the API by hand for what the API already allows*
 **Beads:** none (the web half of `VSS-29p`'s settings, closed by Story 22.4)
 **FRs:** FR304, FR305
 
+**Amended (2026-11-19), following the maintainer's decision "Backups only + docs" (Matt, 2026-11-19; Story 22.4, ADR-9, ADR-10 and ADR-13):** `log_archive_retention_days` and `log_archive_keep_min` do not exist, so the tab shows one cleanup field, `backup_keep_count` (0 to 1000, 0 = keep all). The fourth criterion and the first and third tasks below say so.
+
 As an **administrator**,
-I want **to set the restart times and the cleanup limits in the API Settings tab**,
+I want **to set the restart times and the backup limit in the API Settings tab**,
 So that **I can schedule restarts and control disk use without calling the API**.
 
 **Acceptance Criteria:**
@@ -7696,8 +7700,8 @@ So that **I can schedule restarts and control disk use without calling the API**
 *(Covers FR304; ADR-13 decision 1)*
 
 **Given** the API Settings tab
-**When** I look at Disk Cleanup
-**Then** it has Log archive retention (days), Archives always kept and Backups kept, with the API's bounds and "0 keeps all" in each help text, and saving one shows one toast
+**When** I look at Backup Cleanup
+**Then** it has one field, Backups kept (`backup_keep_count`, 0 to 1000, the API's bounds), whose help text says that 0 keeps all, that deletion is permanent, and that the cleanup runs every day at 03:00 server time; saving it shows one toast
 
 *(Covers FR305; ADR-13 decision 2)*
 
@@ -7709,10 +7713,10 @@ So that **I can schedule restarts and control disk use without calling the API**
 
 **Tasks:**
 
-- [ ] The four settings in the web's API settings type and client, with tests (Epic 22 ADR-13 decision 4)
+- [ ] The two settings in the web's API settings type and client, with tests (Epic 22 ADR-13 decision 4)
 - [ ] The Scheduled Restarts group (time list, add, change, remove, one save per change, error state), with unit tests; a `feat(web)` commit with the release note (ADR-13 decision 1)
-- [ ] The Disk Cleanup group, with unit tests; a `feat(web)` commit with the release note (ADR-13 decision 2)
-- [ ] E2E: set and clear a restart time and a cleanup limit in the tab, restoring the saved values from a snapshot, at 320px and desktop width; base URL default `http://localhost:9080` (ADR-13, ADR-14 decision 3)
+- [ ] The Backup Cleanup group (one field, `backup_keep_count`), with unit tests; a `feat(web)` commit with the release note (ADR-13 decision 2)
+- [ ] E2E: set and clear a restart time and the backup limit in the tab, restoring the saved values from a snapshot, at 320px and desktop width; base URL default `http://localhost:9080` (ADR-13, ADR-14 decision 3)
 
 ---
 

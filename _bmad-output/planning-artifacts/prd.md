@@ -14,6 +14,8 @@ documentCounts:
 lastUpdated: '2026-11-19'
 updates:
   - date: '2026-11-19'
+    description: 'FR305 names only backup_keep_count, after the maintainer''s "Backups only + docs" decision dropped the two log-archive settings (Story 22.4)'
+  - date: '2026-11-19'
     description: 'Added FR308 for Epic 22 Story 22.8 (stopping the container saves the world first), on the maintainer''s thirteenth answer after Story 22.7''s throwaway run'
   - date: '2026-11-18'
     description: 'Added FR287-FR305 for Epic 22 (Server Operations and Metrics), with the maintainer''s answers of the same day; revised the same day: FR306 added for the pending-restart fix pulled into Story 22.2 during its validation, and FR307 for Story 22.7 (VSS-zws, after Story 22.3 confirmed it)'
@@ -922,7 +924,7 @@ If trivial to implement:
 - FR302: The refresh interval fields accept 60 seconds to 365 days, as the API does, and the tab's fallback values equal the API's defaults
 - FR303: A Monitor key does not see the API Settings tab, whose data only an Admin key can read
 - FR304: The API Settings tab edits the scheduled restart times (add, change and remove times, saved as one list, with the time zone and warning rules in its help text)
-- FR305: The API Settings tab edits the three disk cleanup limits within the API's bounds, each saying that 0 keeps all
+- FR305: The API Settings tab edits the backup cleanup limit `backup_keep_count` within the API's bounds (0 to 1000), saying that 0 keeps all, that deletion is permanent and that the cleanup runs daily at 03:00 server time (amended by the maintainer's "Backups only + docs" decision, 2026-11-19: the two log-archive limits do not exist; was: the three disk cleanup limits)
 
 #### Pulled In (Story 22.2 validation, 2026-11-18)
 
