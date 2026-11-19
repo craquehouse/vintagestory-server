@@ -562,6 +562,8 @@ describe('useUpdateApiSetting and Scheduled Jobs (Story 17.6)', () => {
           modUpdateWebhookConfigured: false,
           scheduledRestartTimes: [],
           backupKeepCount: 0,
+          configHistoryKeepCount: 20,
+          configHistoryMaxAgeDays: 0,
         },
       },
     });
@@ -600,6 +602,8 @@ describe('useUpdateApiSetting and Scheduled Jobs (Story 17.6)', () => {
           modUpdateWebhookConfigured: false,
           scheduledRestartTimes,
           backupKeepCount: 0,
+          configHistoryKeepCount: 20,
+          configHistoryMaxAgeDays: 0,
         },
       },
     });

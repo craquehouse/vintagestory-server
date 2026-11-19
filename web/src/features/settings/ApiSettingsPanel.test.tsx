@@ -55,6 +55,8 @@ const mockApiSettingsCamelCase = {
       modUpdateWebhookConfigured: true,
       scheduledRestartTimes: [],
       backupKeepCount: 0,
+      configHistoryKeepCount: 20,
+      configHistoryMaxAgeDays: 0,
     },
   },
 };
@@ -2034,6 +2036,75 @@ describe('ApiSettingsPanel', () => {
       expect(
         screen.getByText('Enable DEBUG-level logging at runtime without server restart')
       ).toBeInTheDocument();
+    });
+  });
+
+  // Story 23.7 (FR325, Epic 23 ADR-8 decision 4)
+  describe('Config History', () => {
+    const loaded = {
+      ...mockApiSettingsCamelCase.data.settings,
+      configHistoryKeepCount: 5,
+      configHistoryMaxAgeDays: 30,
+    };
+
+    it('has the two limits with the loaded values', async () => {
+      serveSettings(loaded);
+      await renderPanel();
+
+      expect(screen.getByText('Config History')).toBeInTheDocument();
+      expect(screen.getByLabelText('Versions kept')).toHaveValue(5);
+      expect(screen.getByLabelText('Maximum age (days)')).toHaveValue(30);
+    });
+
+    it('shows the API defaults when the settings are missing', async () => {
+      serveSettings({});
+      await renderPanel();
+
+      expect(screen.getByLabelText('Versions kept')).toHaveValue(20);
+      expect(screen.getByLabelText('Maximum age (days)')).toHaveValue(0);
+    });
+
+    it('says history is kept only for files saved in the file browser', async () => {
+      serveSettings(loaded);
+      await renderPanel();
+
+      expect(
+        screen.getByText(/History is kept only for files saved in the file browser/)
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/A lower limit applies when a file is next saved/)
+      ).toBeInTheDocument();
+    });
+
+    it('saves a limit with one POST', async () => {
+      const mockFetch = serveSettings(loaded);
+      await renderPanel();
+
+      const input = screen.getByLabelText('Versions kept');
+      fireEvent.change(input, { target: { value: '8' } });
+      fireEvent.blur(input);
+
+      await waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1));
+      const posts = postCalls(mockFetch);
+      expect(posts).toHaveLength(1);
+      expect(posts[0][0]).toMatch(/\/config\/api\/settings\/config_history_keep_count$/);
+      expect(JSON.parse(String(posts[0][1]?.body))).toEqual({ value: 8 });
+    });
+
+    it.each([
+      ['Versions kept', '0', 'Must be between 1 and 200'],
+      ['Versions kept', '201', 'Must be between 1 and 200'],
+      ['Maximum age (days)', '3651', 'Must be between 0 and 3650'],
+    ])('refuses %s = %s before sending', async (label, value, message) => {
+      const mockFetch = serveSettings(loaded);
+      await renderPanel();
+
+      const input = screen.getByLabelText(label);
+      fireEvent.change(input, { target: { value } });
+      fireEvent.blur(input);
+
+      await waitFor(() => expect(screen.getByText(message)).toBeInTheDocument());
+      expect(postCalls(mockFetch)).toHaveLength(0);
     });
   });
 });

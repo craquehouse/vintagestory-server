@@ -323,6 +323,10 @@ export interface ApiSettingsData {
     scheduledRestartTimes: string[];
     /** Story 22.6: newest backup files kept; 0: keep all */
     backupKeepCount: number;
+    /** Story 23.7: earlier versions kept per config file (1 to 200) */
+    configHistoryKeepCount: number;
+    /** Story 23.7: days an earlier version is kept; 0: any age */
+    configHistoryMaxAgeDays: number;
   };
 }
 

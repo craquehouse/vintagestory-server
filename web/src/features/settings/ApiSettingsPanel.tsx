@@ -15,7 +15,13 @@
 
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { API_SETTING_DEFAULTS, MAX_BACKUP_KEEP_COUNT, MAX_INTERVAL_SECONDS } from '@/api/config';
+import {
+  API_SETTING_DEFAULTS,
+  MAX_BACKUP_KEEP_COUNT,
+  MAX_CONFIG_HISTORY_AGE_DAYS,
+  MAX_CONFIG_HISTORY_KEEP_COUNT,
+  MAX_INTERVAL_SECONDS,
+} from '@/api/config';
 import { ApiError } from '@/api/errors';
 import { DurationSettingField } from '@/components/DurationSettingField';
 import { SettingField } from '@/components/SettingField';
@@ -31,6 +37,8 @@ import type { ApiSettingValue } from '@/api/types';
 
 /** The Backups kept field's message for a value outside the API's bounds (Story 22.6). */
 const BACKUP_LIMIT_MESSAGE = `Must be between 0 and ${MAX_BACKUP_KEEP_COUNT}`;
+const HISTORY_COUNT_MESSAGE = `Must be between 1 and ${MAX_CONFIG_HISTORY_KEEP_COUNT}`;
+const HISTORY_AGE_MESSAGE = `Must be between 0 and ${MAX_CONFIG_HISTORY_AGE_DAYS}`;
 
 /**
  * Props for the ApiSettingsPanel component.
@@ -158,6 +166,41 @@ export function ApiSettingsPanel({ className }: ApiSettingsPanelProps) {
               validators.range(0, MAX_BACKUP_KEEP_COUNT, BACKUP_LIMIT_MESSAGE)
             )}
             description="Newest files kept in serverdata/Backups. 0 keeps all (the default). Every day at 03:00 server time (TZ, UTC unless set) older files are deleted permanently. BackupSaves and the world are never touched."
+            onSave={handleSave}
+          />
+        </SettingGroup>
+
+        {/* Config History (Story 23.7, Epic 23 ADR-8 decision 4) */}
+        <SettingGroup
+          title="Config History"
+          description="Earlier versions of config files saved in the file browser"
+        >
+          <SettingField
+            settingKey="config_history_keep_count"
+            label="Versions kept"
+            type="int"
+            value={
+              settings?.configHistoryKeepCount ?? API_SETTING_DEFAULTS.config_history_keep_count
+            }
+            validate={validators.compose(
+              validators.positiveInt(HISTORY_COUNT_MESSAGE),
+              validators.range(1, MAX_CONFIG_HISTORY_KEEP_COUNT, HISTORY_COUNT_MESSAGE)
+            )}
+            description="Earlier versions kept for each config file (1 to 200, 20 by default). History is kept only for files saved in the file browser, not for changes by the game, mods or by hand. A lower limit applies when a file is next saved."
+            onSave={handleSave}
+          />
+          <SettingField
+            settingKey="config_history_max_age_days"
+            label="Maximum age (days)"
+            type="int"
+            value={
+              settings?.configHistoryMaxAgeDays ?? API_SETTING_DEFAULTS.config_history_max_age_days
+            }
+            validate={validators.compose(
+              validators.positiveInt(HISTORY_AGE_MESSAGE),
+              validators.range(0, MAX_CONFIG_HISTORY_AGE_DAYS, HISTORY_AGE_MESSAGE)
+            )}
+            description="Earlier versions older than this are deleted when the file is next saved; the newest is always kept. 0 keeps them whatever their age (the default)."
             onSave={handleSave}
           />
         </SettingGroup>

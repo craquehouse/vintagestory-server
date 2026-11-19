@@ -57,10 +57,10 @@ so that **I can see what an edit changed and undo it from the web UI**.
   - [x] 3.2: `features/settings/ConfigHistoryPanel.tsx`; `FileManagerPanel.tsx`: a History button in the viewer's actions (Admin with a read version), `showingHistory` state, the panel in the viewer's place
   - [x] 3.3: Commit `feat(story-23.7/task-3): see, compare and restore earlier versions of config files`
 
-- [ ] Task 4: The Config History settings + tests (AC: 4, 6)
-  - [ ] 4.1: Red first: `ApiSettingsPanel.test.tsx` rows (the two fields, their bounds and help text, saving); `api/tests/test_api_settings.py`: `WEB_DEFAULT_KEYS` and `WEB_BOUNDS` gain the two settings and the two bounds
-  - [ ] 4.2: `config.ts`: `MAX_CONFIG_HISTORY_KEEP_COUNT = 200`, `MAX_CONFIG_HISTORY_AGE_DAYS = 3650`, two `API_SETTING_DEFAULTS` lines; `types.ts`: `configHistoryKeepCount`, `configHistoryMaxAgeDays`; `ApiSettingsPanel.tsx`: the group after Backup Cleanup
-  - [ ] 4.3: Commit `feat(story-23.7/task-4): set how many earlier versions of config files are kept`
+- [x] Task 4: The Config History settings + tests (AC: 4, 6)
+  - [x] 4.1: Red first: `ApiSettingsPanel.test.tsx` rows (the two fields, their bounds and help text, saving); `api/tests/test_api_settings.py`: `WEB_DEFAULT_KEYS` and `WEB_BOUNDS` gain the two settings and the two bounds
+  - [x] 4.2: `config.ts`: `MAX_CONFIG_HISTORY_KEEP_COUNT = 200`, `MAX_CONFIG_HISTORY_AGE_DAYS = 3650`, two `API_SETTING_DEFAULTS` lines; `types.ts`: `configHistoryKeepCount`, `configHistoryMaxAgeDays`; `ApiSettingsPanel.tsx`: the group after Backup Cleanup
+  - [x] 4.3: Commit `feat(story-23.7/task-4): set how many earlier versions of config files are kept`
 
 - [ ] Task 5: E2E (AC: 1-3)
   - [ ] 5.1: `e2e/config-file-history.spec.ts` (throwaway container only, as `config-file-editor.spec.ts`): create a file, save it twice through the API, open History, choose the oldest, check the compare shows both texts, restore, check the file through the API, remove the file

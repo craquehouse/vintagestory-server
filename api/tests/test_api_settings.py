@@ -1312,6 +1312,8 @@ WEB_BOUNDS = {
     "MAX_RESTART_TIMES": MAX_RESTART_TIMES,
     "MIN_RESTART_GAP_MINUTES": MIN_RESTART_GAP_MINUTES,
     "MAX_BACKUP_KEEP_COUNT": MAX_BACKUP_KEEP_COUNT,
+    "MAX_CONFIG_HISTORY_KEEP_COUNT": MAX_CONFIG_HISTORY_KEEP_COUNT,
+    "MAX_CONFIG_HISTORY_AGE_DAYS": MAX_CONFIG_HISTORY_AGE_DAYS,
 }
 """The web's copies of the API's bounds (Story 22.6), by name, with the API's value."""
 WEB_DEFAULT_KEYS = {
@@ -1323,6 +1325,8 @@ WEB_DEFAULT_KEYS = {
     "metrics_collection_interval",
     "scheduled_restart_times",
     "backup_keep_count",
+    "config_history_keep_count",
+    "config_history_max_age_days",
 }
 
 

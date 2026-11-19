@@ -131,6 +131,14 @@ export const MIN_RESTART_GAP_MINUTES = 16;
 export const MAX_BACKUP_KEEP_COUNT = 1000;
 
 /**
+ * The API's bounds for the config history limits (`MAX_CONFIG_HISTORY_KEEP_COUNT` and
+ * `MAX_CONFIG_HISTORY_AGE_DAYS` in `api/src/vintagestory_api/services/api_settings.py`;
+ * pinned by `TestWebDefaults`). Story 23.7.
+ */
+export const MAX_CONFIG_HISTORY_KEEP_COUNT = 200;
+export const MAX_CONFIG_HISTORY_AGE_DAYS = 3650;
+
+/**
  * The API's default for each setting the API Settings tab shows (Story 22.5, Epic 22
  * ADR-11 decision 4): the tab's fallback when a value is missing, and the value an
  * interval's On switch saves when the page has seen no earlier value for it. Keys are the
@@ -147,6 +155,8 @@ export const API_SETTING_DEFAULTS = {
   metrics_collection_interval: 10,
   scheduled_restart_times: [],
   backup_keep_count: 0,
+  config_history_keep_count: 20,
+  config_history_max_age_days: 0,
 } as const;
 
 /**
