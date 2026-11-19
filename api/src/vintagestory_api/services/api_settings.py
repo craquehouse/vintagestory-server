@@ -37,6 +37,12 @@ the scheduler holds), and 0 already disables a job, so anything longer means "ne
 MAX_BACKUP_KEEP_COUNT = 1000
 """Upper bound of the backup cleanup limit (Epic 22 ADR-9 decision 1)."""
 
+MAX_CONFIG_HISTORY_KEEP_COUNT = 200
+"""The most revisions kept per config file (Story 23.6, Epic 23 ADR-7 decision 5)."""
+
+MAX_CONFIG_HISTORY_AGE_DAYS = 3650
+"""The largest age limit for config file revisions, in days (Story 23.6)."""
+
 RESTART_TIMES_SETTING = "scheduled_restart_times"
 MAX_RESTART_TIMES = 24
 MIN_RESTART_GAP_MINUTES = 16
@@ -113,6 +119,24 @@ class ApiSettings(BaseModel):
         description=(
             "Newest files kept in serverdata/Backups by the daily cleanup "
             "(0 = keep all, at most 1000). BackupSaves is never touched"
+        ),
+    )
+    config_history_keep_count: int = Field(
+        default=20,
+        ge=1,
+        le=MAX_CONFIG_HISTORY_KEEP_COUNT,
+        description=(
+            "Earlier versions kept per config file saved in the file browser (1 to 200); "
+            "older ones are deleted at the file's next save (Story 23.6)"
+        ),
+    )
+    config_history_max_age_days: int = Field(
+        default=0,
+        ge=0,
+        le=MAX_CONFIG_HISTORY_AGE_DAYS,
+        description=(
+            "Days an earlier version of a config file is kept (0 = any age, at most 3650); "
+            "the newest is always kept (Story 23.6)"
         ),
     )
     mod_update_webhook_url: str | None = Field(

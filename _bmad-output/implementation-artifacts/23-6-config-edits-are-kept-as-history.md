@@ -53,10 +53,10 @@ so that **I can see what changed and undo a bad edit**.
   - [x] 1.2: `services/config_history.py` (Dev Notes "The store")
   - [x] 1.3: Commit `refactor(story-23.6/task-1): add a history store for config file saves`
 
-- [ ] Task 2: The two API settings + tests (AC: 3, 7)
-  - [ ] 2.1: Red first: rows in the API settings tests for defaults, bounds and saving (as `backup_keep_count`'s)
-  - [ ] 2.2: `services/api_settings.py`: `config_history_keep_count: int = Field(default=20, ge=1, le=200, ...)`, `config_history_max_age_days: int = Field(default=0, ge=0, le=3650, ...)` with descriptions; `MAX_CONFIG_HISTORY_KEEP_COUNT = 200`, `MAX_CONFIG_HISTORY_AGE_DAYS = 3650`
-  - [ ] 2.3: Commit `refactor(story-23.6/task-2): add the config history limits to the API settings`
+- [x] Task 2: The two API settings + tests (AC: 3, 7)
+  - [x] 2.1: Red first: rows in the API settings tests for defaults, bounds and saving (as `backup_keep_count`'s)
+  - [x] 2.2: `services/api_settings.py`: `config_history_keep_count: int = Field(default=20, ge=1, le=200, ...)`, `config_history_max_age_days: int = Field(default=0, ge=0, le=3650, ...)` with descriptions; `MAX_CONFIG_HISTORY_KEEP_COUNT = 200`, `MAX_CONFIG_HISTORY_AGE_DAYS = 3650`
+  - [x] 2.3: Commit `refactor(story-23.6/task-2): add the config history limits to the API settings`
 
 - [ ] Task 3: The save keeps the replaced text + tests (AC: 1, 2, 3, 7)
   - [ ] 3.1: Red first: `test_config_files_save.py` rows (a save records the previous bytes; history failure refuses the save and leaves the file; a replace failure removes the revision; pruning after a save uses the settings; a prune failure does not fail the save)

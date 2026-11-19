@@ -20,6 +20,8 @@ from vintagestory_api.config import Settings
 from vintagestory_api.jobs import INTERVAL_JOBS
 from vintagestory_api.services.api_settings import (
     MAX_BACKUP_KEEP_COUNT,
+    MAX_CONFIG_HISTORY_AGE_DAYS,
+    MAX_CONFIG_HISTORY_KEEP_COUNT,
     MAX_INTERVAL_SECONDS,
     MAX_RESTART_TIMES,
     MIN_RESTART_GAP_MINUTES,
@@ -1380,3 +1382,58 @@ class TestWebDefaults:
         match = pattern.search(WEB_CONFIG.read_text())
         assert match is not None, f"{name} not found in {WEB_CONFIG}"
         assert int(match.group(1).replace("_", "")) == api_value, f"{name} in {WEB_CONFIG}"
+
+
+# ==============================================================================
+# Story 23.6: the config history limits (Epic 23 ADR-7 decision 5)
+# ==============================================================================
+
+
+class TestConfigHistoryLimits:
+    def test_defaults_and_bounds(self) -> None:
+        settings = ApiSettings()
+        assert settings.config_history_keep_count == 20
+        assert settings.config_history_max_age_days == 0
+        assert MAX_CONFIG_HISTORY_KEEP_COUNT == 200
+        assert MAX_CONFIG_HISTORY_AGE_DAYS == 3650
+
+    @pytest.mark.parametrize(
+        ("key", "value"),
+        [
+            ("config_history_keep_count", 1),
+            ("config_history_keep_count", 200),
+            ("config_history_max_age_days", 0),
+            ("config_history_max_age_days", 3650),
+        ],
+    )
+    def test_accepts_the_bounds(self, key: str, value: int) -> None:
+        assert getattr(ApiSettings.model_validate({key: value}), key) == value
+
+    @pytest.mark.parametrize(
+        ("key", "value"),
+        [
+            ("config_history_keep_count", 0),
+            ("config_history_keep_count", 201),
+            ("config_history_max_age_days", -1),
+            ("config_history_max_age_days", 3651),
+        ],
+    )
+    def test_rejects_out_of_bounds(self, key: str, value: int) -> None:
+        with pytest.raises(ValidationError):
+            ApiSettings.model_validate({key: value})
+
+    @pytest.mark.parametrize("key", ["config_history_keep_count", "config_history_max_age_days"])
+    def test_not_scheduled_settings(self, key: str) -> None:
+        assert key not in SCHEDULED_SETTINGS
+
+    async def test_saved_through_the_service(self, service: ApiSettingsService) -> None:
+        result = await service.update_setting("config_history_keep_count", 5)
+
+        assert result == {"key": "config_history_keep_count", "value": 5}
+        assert service.get_settings().config_history_keep_count == 5
+
+    async def test_out_of_bounds_is_refused_by_the_service(
+        self, service: ApiSettingsService
+    ) -> None:
+        with pytest.raises(ApiSettingInvalidError):
+            await service.update_setting("config_history_max_age_days", 4000)
