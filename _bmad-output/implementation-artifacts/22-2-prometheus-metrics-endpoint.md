@@ -1,6 +1,6 @@
 # Story 22.2: A Prometheus `/metrics` Endpoint
 
-Status: review
+Status: done
 
 <!-- Implements FR289-FR291 and FR306, Epic 22 ADR-3, ADR-4 and ADR-14. Bead: VSS-bhw (API-023), closes here (Story 22.1 carried its first half). Maintainer answers 1, 2 and 3 (Matt, 2026-11-18). Stories run in order 22.1 to 22.6; this branch, story/22-2-prometheus-metrics-endpoint, is stacked on story/22-1-players-online-are-counted at 7672fc90 (22.1 in review: it adds ServerService.players_online and the PlayerTracker). The PR targets main and merges after 22.1's. Line references were verified at 7672fc90 (re-checked in validation at e2b55388) and must be re-checked at implementation time. API and documentation only; no web source change. One new runtime dependency (prometheus-client), one new open route, two new modules, one API E2E test, and one fix pulled in by the controller during validation (backlog drawdown, FR306): game settings and mods share one pending-restart state ("ADR against the code" 8). -->
 
@@ -463,6 +463,16 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive
   - Epic 22 ADR-3 decision 2 still says `CONTENT_TYPE_LATEST` (the story records the deviation and leaves the ADR alone).
   - `just changelog` prints the whole history since the first commit with 211 parse-skipped commits, so "exactly two new entries" was checked by grepping this branch's hashes.
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode. Verdict: approve. Two LOW findings, both in `README.md` "Metrics", fixed; one observation left as the story prescribes:
+
+1. **LOW: `vintagestory_server_info` is also absent when the installed version file is missing.** The series is built from `get_server_status().version`, which is `get_installed_version()`: `None` when `vsmanager/current_version` does not exist, even with the game's files installed. Fixed: the row's "Absent when" now says "or the installed version file is missing".
+2. **LOW: `vintagestory_players_max` is also absent when `serverconfig.json` cannot be read.** `GameConfigService.get_max_clients()` raises when the file exists but cannot be read or is not valid JSON; the collector's guard then drops the series and logs `prometheus_source_failed`. Fixed: the row says so, and the note under the table is general: any read that fails leaves the series built from it out of the scrape with that warning ("Never" means that is the only time), and the info, up, state and uptime series go missing together because they come from one read of the server status.
+3. **Observation, not changed:** the running test asserts `vintagestory_server_process_cpu_seconds_total >= 0` (`tests/test_prometheus_metrics.py`), which a value of 0 also passes. Left as prescribed by Dev Notes "API tests" row 3 ("CPU ≥ 0"). The fake process is the test runner itself (`os.getpid()`); the test also checks the family's type is counter. A stricter bound (`> 0`) is left for a later change if wanted.
+
+Fix commit: `docs(story-22.2/review): say when the info and max-players series are absent`.
+
 ### File List
 
 - `api/pyproject.toml` (modified: `prometheus-client>=0.26.0,<1`)
@@ -491,3 +501,4 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive
 - 2026-11-18: Story 22.2 created (ready-for-dev).
 - 2026-11-18: Validated; the shared pending-restart fix pulled in by the controller (backlog drawdown), tasks restructured to 6.
 - 2026-11-18: Implemented (dev-story): Tasks 1-5 and the automated part of Task 6; controller decision during validation added to Task 2 (a successful start clears the pending restart); status review.
+- 2026-11-18: Code review (GLM-5.3-Flash via opencode): approve; two LOW README findings fixed (when the info and max-players series are absent; a general note on failing reads), one observation on the `>= 0` CPU assertion left as prescribed (see "Review"). Status done.
