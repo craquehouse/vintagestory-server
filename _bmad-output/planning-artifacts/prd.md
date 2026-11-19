@@ -909,9 +909,9 @@ If trivial to implement:
 
 #### Disk Cleanup and Logs (Matt, 2026-11-18)
 
-- FR297: A daily cleanup at 03:00 container time deletes the game's log archive directories older than `log_archive_retention_days` (default 14; 0 keeps all), always keeping the newest `log_archive_keep_min` (default 5)
+- FR297: A daily cleanup job runs at 03:00 container time, always registered, and reads its limit when it runs; it does not delete the game's log archives, which the game keeps to at most 5 itself (amended by the maintainer, 2026-11-19, after Story 22.4 found the game's own limit; was: delete log archives older than `log_archive_retention_days`, keeping the newest `log_archive_keep_min`)
 - FR298: With `backup_keep_count` above 0 the cleanup keeps only that many newest files in the game's `Backups` directory; the default 0 keeps all. It never deletes from `BackupSaves`, the world save, mods or player data, never deletes the live log files, and never follows a symbolic link
-- FR299: The cleanup logs each deletion and a summary; the README says who rotates which logs (the game archives and splits its own; the manager deletes old archives; the manager's stdout is rotated by Docker or Kubernetes)
+- FR299: The cleanup logs each deletion and a summary; the README says who rotates which logs (the game archives and splits its own and keeps at most 5 archives; the manager deletes old backups only when asked; the manager's stdout is rotated by Docker or Kubernetes)
 
 #### API Settings Tab (Matt, 2026-11-18)
 

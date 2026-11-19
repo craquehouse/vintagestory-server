@@ -512,7 +512,7 @@ This document provides the complete epic and story breakdown for vintagestory-se
 | FR294 | Epic 22 | Warnings at 15, 5 and 1 minutes before a scheduled restart |
 | FR295 | Epic 22 | Restart times apply at once and are listed in Scheduled Jobs |
 | FR296 | Epic 22 | Stop time measured; `VSS-zws` verified |
-| FR297 | Epic 22 | Daily deletion of old log archives, the newest kept |
+| FR297 | Epic 22 | Daily cleanup job at 03:00; log archives left to the game (it keeps 5) |
 | FR298 | Epic 22 | Backups kept to a count only when set; nothing else deleted |
 | FR299 | Epic 22 | Cleanup logged; the README says who rotates which logs |
 | FR300 | Epic 22 | An On switch per interval field |
@@ -7510,6 +7510,8 @@ So that **it runs fresh every day without me being there, and nobody is surprise
 **Sprint key:** `22-4-log-archive-and-backup-cleanup`
 **Beads:** `VSS-29p` (API-011), closes here
 **FRs:** FR297, FR298, FR299
+
+**Amended by the maintainer (Matt, 2026-11-19, "Backups only + docs"):** the story's Task 3 found that the game keeps at most 5 log archives itself, so the log-archive cleanup and its two settings (`log_archive_retention_days`, `log_archive_keep_min`) are dropped. The story keeps the opt-in `backup_keep_count` (default 0 = keep all) and the daily `disk_cleanup` job for it at 03:00 container time, and the README says the game keeps 5 log archives itself and who rotates what. The criteria and tasks below about archives, and the release note that archives are deleted by default, no longer apply (kept as history; the story file marks each one). The feature commit's subject is now about deleting old backups when a limit is set.
 
 As an **operator**,
 I want **old log archives, and old backups when I ask for it, deleted every day**,

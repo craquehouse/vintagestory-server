@@ -4,6 +4,8 @@ Status: in-progress
 
 <!-- Implements FR297, FR298, FR299, Epic 22 ADR-7 (decisions 3 and 4), ADR-9, ADR-10 and ADR-14. Bead: VSS-29p (API-011), closes here (Story 22.3 carried its first half). Maintainer answers 8 and 9 (Matt, 2026-11-18); four controller decisions during validation (2026-11-18, Dev Notes), for the maintainer to review. Order: 22.1, 22.2, 22.3, 22.4, 22.7, 22.5, 22.6. This branch, story/22-4-log-archive-and-backup-cleanup, is stacked on story/22-3-scheduled-restarts (22.3 in review) at 6fd76056 (the Story 22.7 planning commit; the code is that of 36dd18cf). The PR targets main and merges after 22.3's. Line references were verified at 6fd76056 and must be re-checked at implementation time. API and documentation only; no web source change (the UI for the three settings is Story 22.6). No new dependency, no new route, one new service, one new job module, no change to services/scheduler.py, models/jobs.py, routers/jobs.py, main.py or services/cache_eviction.py. -->
 
+<!-- 2026-11-19: Maintainer decision after Task 3 ("Backups only + docs"): the log-archive cleanup and its two settings are dropped, because the game already keeps at most 5 archives; the opt-in backup cleanup, its setting and the daily disk_cleanup job stay. The ACs and tasks it removes are marked, not deleted. See Dev Notes "Maintainer decision after Task 3". -->
+
 ## Story
 
 As an **operator**,
@@ -17,60 +19,84 @@ so that **the disk does not fill up over months of restarts, and my world and it
    **Then** the 6 archives named 2026-11-04 and earlier (older than 14 days before the clock) are deleted, the 14 newest remain, each deletion is logged as `disk_cleanup_deleted` with `kind=log_archive`, its path relative to `serverdata` (`Logs/Archive/2026-11-04_03_00_00`) and its size in bytes, and one `disk_cleanup_finished` line gives the counts and bytes
    *(Covers FR297, FR299; ADR-9 decisions 1, 3 and 6)*
 
+   **Removed by the maintainer's decision (Matt, 2026-11-19, "Backups only + docs"; Dev Notes "Maintainer decision after Task 3").** The service no longer touches `Logs/`.
+
 2. **Given** 7 archives, all older than 14 days, and `log_archive_keep_min` 5
    **When** the cleanup runs
    **Then** the newest 5 (by the time in their names) remain and the 2 oldest are deleted; with `log_archive_keep_min` 0 the 6 oldest are deleted and the newest remains (the newest archive is never deleted: controller decision 1); with 1000 none is
    *(Covers FR297; ADR-9 decision 3)*
+
+   **Removed by the maintainer's decision (Matt, 2026-11-19, "Backups only + docs"; Dev Notes "Maintainer decision after Task 3").**
 
 3. **Given** `log_archive_retention_days` is 0
    **When** the cleanup runs
    **Then** no archive is deleted, whatever their age and `log_archive_keep_min`
    *(Covers FR297; ADR-9 decision 1)*
 
+   **Removed by the maintainer's decision (Matt, 2026-11-19, "Backups only + docs"; Dev Notes "Maintainer decision after Task 3").** The setting no longer exists; saving it is refused as unknown (AC 10).
+
 4. **Given** (a) an archive whose name is 30 days old but whose directory modification time is 1 hour old (a long run archived at the last start), and (b) an archive whose name is 1 day old but whose directory modification time is 30 days old, with retention 14 and keep 0, among other old archives
    **When** the cleanup runs
    **Then** both (a) and (b) remain: an archive's age is measured from the later of the time in its name and its directory's modification time (`lstat`, links not followed); (c) an archive whose name and modification time are both older than the retention is deleted (unless it is the newest); the order for `log_archive_keep_min` and for "the newest" stays the time in the names
    *(Covers FR297; ADR-9 decision 3, as changed by controller decision 2)*
+
+   **Removed by the maintainer's decision (Matt, 2026-11-19, "Backups only + docs"; Dev Notes "Maintainer decision after Task 3").**
 
 5. **Given** in `Archive/`: an entry whose name does not match `YYYY-MM-DD_HH_MM_SS` (`notes`, `2026-11-01_03_00_00.old`, `2026-11-01_03_00_00\n`, full-width digits, `2026-13-45_00_00_00`), a regular file with an archive name, and an old archive name that is a symbolic link to a directory outside `serverdata`
    **When** the cleanup runs with every limit at its smallest (retention 1, keep 0)
    **Then** none of them is deleted and the link's target and its files are intact; the link is logged at WARNING (`disk_cleanup_skipped reason=symlink`), the others at DEBUG; they are not counted towards `log_archive_keep_min`
    *(Covers FR298; ADR-9 decisions 3 and 5; see "ADR against the code" 1)*
 
+   **Removed by the maintainer's decision (Matt, 2026-11-19, "Backups only + docs"; Dev Notes "Maintainer decision after Task 3").** `Archive/` is never read; its entries are never touched (AC 7).
+
 6. **Given** `serverdata/Backups/` holds 8 regular files with distinct modification times, a directory, and a symbolic link to a file outside `serverdata`, and `backup_keep_count` is 3
    **When** the cleanup runs
    **Then** the 3 newest files (by modification time), the directory and the link (and its target) remain, the 5 others are deleted and each is logged with `kind=backup`; with `backup_keep_count` 0 (the default) all 8 files remain and `Backups/` is not read
    *(Covers FR298; ADR-9 decisions 1 and 4)*
+
+   **Kept.**
 
 7. **Given** files in `BackupSaves/`, `Saves/`, `Mods/`, `Playerdata/`, `ModConfig/`, the live `Logs/server-*.log` files, `serverconfig.json` and the manager's `vsmanager/` state and cache; and separately `Logs/Archive` itself, `Logs` itself or `Backups` itself a symbolic link to a directory outside `serverdata`
    **When** the cleanup runs with every limit at its smallest (retention 1, keep 0, backups 1) and every file older than any limit
    **Then** none of them is deleted (byte-for-byte the same tree before and after, outside the entries the limits select in the two target directories); a symlinked target directory is skipped as a whole with WARNING `disk_cleanup_skipped reason=symlink`
    *(Covers FR298; ADR-9 decision 5; see "ADR against the code" 2)*
 
+   **Amended by the maintainer's decision (2026-11-19):** "every limit at its smallest" is `backup_keep_count` 1, and `Logs/` as a whole (live logs and `Archive/` with old archive names) is among what is never touched; the `Logs` and `Logs/Archive` link cases become "never read". A symlinked `Backups` is still skipped with WARNING `reason=symlink`.
+
 8. **Given** one entry cannot be deleted (permission denied)
    **When** the cleanup runs
    **Then** `disk_cleanup_delete_failed` is logged at WARNING with the path and the error, the other entries are still handled, and `disk_cleanup_finished` counts only what was deleted and gives `errors=1`
    *(Covers FR299; ADR-9 decision 6)*
+
+   **Amended (2026-11-19):** for backups only (`kind=backup`); `disk_cleanup_finished` gives the backup counts and bytes.
 
 9. **Given** the API starts (or `register_default_jobs` runs)
    **When** I list the jobs (`GET /api/v1alpha1/jobs`)
    **Then** `disk_cleanup` is registered whatever the settings, with `trigger_type` `cron` and `trigger_details` `cron[month='*', day='*', day_of_week='*', hour='3', minute='0']`, its next run at 03:00 in the container's time zone (`TZ`, UTC when unset); when it runs it reads the three limits from `api-settings.json` at that moment, so a changed limit applies at the next run, and saving a limit does not touch any job
    *(Covers FR297; ADR-7 decisions 3 and 4, ADR-9 decision 6)*
 
+   **Amended (2026-11-19):** the job reads `backup_keep_count` at each run; with 0 (the default) it deletes nothing and logs `disk_cleanup_finished`.
+
 10. **Given** each cleanup setting
     **When** an Admin key saves a value outside its bounds (`log_archive_retention_days` -1 or 3651; `log_archive_keep_min` -1 or 1001; `backup_keep_count` -1 or 1001), a boolean, or a non-integer string
     **Then** the answer is 400 `API_SETTING_INVALID`, the saved value does not change and the scheduler callback is not called; values inside the bounds (0, the default, the maximum) are saved and returned by `GET /api/v1alpha1/config/api`; a Monitor key gets 403
     *(Covers FR297, FR298; ADR-9 decision 1)*
+
+    **Amended by the maintainer's decision (2026-11-19):** only `backup_keep_count` remains (bounds 0 to 1000). `log_archive_retention_days` and `log_archive_keep_min` are no longer settings: saving either is refused with 400 `API_SETTING_UNKNOWN` and nothing is saved.
 
 11. **Given** a throwaway container (never the dev stack), run with `TZ=Europe/Berlin`
     **When** the game is started and stopped 7 times, and `/genbackup` is run twice
     **Then** the story records the archive directory names the game writes (one per start after the first, each the start time of the archived run in the container's time zone), that the game deletes none of them, what `/genbackup` writes into `Backups/`, and that the cleanup, run against that data, deletes exactly the expected entries; a different finding stops the story before the job is registered
     *(Covers FR297; ADR-9 decision 7, ADR-14)*
 
+    **Done (Task 3); its finding led to the maintainer's decision:** the game keeps at most 5 log archives itself, and `/genbackup` wrote no file in that run.
+
 12. **Given** the README
     **When** I read "Logs and disk use"
     **Then** it says who rotates what (the game: a new set of log files and an archive per start, and `LogFileSplitAfterLine`; the manager: deletes old archives and, when asked, old backups; the manager's stdout: Docker's or Kubernetes' log options, with a compose `logging` example), what the cleanup deletes and when (03:00 in `TZ`), the three settings with their defaults, bounds and how to set them, and what it never touches
     *(Covers FR299; ADR-10)*
+
+    **Amended (2026-11-19):** the README says the game keeps at most 5 log archives itself, who rotates what (the game: archives and `LogFileSplitAfterLine`; the manager's stdout: Docker's or Kubernetes' log options; `Backups/`: the manager, only when `backup_keep_count` > 0), what the cleanup deletes and when (03:00 in `TZ`), the setting with its default, bounds and how to set it, and what it never touches.
 
 13. **Given** every existing test
     **When** the suites run
@@ -80,6 +106,8 @@ so that **the disk does not fill up over months of restarts, and my world and it
     **When** the maintainer reads the API log the morning after an upgrade
     **Then** he sees `disk_cleanup_finished` at 03:00 local time and only old archives deleted (manual check, reserved for the maintainer, ticked only on his confirmation)
     *(Covers FR297, FR299; ADR-14 decision 4)*
+
+    **Amended (2026-11-19):** a deployment with `backup_keep_count` set: he sees `disk_cleanup_finished` at 03:00 local time and only backups beyond the newest N deleted; with the default 0 the line shows nothing deleted.
 
 ## Tasks / Subtasks
 
@@ -107,15 +135,21 @@ so that **the disk does not fill up over months of restarts, and my world and it
   - [x] 3.7: **Stop rule:** if the game deleted or renamed any archive across the rounds, if an archive name does not match the pattern or is not the archived run's start time in `TZ` (for example UTC while `TZ=Europe/Berlin`), if `/genbackup` writes anything other than one regular file directly in `Backups/`, or if any service run deleted anything other than the expected entries: commit the record (3.8), then stop and report it to the controller as a maintainer question with the evidence. Task 4 goes on only if the controller says so; the story does not go to review before the answer
   - [x] 3.8: Commit `docs(story-22.4/task-3): record the game's log archives and backups and a cleanup run on them`
 
-- [ ] Task 4: The `disk_cleanup` cron job, always registered, with its log lines + tests (AC: 1, 8, 9, 13)
+- [x] Task 3a (`/user`, maintainer decision 2026-11-19): Drop the log-archive cleanup the game already does + tests (AC: 6, 7, 8, 10, 13)
+  - [x] 3a.1: Record the decision in this story (Completion Notes, "ADR against the code" 11, the ACs and tasks it removes marked, not deleted) and amend ADR-9 and ADR-10, FR297 in `prd.md`, the Story 22.4 entry and FR297 coverage row in `epics.md` and the change proposal's decisions; commit `docs(story-22.4/user): record the maintainer's decision to clean up backups only`
+  - [x] 3a.2: Red first: the settings tests assert that `log_archive_retention_days` and `log_archive_keep_min` are refused as unknown (service and route) and that the model has no such fields; the service tests assert that nothing under `Logs/` is read or deleted, with every backup, link, containment and per-entry error case kept
+  - [x] 3a.3: Remove the two settings and constants from `services/api_settings.py`, and the archive pass from `services/disk_cleanup.py` (`CleanupLimits` holds `backup_keep_count` only; `CleanupResult` the backup counts and `errors`)
+  - [x] 3a.4: Commit `refactor(story-22.4/user): drop the log archive cleanup the game already does`
+
+- [ ] Task 4: The `disk_cleanup` cron job, always registered, with its log lines + tests (AC: 8, 9, 13; AC 1 removed)
   - [ ] 4.1: Red first: new `api/tests/jobs/test_disk_cleanup_job.py` and the Task 4 rows in `api/tests/test_jobs_registration.py` and `api/tests/test_routers_config.py`; see them fail
   - [ ] 4.2: `api/tests/conftest.py`: the autouse no-op for the cleanup job (Dev Notes "Test safety"), in the same commit as the registration and in place before the first test run with `register_disk_cleanup` called from `register_default_jobs`, so no test run can delete under `dev/`. Its string target imports `vintagestory_api.jobs.disk_cleanup`, so add it once that module exists (before, every test errors at set-up)
   - [ ] 4.3: New `api/src/vintagestory_api/jobs/disk_cleanup.py` (Dev Notes "The job"): the constants, `run_disk_cleanup(settings, *, now=...)` and the job function `disk_cleanup` under `@safe_job("disk_cleanup")`; `jobs/__init__.py`: `register_disk_cleanup(scheduler)` and its call at the end of `register_default_jobs` (Dev Notes "Registration"); the module docstrings name Story 22.4
   - [ ] 4.4: The existing tests listed in Dev Notes "Existing tests that change", and nothing else
   - [ ] 4.5: `cd api && uv run ruff format <changed files>`; `just test-api tests/jobs tests/test_jobs_registration.py tests/test_routers_config.py tests/test_jobs_router.py tests/test_main.py tests/test_disk_cleanup.py tests/test_scheduler.py` green; `just typecheck-api` 0/0
-  - [ ] 4.6: Commit `feat(story-22.4/task-4): delete old game log archives every day, and old backups when a limit is set` (body: Story 22.4 / task 4; a daily `disk_cleanup` job at 03:00 in the container's time zone deletes the game's log archives older than `log_archive_retention_days` (default 14, 0 keeps all), always keeping the newest `log_archive_keep_min` (default 5), and keeps only the newest `backup_keep_count` files in `Backups` when it is above 0 (default 0 keeps all); **archives older than 14 days are now deleted by default**; `BackupSaves`, the world, mods and the live logs are never touched)
+  - [ ] 4.6: Commit `feat(story-22.4/task-4): delete old backups every day when a limit is set` (body: Story 22.4 / task 4; a daily `disk_cleanup` job at 03:00 in the container's time zone keeps only the newest `backup_keep_count` files in `Backups` when it is above 0 (default 0 keeps all, so nothing is deleted by default); log archives are left to the game, which keeps 5; `BackupSaves`, the world, mods and the logs are never touched). **Amended (2026-11-19); the original subject and body were:** `feat(story-22.4/task-4): delete old game log archives every day, and old backups when a limit is set` (body: Story 22.4 / task 4; a daily `disk_cleanup` job at 03:00 in the container's time zone deletes the game's log archives older than `log_archive_retention_days` (default 14, 0 keeps all), always keeping the newest `log_archive_keep_min` (default 5), and keeps only the newest `backup_keep_count` files in `Backups` when it is above 0 (default 0 keeps all); **archives older than 14 days are now deleted by default**; `BackupSaves`, the world, mods and the live logs are never touched)
 
-- [ ] Task 5: Document who rotates which logs and the cleanup (AC: 12)
+- [ ] Task 5: Document who rotates which logs and the cleanup (AC: 12; text as amended in Dev Notes "Maintainer decision after Task 3")
   - [ ] 5.1: `README.md`: a new `### Logs and disk use` section between "Scheduled restarts" and "Metrics" (`:93-112`), and the Features "Scheduled jobs" bullet (`:17`), with the text of Dev Notes "Documentation". The compose files are not changed
   - [ ] 5.2: `just lint` green (nothing else moved)
   - [ ] 5.3: Commit `docs(story-22.4/task-5): document who rotates which logs and the disk cleanup`
@@ -123,12 +157,21 @@ so that **the disk does not fill up over months of restarts, and my world and it
 - [ ] Task 6: Validate and move the story to review (AC: all)
   - [ ] 6.1: `just check` green: API tests, pyright 0 errors and 0 warnings, ruff; web tests with 0 skipped, tsc, Prettier. The added lines in `api/src` and `api/tests` hold no `type: ignore`, `pyright:`, `noqa`, `cast(`, skip, `xfail` or `.only`; `services/scheduler.py`, `models/jobs.py`, `routers/jobs.py`, `main.py` and `services/cache_eviction.py` are unchanged (`git diff 6fd76056 -- <those files>` is empty). `git status --short dev/ data/` is empty after the runs
   - [ ] 6.2: `just changelog` lists exactly one new entry from this story (Task 4's feature subject); check by this branch's hashes, as Stories 22.2 and 22.3 did
-  - [ ] 6.3: Manual check (maintainer only; leave unticked until he confirms, AC 14): on a deployment he runs, the morning after the upgrade, `disk_cleanup_finished` at 03:00 local time in the API log, and only archives older than the retention (beyond the newest 5) gone. No agent runs this, and never on the dev stack's data
+  - [ ] 6.3: Manual check (maintainer only; leave unticked until he confirms, AC 14): on a deployment he runs, the morning after the upgrade, `disk_cleanup_finished` at 03:00 local time in the API log, and with `backup_keep_count` set only backups beyond the newest N gone (amended 2026-11-19; was: only archives older than the retention, beyond the newest 5, gone). No agent runs this, and never on the dev stack's data
   - [ ] 6.4: Story status `review` in this file; `just sprint set 22-4-log-archive-and-backup-cleanup review`; Dev Agent Record and File List filled in, every statement true of the code
   - [ ] 6.5: Commit `chore(story-22.4/task-6): validate and move story 22.4 to review`
   - [ ] 6.6: After merge, with the maintainer's go-ahead only: `VSS-29p` gets an AAR comment naming Stories 22.3 and 22.4 and their commits, then `bd close VSS-29p` (CLAUDE.md "Completing Issues"). Pushing, the PR, `bd sync` and the bead wait for that go-ahead
 
 ## Dev Notes
+
+### Maintainer decision after Task 3 (Matt, 2026-11-19): "Backups only + docs"
+
+Task 3 found that the game keeps at most 5 log archives itself (it deleted the oldest at the start that made a sixth) and that `/genbackup` wrote no file in that run. The maintainer's answer:
+
+- **Dropped:** the log-archive cleanup and its two settings, `log_archive_retention_days` and `log_archive_keep_min`, because the game already keeps at most 5 archives. The service does not read or delete anything under `Logs/`. Saving either key is refused as unknown (400 `API_SETTING_UNKNOWN`).
+- **Kept:** the opt-in `backup_keep_count` (default 0 = keep all, 0 to 1000) and the daily `disk_cleanup` job for it at 03:00 container time, always registered, reading the setting at each run; the link, containment and per-entry error rules for `Backups/`; the log lines (`disk_cleanup_deleted kind=backup`, `disk_cleanup_finished` with the backup counts and bytes and `errors`).
+- **Docs:** the README says the game keeps 5 log archives itself and who rotates what: the game (archives at each start, at most 5, and `LogFileSplitAfterLine`); the manager's stdout (Docker's or Kubernetes' log options, the compose `logging` example in the README only); `Backups/` (the manager, only when `backup_keep_count` > 0). The "Documentation" notes below are read with these changes: the Features bullet says "a daily cleanup of old backups when you ask"; the table's archive row says the game keeps at most 5 and the manager does not touch them; the cleanup paragraph and the settings describe `backup_keep_count` only; "What it never touches" includes `Logs/` as a whole.
+- The sections below ("The settings", "The service", "What is deleted", "API tests", "The throwaway-container run", "Documentation", "API contract changes") keep their original text as history; where they name the archive rules or the two dropped settings, this decision overrides them.
 
 ### The code today (verified at 6fd76056)
 
@@ -420,6 +463,8 @@ curl -s "${H[@]}" -X POST "$BASE/api/v1alpha1/server/install" -d '{"version":"st
 9. **`disk_cleanup_finished` is logged by the service**, so the container run (which calls the service directly) logs it too; `safe_job` adds `disk_cleanup_started`/`_completed` around the job. ADR-9 decision 6 names the events, not the layer. Each deletion's `path` is relative to `serverdata` (the controller's wording) where the ADR says "name".
 10. **The README section is "Logs and disk use" with the settings in it.** The epic's task says "the settings rows"; the README has no API settings table (the restart times are documented in their own section, Story 22.3), so the three settings are described in the new section with a `curl` example.
 
+11. **The archive half is dropped (maintainer's decision, 2026-11-19).** ADR-9 decisions 1, 3 and 7 assumed the game never prunes its archives; Task 3 showed it keeps at most 5. The settings `log_archive_retention_days` and `log_archive_keep_min`, the archive pass, the name pattern and the age rule (and with them controller decisions 1 and 2 above) are removed; ADR-9 and ADR-10 are amended to say so. The job, the backup rules and the safety rules stay. Points 1 to 3 above now describe code that no longer exists.
+
 ### Controller decisions during validation (2026-11-18), for the maintainer to review
 
 The story's open questions 1, 2, 3 and 5 were settled by the controller during validation. They are planner decisions, not the maintainer's answers; ADR-9 (and ADR-10 for decision 4) and the change proposal's list of planner decisions not reviewed yet carry them too.
@@ -593,6 +638,7 @@ Cleanup done: the container and the image were removed; both listings and `git s
   **Question for the maintainer (through the controller), with the evidence in "Throwaway-container results":** (a) the game already keeps at most 5 archives, the same number as `log_archive_keep_min`'s default: should the manager's archive cleanup still ship (it then only matters when the game's own limit is larger or changes, or for archives left by other versions), ship with other defaults, or be dropped in favour of documenting the game's own limit? Note that with the game's 5 and the default 14 days, the manager would never delete an archive the game keeps. (b) Is the backup half kept as designed without a confirmed `/genbackup` output (one more container run on a world that has played longer, or a different command, could confirm it), or deferred? Task 4 (the job, the only `feat` commit) and Tasks 5 and 6 wait for the answer; the story stays `in-progress`.
   
   Deviation: Task 4's code and tests were drafted in the working tree while the container ran (tests red first, then green: 396 passed in the Task 4.5 set, pyright 0/0) but are **not committed**; they were set aside with `git stash push -u -m "story-22.4 task-4 draft (uncommitted, awaiting the Task 3.7 answer)"` so the Task 3 commit holds only the record. Nothing was registered in any committed code.
+- 2026-11-19: **Maintainer decision (Matt, through the controller): "Backups only + docs".** The log-archive cleanup and its two settings (`log_archive_retention_days`, `log_archive_keep_min`) are dropped, since the game already keeps at most 5 archives; the opt-in `backup_keep_count` (default 0 = keep all) and the daily `disk_cleanup` job for it (03:00 container time) stay; the README says the game keeps 5 log archives itself and who rotates what. Recorded in Dev Notes "Maintainer decision after Task 3" and "ADR against the code" 11; ACs 1 to 5 marked removed, ACs 7 to 10, 12 and 14 amended, Task 3a added, Tasks 4.6, 5 and 6.3 amended (history kept). ADR-9 and ADR-10, FR297 (`prd.md`), the Story 22.4 entry and FR297 coverage row (`epics.md`) and the change proposal's decisions amended to match.
 
 ### File List
 
@@ -610,3 +656,4 @@ Cleanup done: the container and the image were removed; both listings and `git s
 - 2026-11-18: Story 22.4 created (ready-for-dev).
 - 2026-11-18: Validated; four controller decisions applied (newest archive always kept; age from the later of name and directory mtime; 03:00 stays; logging example in the README only); fixes listed in Completion Notes.
 - 2026-11-19: Tasks 1 to 3 done; Task 3.7 stop rule fired (the game keeps at most 5 log archives itself; `/genbackup` wrote no file). Waiting for the maintainer's answer before Task 4.
+- 2026-11-19: Maintainer decision "Backups only + docs": log-archive cleanup and its two settings dropped; backups opt-in and the daily job kept. ACs and tasks amended (history kept); Task 3a added.
