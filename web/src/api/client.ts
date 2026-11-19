@@ -139,6 +139,12 @@ async function handleApiError(response: Response): Promise<never> {
 export interface ApiClientOptions extends Omit<RequestInit, 'body'> {
   /** Request body - will be transformed to snake_case and stringified */
   body?: unknown;
+  /**
+   * Whether to turn the response's snake_case keys into camelCase (default true).
+   * False returns the response as sent: for data whose keys are not the API's own,
+   * such as a config file's content (Story 23.1).
+   */
+  transformResponse?: boolean;
 }
 
 /**
@@ -171,8 +177,9 @@ export async function apiClient<T>(path: string, options: ApiClientOptions = {})
     body = JSON.stringify(camelToSnake(options.body));
   }
 
+  const { transformResponse = true, ...init } = options;
   const response = await fetch(url, {
-    ...options,
+    ...init,
     headers,
     body,
   });
@@ -183,6 +190,6 @@ export async function apiClient<T>(path: string, options: ApiClientOptions = {})
 
   const data = await response.json();
 
-  // Transform snake_case to camelCase
-  return snakeToCamel(data) as T;
+  // Transform snake_case to camelCase, unless the caller maps the keys itself
+  return (transformResponse ? snakeToCamel(data) : data) as T;
 }

@@ -361,9 +361,26 @@ export interface ConfigFileListData {
 /**
  * Response from GET /api/v1alpha1/config/files/{filename} (read config file).
  */
+/**
+ * Why a config file did not parse, and where (Story 23.1).
+ * `line` and `column` are 1-based, null when unknown.
+ */
+export interface ConfigParseError {
+  message: string;
+  line: number | null;
+  column: number | null;
+}
+
 export interface ConfigFileContentData {
   filename: string;
+  /** The parsed content, keys as in the file; `_raw`/`_parse_error` when it does not parse */
   content: unknown;
+  /** Null when the file parsed (Story 23.1) */
+  parseError: ConfigParseError | null;
+  /** The file's text, with comments: Admin keys only (Story 23.1) */
+  text?: string;
+  /** The SHA-256 of the file's bytes: Admin keys only (Story 23.1) */
+  version?: string;
 }
 
 // ===== Log Types =====

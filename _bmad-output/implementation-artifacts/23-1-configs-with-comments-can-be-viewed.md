@@ -75,11 +75,11 @@ so that **I can read the configs the game itself accepts instead of a parse erro
   - [x] 3.3: `just test-api`; `just typecheck-api` 0/0; `just lint-api`
   - [x] 3.4: Commit `fix(story-23.1/task-3): show mod configs that contain comments` (body: Story 23.1 / task 3; config files are read as JSON5, like the game's own reader accepts comments and trailing commas; an Admin read also returns the text and a version; unparseable files report the line and column)
 
-- [ ] Task 4: The web: untransformed content, the new fields, the parse-error view + tests (AC: 6, 7, 9)
-  - [ ] 4.1: Red first: the rows of Dev Notes "Web tests"; see them fail
-  - [ ] 4.2: `web/src/api/client.ts`, `web/src/api/config.ts`, `web/src/api/types.ts`, `web/src/components/FileViewer.tsx`, `web/src/features/settings/FileManagerPanel.tsx` as in Dev Notes "The web"
-  - [ ] 4.3: `just test-web`; `just typecheck-web`; `just format-web` then `just lint-web`
-  - [ ] 4.4: Commit `fix(story-23.1/task-4): show a config file that cannot be parsed as text, with where the error is` (body: Story 23.1 / task 4; also stops the viewer renaming keys with underscores inside a config file)
+- [x] Task 4: The web: untransformed content, the new fields, the parse-error view + tests (AC: 6, 7, 9)
+  - [x] 4.1: Red first: the rows of Dev Notes "Web tests"; see them fail
+  - [x] 4.2: `web/src/api/client.ts`, `web/src/api/config.ts`, `web/src/api/types.ts`, `web/src/components/FileViewer.tsx`, `web/src/features/settings/FileManagerPanel.tsx` as in Dev Notes "The web"
+  - [x] 4.3: `just test-web`; `just typecheck-web`; `just format-web` then `just lint-web`
+  - [x] 4.4: Commit `fix(story-23.1/task-4): show a config file that cannot be parsed as text, with where the error is` (body: Story 23.1 / task 4; also stops the viewer renaming keys with underscores inside a config file)
 
 - [ ] Task 5: README (AC: 8)
   - [ ] 5.1: A `### Config files` section after `### Logs and disk use` (`README.md:118`) and before `### Metrics` (`:155`), text in Dev Notes "Documentation"
