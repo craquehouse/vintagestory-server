@@ -1,6 +1,6 @@
 # Story 22.3: Scheduled Restarts
 
-Status: in-progress
+Status: review
 
 <!-- Implements FR292-FR296, Epic 22 ADR-5, ADR-6, ADR-7, ADR-8 and ADR-14. Beads: VSS-29p (API-011), first half (Story 22.4 closes it); VSS-zws (API-073), checked here and fixed in Story 22.7 (maintainer, 2026-11-18), not closed here. Maintainer answers 5, 6, 7 and 11 (Matt, 2026-11-18). Stories run in order 22.1 to 22.6; this branch, story/22-3-scheduled-restarts, is stacked on story/22-2-prometheus-metrics-endpoint at 0067a09b (22.2 in review: it made game settings and mods share one PendingRestartState and makes every successful start clear it). The PR targets main and merges after 22.2's. Line references were verified at 0067a09b and must be re-checked at implementation time. API and documentation only; no web source change (the UI for the setting is Story 22.6). No new dependency, no new route, one new job module, no change to services/scheduler.py. The stop timeout and game_config.py change only on the maintainer's answer (ADR-8 decision 2). -->
 
@@ -122,11 +122,11 @@ so that **it runs fresh every day without me being there, and nobody is surprise
   - [x] 5.4: Commit `docs(story-22.3/task-5): document TZ and scheduled restarts`
 
 - [ ] Task 6: Validate and move the story to review (AC: all)
-  - [ ] 6.1: `just check` green: API tests, pyright 0 errors and 0 warnings, ruff; web tests with 0 skipped, tsc, Prettier. The added lines in `api/src` and `api/tests` hold no `type: ignore`, `pyright:`, `noqa`, `cast(`, skip, `xfail` or `.only`; `services/scheduler.py` and `models/jobs.py` are unchanged (`git diff 0067a09b -- api/src/vintagestory_api/services/scheduler.py api/src/vintagestory_api/models/jobs.py` is empty). `git status --short dev/` is empty after the runs
-  - [ ] 6.2: `just changelog` lists exactly one new entry from this story (Task 4's feature subject); check by this branch's hashes, as Story 22.2 did
+  - [x] 6.1: `just check` green: API tests, pyright 0 errors and 0 warnings, ruff; web tests with 0 skipped, tsc, Prettier. The added lines in `api/src` and `api/tests` hold no `type: ignore`, `pyright:`, `noqa`, `cast(`, skip, `xfail` or `.only`; `services/scheduler.py` and `models/jobs.py` are unchanged (`git diff 0067a09b -- api/src/vintagestory_api/services/scheduler.py api/src/vintagestory_api/models/jobs.py` is empty). `git status --short dev/` is empty after the runs
+  - [x] 6.2: `just changelog` lists exactly one new entry from this story (Task 4's feature subject); check by this branch's hashes, as Story 22.2 did
   - [ ] 6.3: Manual check (maintainer only; leave unticked until he confirms, AC 14): on a non-production server he runs, set `scheduled_restart_times` to a time 20 or more minutes ahead (a time less than 15 minutes ahead first runs the next day), be in the game, see `Server restarts in 15 minutes`, `5 minutes`, `1 minute` and the restart, then save `[]`. No agent runs this, and never on the dev stack's game server
-  - [ ] 6.4: Story status `review` in this file; `just sprint set 22-3-scheduled-restarts review`; Dev Agent Record and File List filled in, every statement true of the code
-  - [ ] 6.5: Commit `chore(story-22.3/task-6): validate and move story 22.3 to review`
+  - [x] 6.4: Story status `review` in this file; `just sprint set 22-3-scheduled-restarts review`; Dev Agent Record and File List filled in, every statement true of the code
+  - [x] 6.5: Commit `chore(story-22.3/task-6): validate and move story 22.3 to review`
   - [ ] 6.6: After merge, with the maintainer's go-ahead only: `VSS-zws` gets a comment with the Task 1 evidence and stays open for Story 22.7 (Matt, 2026-11-18); `VSS-29p` gets a comment with this story's commits and stays open for Story 22.4 (`bd comments add`, `bd close`, `bd sync`; CLAUDE.md "Completing Issues"). Pushing, the PR and the beads wait for that go-ahead
 
 ## Dev Notes
@@ -601,10 +601,36 @@ Cleanup done: the container and the image were removed; both listings were empty
 - 2026-11-19: **Maintainer decision (Matt, 2026-11-18, relayed by the controller): VSS-zws fixed in Story 22.7.** Story 22.7 (planned separately by the controller) keeps restart-required edits made while the game runs and writes them to `serverconfig.json` again after the process exits, before any start. Story 22.3 continues with Tasks 2 to 6; it does not close `VSS-zws` (header and Task 6.6 updated); `services/game_config.py` and the 10 s timeout stay unchanged. Recorded as "ADR against the code" 10.
 - 2026-11-19: Deviation (Task 1): `get_localzone()` printed `Etc/UTC` without `TZ` where the story expected `UTC`; the same zone (`/etc/localtime` links to `Etc/UTC`).
 
+- 2026-11-19: Task 2. `scheduled_restart_times` (list of `HH:MM`, default `[]`), the constants and the after-validator as specified; the list branch in `update_setting` with the `_is_json_array` helper; `INTERVAL_SETTINGS` became `SCHEDULED_SETTINGS`; the callback now gets the stored value (`getattr(updated, key)`) and `api_setting_not_applied` logs it. `api_setting_updated` still logs `value=validated_value` (the request's list, unsorted) as before; the story did not ask to change it.
+- 2026-11-19: Task 3. `ServerService.game_running` and `lifecycle_busy` (nothing else in `services/server.py` changed); `jobs/scheduled_restart.py` with the binding names; the restart step checks cancelled, busy, running with no `await` between those checks and `restart_server()`. Only `SchedulerService` is imported under `TYPE_CHECKING`: `ServerService` is not named in the module's annotations (the job gets it from `get_server_service()`), so importing it would be an unused import.
+- 2026-11-19: Task 4. `apply_restart_schedule`, `apply_setting`, `register_default_jobs` applying the restart times and logging `restart_jobs`; `RESTART_TIMES_SETTING` added to `SCHEDULED_SETTINGS`, `ScheduledSettingValue` and the wider callback type; the router passes `partial(apply_setting, scheduler)`. `services/scheduler.py`, `models/jobs.py`, `routers/jobs.py`, `main.py`, `services/game_config.py`, the web, the Dockerfile and the compose files are unchanged.
+- 2026-11-19: Task 5. README `TZ` row, `### Scheduled restarts` section and Features bullet; `.env.example` commented `TZ` block at the end of the OPTIONAL section (the file's last block).
+- 2026-11-19: Task 6. `just check` green: API 3644 passed, web 3567 passed (137 files, 0 skipped), pyright 0 errors 0 warnings (src, tests and scripts), ruff and Prettier clean, script suites green. No `type: ignore`, `pyright:`, `noqa`, `cast(`, skip, `xfail` or `.only` in the added lines of `api/src` and `api/tests`; `git diff 0067a09b -- services/scheduler.py models/jobs.py` is empty; `git status --short dev/` is empty. `just changelog` has one entry from this story's hashes: 8ed3ede, "Restart the game server at scheduled times, warning players first". 6.3 (maintainer's in-game check) and 6.6 (beads after merge) are left open.
+- Deviation (Task 2 tests): the "API tests" row lists `["00:00","23:59"]` as accepted, but with the midnight rule ("ADR against the code" 2) those two are 1 minute apart and must be refused. The tests accept `["00:00"]` and `["23:59"]` each on their own and assert the pair is refused with `'23:59' and '00:00' are 1 minutes apart`.
+- Deviation (Task 3 tests): the `OSError` job-function test raises from `send_command` (the first step), not from `restart_server`: the job function uses the real `asyncio.sleep`, so a failure at the restart would need 15 real minutes. It still covers "any other exception reaches `safe_job`, no retry".
+- Deviation (Task 4 tests): the no-op restart job is patched in the existing `no_real_jobs` fixture (`tests/test_jobs_registration.py`) and `reschedule_scheduler` fixture (`tests/test_routers_config.py`), so every scheduler test in those files has it. The stale-sequence tests use a small local fake server and sleep rather than importing `FakeServer` from `test_scheduled_restart.py` (importing a sibling test module needs a `# type: ignore[import-not-found]`, as `conftest` does).
+- Deviation (Task 4 tests): the Task 2 test `test_invalid_list_saves_nothing_and_skips_the_callback` calls `callback.reset_mock()` after its setup save, because from Task 4 the setup save of `["08:00"]` calls the callback.
+- Deviation (Task 5): the README's curl example is a fenced `bash` block over three lines instead of inline code, matching the README's other examples; the text is the story's.
+- Drawdown: `api_setting_updated` logs the request's list as given (unsorted, with duplicates) while the response and the file hold the sorted list; logging `stored` would be clearer (one-line change, not in this story's scope).
+- Drawdown: the validator's gap message reads "1 minutes apart" for a one-minute gap (the binding format `{gap} minutes apart`).
+- Drawdown: `web/src/api/config.ts:79-80` still names `INTERVAL_SETTINGS` in a comment (left for Story 22.6, as the story says).
+
 ### File List
 
 - `_bmad-output/implementation-artifacts/22-3-scheduled-restarts.md` (Task 1 record, status)
-- `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint` only: in-progress)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint` only: in-progress, then review)
+- `api/src/vintagestory_api/services/api_settings.py` (Task 2, Task 4)
+- `api/src/vintagestory_api/services/server.py` (Task 3: `game_running`, `lifecycle_busy`)
+- `api/src/vintagestory_api/jobs/scheduled_restart.py` (new, Task 3)
+- `api/src/vintagestory_api/jobs/__init__.py` (Task 4)
+- `api/src/vintagestory_api/routers/config.py` (Task 4)
+- `api/tests/test_api_settings.py` (Task 2, Task 4)
+- `api/tests/test_routers_config.py` (Task 2, Task 4)
+- `api/tests/test_jobs_registration.py` (Task 2, Task 4)
+- `api/tests/server/test_lifecycle.py` (Task 3)
+- `api/tests/test_scheduled_restart.py` (new, Task 3)
+- `README.md` (Task 5)
+- `.env.example` (Task 5)
 - `_bmad-output/planning-artifacts/architecture/epic-22-server-operations-and-metrics.md` (ADR-8 "Results (Story 22.3)")
 
 ## Change Log
@@ -613,3 +639,4 @@ Cleanup done: the container and the image were removed; both listings were empty
 - 2026-11-18: Validated against the create-story checklist, the epic, ADR-5 to ADR-8 and ADR-14, and the code at 1e44ab00 (APScheduler 3.11.3 behaviour re-run in a scratch venv): busy checked before running at the restart (AC 7), `DELETE /jobs/{id}` and an API start inside the window documented as they behave, `send_command` exceptions and `safe_job`'s `_completed` line stated, the throwaway container's isolation and why `just test-e2e-ci` cannot be reused, the web's camelCase name for Story 22.6.
 - 2026-11-19: Task 1 done: the stop measured (under 1 s, world saved, three rounds) and `VSS-zws` confirmed (a live `/serverconfig` command reverts a pending `Port` edit). Stopped at Task 1.7 for the maintainer.
 - 2026-11-19: Maintainer decision recorded: `VSS-zws` fixed in Story 22.7; Story 22.3 continues with Tasks 2 to 6 and no longer closes `VSS-zws`.
+- 2026-11-19: Tasks 2 to 6 done (dev-story): the setting, the sequence, the cron jobs, the documentation; `just check` green; status review.
