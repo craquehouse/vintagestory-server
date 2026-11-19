@@ -2,7 +2,7 @@
 
 Story 6.3: API Settings Service
 Story 17.6: Settings behave as saved (interval bound, not-applied error)
-Story 22.4: Disk cleanup limits (Epic 22 ADR-9 decision 1)
+Story 22.4: Backup cleanup limit (Epic 22 ADR-9 decision 1, as amended 2026-11-19)
 """
 
 import json
@@ -19,8 +19,6 @@ from vintagestory_api.jobs import INTERVAL_JOBS
 from vintagestory_api.services.api_settings import (
     MAX_BACKUP_KEEP_COUNT,
     MAX_INTERVAL_SECONDS,
-    MAX_LOG_ARCHIVE_KEEP_MIN,
-    MAX_LOG_ARCHIVE_RETENTION_DAYS,
     MAX_RESTART_TIMES,
     MIN_RESTART_GAP_MINUTES,
     RESTART_TIMES_SETTING,
@@ -69,8 +67,6 @@ class TestApiSettingsModel:
         assert settings.mod_list_refresh_interval == 14400
         assert settings.server_versions_refresh_interval == 86400
         assert settings.metrics_collection_interval == 10  # AC: 5 default 10s
-        assert settings.log_archive_retention_days == 14
-        assert settings.log_archive_keep_min == 5
         assert settings.backup_keep_count == 0
 
     def test_custom_values(self) -> None:
@@ -1170,95 +1166,86 @@ class TestScheduledRestartTimesService:
 
 
 # ==============================================================================
-# Story 22.4: disk cleanup limits (Epic 22 ADR-9 decision 1)
+# Story 22.4: the backup cleanup limit (Epic 22 ADR-9 decision 1, as amended 2026-11-19)
 # ==============================================================================
 
-CLEANUP_LIMITS = {
-    "log_archive_retention_days": (14, 3650),
-    "log_archive_keep_min": (5, 1000),
-    "backup_keep_count": (0, 1000),
-}
-"""Each cleanup setting: its default and its maximum."""
-CLEANUP_KEYS = list(CLEANUP_LIMITS)
+BACKUP_KEY = "backup_keep_count"
+DROPPED_KEYS = ["log_archive_retention_days", "log_archive_keep_min"]
+"""The log-archive limits dropped by the maintainer's decision (2026-11-19): the game keeps
+at most 5 archives itself."""
 
 
-class TestDiskCleanupLimitsModel:
-    """The three cleanup limits and their bounds (Story 22.4, AC 10)."""
+class TestBackupKeepCountModel:
+    """The backup limit and its bounds (Story 22.4, AC 10)."""
 
-    def test_constants(self) -> None:
-        assert MAX_LOG_ARCHIVE_RETENTION_DAYS == 3650
-        assert MAX_LOG_ARCHIVE_KEEP_MIN == 1000
+    def test_bound(self) -> None:
         assert MAX_BACKUP_KEEP_COUNT == 1000
 
-    @pytest.mark.parametrize("key", CLEANUP_KEYS)
-    def test_accepts_zero_and_the_maximum(self, key: str) -> None:
-        maximum = CLEANUP_LIMITS[key][1]
-        assert getattr(ApiSettings.model_validate({key: 0}), key) == 0
-        assert getattr(ApiSettings.model_validate({key: maximum}), key) == maximum
+    def test_accepts_zero_and_the_maximum(self) -> None:
+        assert ApiSettings.model_validate({BACKUP_KEY: 0}).backup_keep_count == 0
+        assert ApiSettings.model_validate({BACKUP_KEY: 1000}).backup_keep_count == 1000
 
-    @pytest.mark.parametrize("key", CLEANUP_KEYS)
-    def test_rejects_below_zero_and_above_the_maximum(self, key: str) -> None:
-        maximum = CLEANUP_LIMITS[key][1]
+    @pytest.mark.parametrize("value", [-1, 1001])
+    def test_rejects_out_of_bounds(self, value: int) -> None:
         with pytest.raises(ValidationError):
-            ApiSettings.model_validate({key: -1})
-        with pytest.raises(ValidationError):
-            ApiSettings.model_validate({key: maximum + 1})
+            ApiSettings.model_validate({BACKUP_KEY: value})
 
-    @pytest.mark.parametrize("key", CLEANUP_KEYS)
-    def test_not_a_scheduled_setting(self, key: str) -> None:
-        """The job reads them when it runs (Epic 22 ADR-7 decision 4)."""
-        assert key not in SCHEDULED_SETTINGS
+    def test_not_a_scheduled_setting(self) -> None:
+        """The job reads it when it runs (Epic 22 ADR-7 decision 4)."""
+        assert BACKUP_KEY not in SCHEDULED_SETTINGS
+
+    @pytest.mark.parametrize("key", DROPPED_KEYS)
+    def test_log_archive_limits_are_not_settings(self, key: str) -> None:
+        assert key not in ApiSettings.model_fields
+        assert key not in ApiSettings().model_dump()
 
 
-class TestDiskCleanupLimitsService:
-    """update_setting for the three cleanup limits (Story 22.4, AC 10)."""
+class TestBackupKeepCountService:
+    """update_setting for the backup limit (Story 22.4, AC 10)."""
 
-    @pytest.mark.parametrize("key", CLEANUP_KEYS)
-    async def test_saves_zero_the_default_and_the_maximum(
-        self, settings: Settings, key: str
-    ) -> None:
+    async def test_saves_zero_the_default_and_the_maximum(self, settings: Settings) -> None:
         callback = MagicMock()
         service = ApiSettingsService(settings=settings, scheduler_callback=callback)
-        default, maximum = CLEANUP_LIMITS[key]
 
-        for value in (0, default, maximum):
-            result = await service.update_setting(key, value)
+        for value in (0, 3, 1000):
+            result = await service.update_setting(BACKUP_KEY, value)
 
-            assert result == {"key": key, "value": value}
-            assert json.loads(service.settings_file.read_text())[key] == value
-            assert getattr(service.get_settings(), key) == value
+            assert result == {"key": BACKUP_KEY, "value": value}
+            assert json.loads(service.settings_file.read_text())[BACKUP_KEY] == value
+            assert service.get_settings().backup_keep_count == value
         callback.assert_not_called()
 
-    @pytest.mark.parametrize("key", CLEANUP_KEYS)
-    async def test_numeric_string_is_saved_as_an_int(
-        self, service: ApiSettingsService, key: str
-    ) -> None:
-        result = await service.update_setting(key, "7")
+    async def test_numeric_string_is_saved_as_an_int(self, service: ApiSettingsService) -> None:
+        result = await service.update_setting(BACKUP_KEY, "7")
 
-        assert result == {"key": key, "value": 7}
-        assert json.loads(service.settings_file.read_text())[key] == 7
+        assert result == {"key": BACKUP_KEY, "value": 7}
+        assert json.loads(service.settings_file.read_text())[BACKUP_KEY] == 7
 
-    @pytest.mark.parametrize("key", CLEANUP_KEYS)
-    @pytest.mark.parametrize("kind", ["below", "above", "bool", "word", "list"])
+    @pytest.mark.parametrize("value", [-1, 1001, True, "seven", [1]])
     async def test_invalid_value_saves_nothing_and_skips_the_callback(
-        self, settings: Settings, key: str, kind: str
+        self, settings: Settings, value: object
     ) -> None:
-        maximum = CLEANUP_LIMITS[key][1]
-        value: object = {
-            "below": -1,
-            "above": maximum + 1,
-            "bool": True,
-            "word": "seven",
-            "list": [1],
-        }[kind]
         callback = MagicMock()
         service = ApiSettingsService(settings=settings, scheduler_callback=callback)
-        await service.update_setting(key, 3)
+        await service.update_setting(BACKUP_KEY, 3)
         before = service.settings_file.read_bytes()
 
         with pytest.raises(ApiSettingInvalidError) as exc_info:
-            await service.update_setting(key, value)
+            await service.update_setting(BACKUP_KEY, value)
 
-        assert exc_info.value.key == key
+        assert exc_info.value.key == BACKUP_KEY
+        assert service.settings_file.read_bytes() == before
+        callback.assert_not_called()
+
+    @pytest.mark.parametrize("key", DROPPED_KEYS)
+    async def test_log_archive_limits_are_unknown(self, settings: Settings, key: str) -> None:
+        callback = MagicMock()
+        service = ApiSettingsService(settings=settings, scheduler_callback=callback)
+        await service.update_setting(BACKUP_KEY, 3)
+        before = service.settings_file.read_bytes()
+
+        with pytest.raises(ApiSettingUnknownError):
+            await service.update_setting(key, 14)
+
         assert service.settings_file.read_bytes() == before
         callback.assert_not_called()

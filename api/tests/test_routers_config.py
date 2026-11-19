@@ -2546,7 +2546,7 @@ class TestScheduledRestartTimesReschedule:
 
 
 # ==============================================================================
-# Story 22.4: disk cleanup limits (Epic 22 ADR-9 decision 1)
+# Story 22.4: the backup cleanup limit (Epic 22 ADR-9 decision 1, as amended 2026-11-19)
 # ==============================================================================
 
 
@@ -2557,44 +2557,47 @@ async def _api_settings(client: httpx.AsyncClient) -> dict[str, Any]:
     return settings
 
 
-class TestDiskCleanupLimits:
-    """The cleanup limits are saved and bounded; saving one touches no job (Story 22.4, AC 10)."""
+class TestBackupKeepCount:
+    """The backup limit is saved and bounded; saving it touches no job (Story 22.4, AC 10)."""
 
     async def test_save_and_refuse(self, reschedule_client: httpx.AsyncClient) -> None:
         await _save(reschedule_client, "mod_list_refresh_interval", 600)
         job_ids = set(await _jobs(reschedule_client))
 
-        response = await _save(reschedule_client, "log_archive_retention_days", 30)
-        assert response.status_code == 200
-        assert response.json()["data"] == {"key": "log_archive_retention_days", "value": 30}
-        assert (await _api_settings(reschedule_client))["log_archive_retention_days"] == 30
-
-        response = await _save(reschedule_client, "log_archive_retention_days", 3651)
-        assert response.status_code == 400
-        assert response.json()["detail"]["code"] == ErrorCode.API_SETTING_INVALID
-        assert (await _api_settings(reschedule_client))["log_archive_retention_days"] == 30
-
         response = await _save(reschedule_client, "backup_keep_count", 3)
         assert response.status_code == 200
+        assert response.json()["data"] == {"key": "backup_keep_count", "value": 3}
+        assert (await _api_settings(reschedule_client))["backup_keep_count"] == 3
+
+        response = await _save(reschedule_client, "backup_keep_count", 1001)
+        assert response.status_code == 400
+        assert response.json()["detail"]["code"] == ErrorCode.API_SETTING_INVALID
         assert (await _api_settings(reschedule_client))["backup_keep_count"] == 3
 
         assert set(await _jobs(reschedule_client)) == job_ids
 
-    async def test_defaults_are_returned(self, reschedule_client: httpx.AsyncClient) -> None:
+    async def test_default_is_returned(self, reschedule_client: httpx.AsyncClient) -> None:
         settings = await _api_settings(reschedule_client)
 
-        assert settings["log_archive_retention_days"] == 14
-        assert settings["log_archive_keep_min"] == 5
         assert settings["backup_keep_count"] == 0
+        assert "log_archive_retention_days" not in settings
+        assert "log_archive_keep_min" not in settings
 
-    @pytest.mark.parametrize(
-        "key", ["log_archive_retention_days", "log_archive_keep_min", "backup_keep_count"]
-    )
-    async def test_monitor_cannot_set_a_limit(
-        self, reschedule_client: httpx.AsyncClient, key: str
+    @pytest.mark.parametrize("key", ["log_archive_retention_days", "log_archive_keep_min"])
+    async def test_log_archive_limits_are_unknown(
+        self, reschedule_client: httpx.AsyncClient, temp_settings: Settings, key: str
     ) -> None:
+        """Dropped by the maintainer's decision (2026-11-19): the game keeps 5 archives."""
+        response = await _save(reschedule_client, key, 30)
+
+        assert response.status_code == 400
+        assert response.json()["detail"]["code"] == ErrorCode.API_SETTING_UNKNOWN
+        assert key not in await _api_settings(reschedule_client)
+        assert not (temp_settings.state_dir / "api-settings.json").exists()
+
+    async def test_monitor_cannot_set_the_limit(self, reschedule_client: httpx.AsyncClient) -> None:
         response = await reschedule_client.post(
-            f"/api/v1alpha1/config/api/settings/{key}",
+            "/api/v1alpha1/config/api/settings/backup_keep_count",
             json={"value": 1},
             headers={"X-API-Key": TEST_MONITOR_KEY},
         )

@@ -623,6 +623,7 @@ Cleanup done: the container and the image were removed; both listings and `git s
 ### Debug Log References
 
 - Task 1: red first (`ImportError` for `MAX_BACKUP_KEEP_COUNT`; the router's defaults and save tests failed), then green: `just test-api tests/test_api_settings.py tests/test_routers_config.py tests/test_jobs_registration.py` 410 passed; pyright 0/0.
+- Task 3a (maintainer decision): red first (14 failures and 1 failing assertion: `CleanupLimits` still required the two archive limits, `ApiSettings` still had the fields), then green: the four affected test files 408 passed; pyright 0/0, ruff clean. `DiskCleanupService` lost its `now` argument too: with no archive pass nothing reads the clock (backups are ordered by modification time).
 - Task 3: the 7-round script waited up to 120 s for the archive count to reach the count before the start + 1; in round 7 it never did (the game deleted one archive as it added one), which is how the pruning showed.
 - Task 2: red first was an `ImportError` at collection (the service module did not exist), not 28 individual failures; then 28 passed; pyright 0/0, ruff clean. The newline and full-width archive names are created on the host's APFS, so those cases run (built conditionally, never skipped).
 
