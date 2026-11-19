@@ -493,6 +493,7 @@ reportMissingTypeStubs = "none"  # Suppress stub warnings for internal packages
 **Hooks:** camelCase with `use` prefix (`useServerStatus`)
 **Booleans:** always `is` prefix (`isLoading`, `isConnected`)
 **Formatting:** Prettier, pinned in `web/package.json` with `web/.prettierrc.json` (an exact pin on purpose: a formatter's output changes between versions); run `just format-web` on the files you change; `just lint-web` and CI check it
+**Reformat commits (API and web):** a change that reformats existing code, such as a new Prettier or ruff version or a changed formatter setting, lands as its own commit containing only the reformat. Typically it is a `chore` commit on top of the version bump, including in a Renovate pull request. A follow-up commit adds that commit's full hash, with its subject as a comment, to `.git-blame-ignore-revs` (see the two entries there), so `git blame` skips it. The setting is `:(optional).git-blame-ignore-revs`. Never mix a reformat with other changes.
 
 **Query keys:**
 ```typescript

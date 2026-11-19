@@ -1038,6 +1038,34 @@ test.describe('Game Settings title row on wide screens (Story 17.8, AC 5)', () =
   }
 });
 
+test.describe('Game Settings uses the page width (after Story 21.8)', () => {
+  // The page used to pad itself inside Layout's padding, so its panel was 24px narrower on
+  // each side than every other page from 1024px (16px below), and 1232px under the cap.
+  const cases = [
+    { width: 390, collapsed: false },
+    ...SIDEBAR.flatMap(({ collapsed }) =>
+      [1024, 1440, 1920, 2560].map((width) => ({ width, collapsed }))
+    ),
+  ];
+  for (const { width, collapsed } of cases) {
+    const label = width < 768 ? 'phone' : collapsed ? 'sidebar collapsed' : 'sidebar expanded';
+    test(`the panel spans the page content at ${width}px, ${label}`, async ({ page }) => {
+      await openPage(page, width, collapsed, '/game-server/settings');
+      const layout = page.getByTestId('game-config-layout');
+      await expect(layout).toBeVisible({ timeout: 30_000 });
+
+      const content = await boxOf(page.getByTestId('page-content'), 'page-content');
+      const panel = await boxOf(layout, 'game-config-layout');
+      expect(Math.abs(panel.x - content.x), 'panel left vs content left').toBeLessThanOrEqual(1);
+      expect(
+        Math.abs(panel.x + panel.width - (content.x + content.width)),
+        'panel right vs content right'
+      ).toBeLessThanOrEqual(1);
+      expect(await documentOverflow(page)).toBe(0);
+    });
+  }
+});
+
 /** The fixed sidebar's width now. */
 async function sidebarWidth(page: Page): Promise<number> {
   return (await boxOf(page.getByTestId('desktop-sidebar'), 'desktop-sidebar')).width;
