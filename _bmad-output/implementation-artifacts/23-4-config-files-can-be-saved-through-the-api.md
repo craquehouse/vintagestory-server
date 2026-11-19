@@ -78,10 +78,10 @@ so that **the web editor can change configs safely, keeping comments and formatt
   - [x] 3.2: `services/pending_config_edits.py`: `DropReason` gains `"file_edited"`; `services/config_files.py` (or the new helper's module): `changed_top_level_keys`; `services/server.py`: the method (Dev Notes "Pending edits")
   - [x] 3.3: Commit `refactor(story-23.4/task-3): drop the pending config edits a serverconfig.json save changes`
 
-- [ ] Task 4: The routes + tests (AC: 1-9, 10)
-  - [ ] 4.1: Red first: `api/tests/test_routers_config_save.py` over HTTP with a real `ServerService` on `tmp_path` (Dev Notes "Router tests")
-  - [ ] 4.2: `models/errors.py`: `CONFIG_FILE_INVALID`, `CONFIG_FILE_SERVER_RUNNING`, `CONFIG_FILE_SERVER_BUSY`, `CONFIG_FILE_CHANGED`, `CONFIG_FILE_WRITE_FAILED`; `routers/config.py`: `POST /files/validate` (declared before the `PUT`), `PUT /files/{filename:path}` with docstrings, `NO_STORE` on every answer, the module docstring's route list
-  - [ ] 4.3: Commit `feat(story-23.4/task-4): save config files through the API while the game server is stopped`
+- [x] Task 4: The routes + tests (AC: 1-9, 10)
+  - [x] 4.1: Red first: `api/tests/test_routers_config_save.py` over HTTP with a real `ServerService` on `tmp_path` (Dev Notes "Router tests")
+  - [x] 4.2: `models/errors.py`: `CONFIG_FILE_INVALID`, `CONFIG_FILE_SERVER_RUNNING`, `CONFIG_FILE_SERVER_BUSY`, `CONFIG_FILE_CHANGED`, `CONFIG_FILE_WRITE_FAILED`; `routers/config.py`: `POST /files/validate` (declared before the `PUT`), `PUT /files/{filename:path}` with docstrings, `NO_STORE` on every answer, the module docstring's route list
+  - [x] 4.3: Commit `feat(story-23.4/task-4): save config files through the API while the game server is stopped`
 
 - [ ] Task 5: Validate and move the story to review (AC: all)
   - [ ] 5.1: `just check` green; `git diff 02c96240 -- web` empty; no suppression added

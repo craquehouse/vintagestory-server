@@ -39,6 +39,12 @@ class ErrorCode:
     # that are UTF-8 text, up to 2 MiB
     CONFIG_FILE_NOT_SUPPORTED = "CONFIG_FILE_NOT_SUPPORTED"
     CONFIG_FILE_TOO_LARGE = "CONFIG_FILE_TOO_LARGE"
+    # Story 23.4 (Epic 23 ADR-4): saving a config file's text
+    CONFIG_FILE_INVALID = "CONFIG_FILE_INVALID"
+    CONFIG_FILE_SERVER_RUNNING = "CONFIG_FILE_SERVER_RUNNING"
+    CONFIG_FILE_SERVER_BUSY = "CONFIG_FILE_SERVER_BUSY"
+    CONFIG_FILE_CHANGED = "CONFIG_FILE_CHANGED"
+    CONFIG_FILE_WRITE_FAILED = "CONFIG_FILE_WRITE_FAILED"
 
     # Game Settings (Epic 6) - serverconfig.json settings managed via console commands
     # These apply to VintageStory game server configuration (Port, ServerName, etc.)
