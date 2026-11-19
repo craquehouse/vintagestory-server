@@ -1375,3 +1375,66 @@ class TestPlayersOnline:
         await installed_service.restart_server()
 
         assert installed_service._player_tracker.count == 0
+
+
+class _LiveProcess:
+    """A stand-in for a running game process (Story 22.3)."""
+
+    pid = 4242
+    returncode: int | None = None
+
+
+class TestScheduledRestartProperties:
+    """game_running and lifecycle_busy, read by the scheduled restart (Story 22.3)."""
+
+    async def test_game_running_false_without_a_process(
+        self, installed_service: ServerService
+    ) -> None:
+        assert installed_service.game_running is False
+
+    async def test_game_running_true_with_a_live_running_process(
+        self, installed_service: ServerService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(installed_service, "_process", _LiveProcess())
+        monkeypatch.setattr(installed_service, "_server_state", ServerState.RUNNING)
+
+        assert installed_service.game_running is True
+
+    @pytest.mark.parametrize("state", [ServerState.STOPPING, ServerState.STARTING])
+    async def test_game_running_false_while_in_transition(
+        self,
+        installed_service: ServerService,
+        monkeypatch: pytest.MonkeyPatch,
+        state: ServerState,
+    ) -> None:
+        monkeypatch.setattr(installed_service, "_process", _LiveProcess())
+        monkeypatch.setattr(installed_service, "_server_state", state)
+
+        assert installed_service.game_running is False
+
+    async def test_game_running_false_after_the_process_exited(
+        self, installed_service: ServerService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        exited = _LiveProcess()
+        exited.returncode = 0
+        monkeypatch.setattr(installed_service, "_process", exited)
+        monkeypatch.setattr(installed_service, "_server_state", ServerState.RUNNING)
+
+        assert installed_service.game_running is False
+
+    async def test_lifecycle_busy_false_when_idle(self, installed_service: ServerService) -> None:
+        assert installed_service.lifecycle_busy is False
+
+    async def test_lifecycle_busy_while_the_lifecycle_lock_is_held(
+        self, installed_service: ServerService
+    ) -> None:
+        async with installed_service._lifecycle_lock:
+            assert installed_service.lifecycle_busy is True
+        assert installed_service.lifecycle_busy is False
+
+    async def test_lifecycle_busy_while_the_install_lock_is_held(
+        self, installed_service: ServerService
+    ) -> None:
+        async with installed_service._install_lock:
+            assert installed_service.lifecycle_busy is True
+        assert installed_service.lifecycle_busy is False

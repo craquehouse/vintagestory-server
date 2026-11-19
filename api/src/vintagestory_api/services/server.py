@@ -221,6 +221,16 @@ class ServerService:
             return None
         return self._player_tracker.count
 
+    @property
+    def game_running(self) -> bool:
+        """True while the game process runs and is neither starting nor stopping (Story 22.3)."""
+        return self._get_runtime_state() == ServerState.RUNNING
+
+    @property
+    def lifecycle_busy(self) -> bool:
+        """True while a start, stop, restart, uninstall or install holds its lock (Story 22.3)."""
+        return self._lifecycle_lock.locked() or self._install_lock.locked()
+
     def _update_mod_service_server_state(self, running: bool) -> None:
         """Update the mod service with current server running state.
 

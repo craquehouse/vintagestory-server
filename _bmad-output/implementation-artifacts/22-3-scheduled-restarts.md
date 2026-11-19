@@ -102,12 +102,12 @@ so that **it runs fresh every day without me being there, and nobody is surprise
   - [x] 2.4: `cd api && uv run ruff format <changed files>`; `just test-api tests/test_api_settings.py tests/test_routers_config.py tests/test_jobs_registration.py` green; `just typecheck-api` 0 errors, 0 warnings
   - [x] 2.5: Commit `refactor(story-22.3/task-2): accept and validate scheduled_restart_times in the API settings` (nothing acts on it yet; the release note comes with Task 4; precedent `refactor(story-22.2/task-3)`)
 
-- [ ] Task 3: The warning and restart sequence, with injectable sleep and the skip rules + tests (AC: 5, 6, 7, 8, 9, 13)
-  - [ ] 3.1: Red first: new `api/tests/test_scheduled_restart.py` with the Task 3 rows of Dev Notes "API tests", and the `ServerService` rows in `api/tests/server/test_lifecycle.py`; see them fail
-  - [ ] 3.2: `services/server.py`: the two read-only properties `game_running` and `lifecycle_busy` of Dev Notes "Two properties on ServerService", after `players_online` (`:217-222`). Nothing else in that file changes
-  - [ ] 3.3: New `api/src/vintagestory_api/jobs/scheduled_restart.py` (Dev Notes "The sequence"): the constants, `restart_job_id`, `warning_start`, the `RestartTarget` protocol, `run_restart_sequence` and the job function `scheduled_restart` under `@safe_job("scheduled_restart")`. Logging exactly as Dev Notes "What is logged". Nothing registers it yet
-  - [ ] 3.4: `cd api && uv run ruff format <changed files>`; `just test-api tests/test_scheduled_restart.py tests/server` green; `just typecheck-api` 0/0
-  - [ ] 3.5: Commit `refactor(story-22.3/task-3): add the scheduled restart sequence with its warnings and skip rules` (not registered yet)
+- [x] Task 3: The warning and restart sequence, with injectable sleep and the skip rules + tests (AC: 5, 6, 7, 8, 9, 13)
+  - [x] 3.1: Red first: new `api/tests/test_scheduled_restart.py` with the Task 3 rows of Dev Notes "API tests", and the `ServerService` rows in `api/tests/server/test_lifecycle.py`; see them fail
+  - [x] 3.2: `services/server.py`: the two read-only properties `game_running` and `lifecycle_busy` of Dev Notes "Two properties on ServerService", after `players_online` (`:217-222`). Nothing else in that file changes
+  - [x] 3.3: New `api/src/vintagestory_api/jobs/scheduled_restart.py` (Dev Notes "The sequence"): the constants, `restart_job_id`, `warning_start`, the `RestartTarget` protocol, `run_restart_sequence` and the job function `scheduled_restart` under `@safe_job("scheduled_restart")`. Logging exactly as Dev Notes "What is logged". Nothing registers it yet
+  - [x] 3.4: `cd api && uv run ruff format <changed files>`; `just test-api tests/test_scheduled_restart.py tests/server` green; `just typecheck-api` 0/0
+  - [x] 3.5: Commit `refactor(story-22.3/task-3): add the scheduled restart sequence with its warnings and skip rules` (not registered yet)
 
 - [ ] Task 4: Apply restart times as cron jobs at start-up and on save + tests (AC: 3, 4, 8, 13)
   - [ ] 4.1: Red first: the Task 4 rows of Dev Notes "API tests" in `api/tests/test_jobs_registration.py`, `api/tests/test_routers_config.py` and `api/tests/test_api_settings.py`; see them fail
