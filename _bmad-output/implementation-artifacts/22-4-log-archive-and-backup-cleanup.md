@@ -97,15 +97,15 @@ so that **the disk does not fill up over months of restarts, and my world and it
   - [x] 2.3: `cd api && uv run ruff format <changed files>`; `just test-api tests/test_disk_cleanup.py` green; `just typecheck-api` 0/0
   - [x] 2.4: Commit `refactor(story-22.4/task-2): add the disk cleanup service for log archives and backups` (not registered yet)
 
-- [ ] Task 3: Check the game's archives and backups, and run the service on them, in a throwaway container (AC: 11)
-  - [ ] 3.1: Run Dev Notes "The throwaway-container run" exactly: image `vss-22-4-cleanup:local` built from this branch (with Tasks 1 and 2), container `vss-22-4-cleanup` on `127.0.0.1:18092` with `TZ=Europe/Berlin`, no game port published, placeholder keys, no volume or bind mount, no `--env-file`, no compose, not `just test-e2e-ci`. Never the dev stack (`vintagestory-manager-dev`, `http://localhost:9080`), whose game server is not started or stopped, and never `./data` or `dev/`
-  - [ ] 3.2: Install the current stable game through the API; 7 rounds of start, ready, stop; after each start record `ls Logs/Archive`, `stat -c '%y %n' Logs/Archive/*` (each archive directory's modification time), `date` and `date -u` in the container and the new archive's first `server-main.log` line ("Server logger started")
-  - [ ] 3.3: In round 7, while the game runs: `/genbackup` twice through `POST /api/v1alpha1/console/command`; record `ls -la` of `Backups/` and `BackupSaves/` (type, size, name of each entry)
-  - [ ] 3.4: Run the service in the container (`docker exec ... uv run --no-sync python -c ...`, Dev Notes) four times: defaults (expect nothing deleted: every archive is from today); after adding three old copies of an archive, each with its directory modification time set back to its name's age (`touch -m -d`; a copy keeps today's modification time otherwise and would not be deleted, controller decision 2), and an old-named symbolic link to `/etc` (expect exactly the three copies deleted, the link skipped with WARNING, `/etc` intact); `backup_keep_count` 1 (expect the older backup deleted, the newer kept); `log_archive_retention_days` 0 and `backup_keep_count` 0 (expect nothing deleted)
-  - [ ] 3.5: Remove the container and the image (`docker rm -f vss-22-4-cleanup; docker image rm vss-22-4-cleanup:local`); `docker ps -a --filter name=vss-22-4` and `docker image ls vss-22-4-cleanup` are empty; `git status --short dev/ data/` is empty
-  - [ ] 3.6: Record the results in Dev Agent Record "Throwaway-container results" (host architecture, game version, the archive listing after each start with the logger-start line and the clock, the `Backups/` listing, the four service runs' results and log lines, the commands) and append a "Results (Story 22.4)" paragraph to ADR-9's section in `_bmad-output/planning-artifacts/architecture/epic-22-server-operations-and-metrics.md`. No instance data, no real key, no address
-  - [ ] 3.7: **Stop rule:** if the game deleted or renamed any archive across the rounds, if an archive name does not match the pattern or is not the archived run's start time in `TZ` (for example UTC while `TZ=Europe/Berlin`), if `/genbackup` writes anything other than one regular file directly in `Backups/`, or if any service run deleted anything other than the expected entries: commit the record (3.8), then stop and report it to the controller as a maintainer question with the evidence. Task 4 goes on only if the controller says so; the story does not go to review before the answer
-  - [ ] 3.8: Commit `docs(story-22.4/task-3): record the game's log archives and backups and a cleanup run on them`
+- [x] Task 3: Check the game's archives and backups, and run the service on them, in a throwaway container (AC: 11)
+  - [x] 3.1: Run Dev Notes "The throwaway-container run" exactly: image `vss-22-4-cleanup:local` built from this branch (with Tasks 1 and 2), container `vss-22-4-cleanup` on `127.0.0.1:18092` with `TZ=Europe/Berlin`, no game port published, placeholder keys, no volume or bind mount, no `--env-file`, no compose, not `just test-e2e-ci`. Never the dev stack (`vintagestory-manager-dev`, `http://localhost:9080`), whose game server is not started or stopped, and never `./data` or `dev/`
+  - [x] 3.2: Install the current stable game through the API; 7 rounds of start, ready, stop; after each start record `ls Logs/Archive`, `stat -c '%y %n' Logs/Archive/*` (each archive directory's modification time), `date` and `date -u` in the container and the new archive's first `server-main.log` line ("Server logger started")
+  - [x] 3.3: In round 7, while the game runs: `/genbackup` twice through `POST /api/v1alpha1/console/command`; record `ls -la` of `Backups/` and `BackupSaves/` (type, size, name of each entry)
+  - [x] 3.4: Run the service in the container (`docker exec ... uv run --no-sync python -c ...`, Dev Notes) four times: defaults (expect nothing deleted: every archive is from today); after adding three old copies of an archive, each with its directory modification time set back to its name's age (`touch -m -d`; a copy keeps today's modification time otherwise and would not be deleted, controller decision 2), and an old-named symbolic link to `/etc` (expect exactly the three copies deleted, the link skipped with WARNING, `/etc` intact); `backup_keep_count` 1 (expect the older backup deleted, the newer kept); `log_archive_retention_days` 0 and `backup_keep_count` 0 (expect nothing deleted)
+  - [x] 3.5: Remove the container and the image (`docker rm -f vss-22-4-cleanup; docker image rm vss-22-4-cleanup:local`); `docker ps -a --filter name=vss-22-4` and `docker image ls vss-22-4-cleanup` are empty; `git status --short dev/ data/` is empty
+  - [x] 3.6: Record the results in Dev Agent Record "Throwaway-container results" (host architecture, game version, the archive listing after each start with the logger-start line and the clock, the `Backups/` listing, the four service runs' results and log lines, the commands) and append a "Results (Story 22.4)" paragraph to ADR-9's section in `_bmad-output/planning-artifacts/architecture/epic-22-server-operations-and-metrics.md`. No instance data, no real key, no address
+  - [x] 3.7: **Stop rule:** if the game deleted or renamed any archive across the rounds, if an archive name does not match the pattern or is not the archived run's start time in `TZ` (for example UTC while `TZ=Europe/Berlin`), if `/genbackup` writes anything other than one regular file directly in `Backups/`, or if any service run deleted anything other than the expected entries: commit the record (3.8), then stop and report it to the controller as a maintainer question with the evidence. Task 4 goes on only if the controller says so; the story does not go to review before the answer
+  - [x] 3.8: Commit `docs(story-22.4/task-3): record the game's log archives and backups and a cleanup run on them`
 
 - [ ] Task 4: The `disk_cleanup` cron job, always registered, with its log lines + tests (AC: 1, 8, 9, 13)
   - [ ] 4.1: Red first: new `api/tests/jobs/test_disk_cleanup_job.py` and the Task 4 rows in `api/tests/test_jobs_registration.py` and `api/tests/test_routers_config.py`; see them fail
@@ -496,15 +496,103 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive
 
 <!-- Task 3.6: host architecture, game version, the archive listing after each start (with the logger-start line and date/date -u), the Backups listing, the four service runs, the commands. -->
 
+Run on 2026-11-19 from this branch at `8cf51967` (Tasks 1 and 2; no cleanup job is registered in that image).
+
+- **Host:** `uname -m` = `arm64` (Docker 29.9.2); the `linux/amd64` image ran emulated.
+- **Game version:** `stable` resolved to **1.22.7** (`POST /api/v1alpha1/server/install`). Fresh world created by the first start.
+- **Isolation:** image `vss-22-4-cleanup:local`, container `vss-22-4-cleanup`, only `127.0.0.1:18092 -> 8080` published (game port not published), `TZ=Europe/Berlin`, placeholder admin key, no `-v`/`--mount`/`--env-file`, no compose; `docker inspect` showed `Mounts: []`. The dev stack was not touched.
+
+**The archives after each start** (`date` / `date -u` in the container at the record; "first line" is the newest archive's `server-main.log` first line; "dir mtime" from `stat -c '%y'`):
+
+| Round | Ready (`now running`) | `date` / `date -u` | `Logs/Archive` after the start | Newest archive's first line | Newest archive's dir mtime | Live `server-main.log` first line |
+|---|---|---|---|---|---|---|
+| 1 | 04:25:38 | 04:25:38 CET / 03:25:39 UTC | (none: the first start archives nothing) | - | - | `19.11.2026 04:25:16 [Notification] Server logger started.` |
+| 2 | 04:26:05 | 04:26:06 CET / 03:26:06 UTC | `2026-11-19_04_25_16` | `19.11.2026 04:25:16 ... Server logger started.` | 04:25:50.688 +0100 | `19.11.2026 04:25:50 ...` |
+| 3 | 04:26:32 | 04:26:32 CET / 03:26:32 UTC | `..._04_25_16`, `..._04_25_50` | `19.11.2026 04:25:50 ...` | 04:26:18.127 +0100 | `19.11.2026 04:26:18 ...` |
+| 4 | 04:26:58 | 04:26:59 CET / 03:26:59 UTC | `..._04_25_16`, `..._04_25_50`, `..._04_26_18` | `19.11.2026 04:26:18 ...` | 04:26:44.531 +0100 | `19.11.2026 04:26:44 ...` |
+| 5 | 04:27:24 | 04:27:25 CET / 03:27:25 UTC | the 3 above + `..._04_26_44` | `19.11.2026 04:26:44 ...` | 04:27:11.016 +0100 | `19.11.2026 04:27:11 ...` |
+| 6 | 04:27:50 | 04:27:51 CET / 03:27:51 UTC | the 4 above + `..._04_27_11` (5 archives) | `19.11.2026 04:27:11 ...` | 04:27:37.393 +0100 | `19.11.2026 04:27:37 ...` |
+| 7 | 04:28:16 | 04:30:14 CET / 03:30:14 UTC | **`..._04_25_50`, `..._04_26_18`, `..._04_26_44`, `..._04_27_11`, `..._04_27_37`: `2026-11-19_04_25_16` is gone** (still 5) | `19.11.2026 04:27:37 ...` | 04:28:02.762 +0100 | `19.11.2026 04:28:02 ...` |
+
+(All archive names are `2026-11-19_HH_MM_SS`; "`..._`" abbreviates `2026-11-19_`.) Round 7's record came 2 minutes after the ready line because the wait for "archive count + 1" timed out (the count stayed at 5).
+
+- **Names:** every name matches `[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}_[0-9]{2}_[0-9]{2}` and is the archived run's "Server logger started" time **in Berlin time** (one hour ahead of `date -u`), not UTC. Each directory's modification time is at or after its name's time (the start that archived it). As expected.
+- **Pruning (stop rule):** the game deleted `2026-11-19_04_25_16` at round 7's start. Nothing in the manager can have done it: the image has no cleanup job (`docker logs` holds no `disk_cleanup` line and no line naming an archive). `serverconfig.json` has no archive setting (`grep -i archive` finds nothing; the only log settings are `LogBlockBreakPlace` and `LogFileSplitAfterLine: 500000`). So **the game keeps at most 5 log archives itself**, deleting the oldest at a start.
+
+**`/genbackup`** (round 7, through `POST /api/v1alpha1/console/command`, game running):
+
+```
+19.11.2026 04:30:15 [Notification] Handling Console Command /genbackup
+19.11.2026 04:30:15 [Error] Exception: Object reference not set to an instance of an object.
+   at Vintagestory.Server.ServerSystemSupplyChunkCommands.GenBackup(IServerPlayer logToPlayer) in VintagestoryLib\Server\Systems\World\LoadThread\SupplyChunkCommands.cs:line 306
+   at Vintagestory.Server.ServerSystemSupplyChunkCommands.onCmdGenBackup(TextCommandCallingArgs args) in VintagestoryLib\Server\Systems\World\LoadThread\SupplyChunkCommands.cs:line 290
+   ... (ChatCommandImpl, ServerMain.ReceiveServerConsole, ServerConsole, ServerMain.ProcessMain frames)
+19.11.2026 04:31:27 [Notification] Handling Console Command /genbackup
+19.11.2026 04:31:27 [Notification] Can't run backup. A backup is already in progress
+19.11.2026 04:31:27 [Notification] Ok, generating backup, this might take a while
+19.11.2026 04:35:44 [Notification] Server termination event SIGTERM received. Shutting down server
+```
+
+`ls -la --time-style=full-iso` right after the second call, and again after the stop: `Backups/` and `BackupSaves/` both empty (only `.` and `..`, created 04:25:16 by the first start). **No backup file was written** in over 4 minutes: the first call failed with a `NullReferenceException` inside the game, which apparently left its "backup in progress" flag set, and the second refused yet also said it was generating. What `/genbackup` writes into `Backups/` is therefore still unknown (stop rule: not "one regular file directly in `Backups/`").
+
+**The four service runs** (after round 7's stop; `docker exec vss-22-4-cleanup uv run --no-sync python -c "... DiskCleanupService(Settings().serverdata_dir).run(CleanupLimits(<days>, <keep>, <backups>))"`; the container logged in console format):
+
+1. `(14, 5, 0)`: `disk_cleanup_finished archive_bytes=0 archives_deleted=0 archives_kept=5 backup_bytes=0 backup_keep_count=0 backups_deleted=0 backups_kept=0 errors=0 log_archive_keep_min=5 log_archive_retention_days=14`. Nothing deleted, as expected.
+2. After three copies of `2026-11-19_04_25_50` named and `touch -m`-dated 30, 31 and 32 days back (`2026-10-20_04_36_08`, `2026-10-19_04_36_08`, `2026-10-18_04_36_08`; `stat` showed their mtimes at those times, +0200) and a link `2026-10-10_04_36_08 -> /etc`; `ls /etc | wc -l` = 84 before and after. `(14, 5, 0)`:
+   ```
+   [warning] disk_cleanup_skipped path=Logs/Archive/2026-10-10_04_36_08 reason=symlink
+   [info] disk_cleanup_deleted bytes=233676 kind=log_archive path=Logs/Archive/2026-10-20_04_36_08
+   [info] disk_cleanup_deleted bytes=233676 kind=log_archive path=Logs/Archive/2026-10-19_04_36_08
+   [info] disk_cleanup_deleted bytes=233676 kind=log_archive path=Logs/Archive/2026-10-18_04_36_08
+   [info] disk_cleanup_finished archive_bytes=701028 archives_deleted=3 archives_kept=5 ... errors=0
+   ```
+   Exactly the three copies deleted, the link skipped with WARNING, `/etc` intact, the 5 real archives (and the link) remain. As expected.
+3. `(14, 5, 1)`: the link skipped again (WARNING), `archives_deleted=0 backups_deleted=0 backups_kept=0 errors=0`. **Not the expected result** ("the older of two backups deleted"): there was no backup to delete, because `/genbackup` wrote none.
+4. `(0, 5, 0)`: `archives_deleted=0 archives_kept=0 ... errors=0`; nothing deleted, as expected.
+
+**Commands** (repo root; `api.sh METHOD PATH [json]` is a scratch wrapper around `curl -s -H "X-API-Key: vss-22-4-placeholder-admin-key" -H "Content-Type: application/json" -X METHOD http://127.0.0.1:18092PATH -d json`):
+
+```bash
+docker rm -f vss-22-4-cleanup >/dev/null 2>&1 || true
+docker build --platform linux/amd64 -t vss-22-4-cleanup:local .
+docker run -d --name vss-22-4-cleanup --platform linux/amd64 -p 127.0.0.1:18092:8080 \
+  -e VS_API_KEY_ADMIN=vss-22-4-placeholder-admin-key -e VS_DATA_DIR=/data -e TZ=Europe/Berlin vss-22-4-cleanup:local
+api.sh POST /api/v1alpha1/server/install '{"version":"stable"}'   # polled GET .../server/install/status
+# each of 7 rounds: count archives; start; from round 2 wait (<= 120 s) for count + 1; wait for 'now running'; record; sleep 10; stop
+api.sh POST /api/v1alpha1/server/start
+docker exec vss-22-4-cleanup sh -c 'date; date -u; ls /data/serverdata/Logs/Archive; stat -c "%y %n" /data/serverdata/Logs/Archive/*'
+docker exec vss-22-4-cleanup head -1 /data/serverdata/Logs/Archive/<newest>/server-main.log
+api.sh POST /api/v1alpha1/server/stop
+# round 7, game running:
+api.sh POST /api/v1alpha1/console/command '{"command":"/genbackup"}'   # twice, 70 s apart; GET .../console/history
+docker exec vss-22-4-cleanup sh -c 'ls -la --time-style=full-iso /data/serverdata/Backups /data/serverdata/BackupSaves'
+# the four service runs and the old copies: as in Dev Notes "The throwaway-container run"
+docker rm -f vss-22-4-cleanup; docker image rm vss-22-4-cleanup:local
+docker ps -a --filter name=vss-22-4      # empty
+docker image ls vss-22-4-cleanup         # empty
+git status --short dev/ data/            # empty
+```
+
+Cleanup done: the container and the image were removed; both listings and `git status --short dev/ data/` were empty.
+
 ### Debug Log References
 
 - Task 1: red first (`ImportError` for `MAX_BACKUP_KEEP_COUNT`; the router's defaults and save tests failed), then green: `just test-api tests/test_api_settings.py tests/test_routers_config.py tests/test_jobs_registration.py` 410 passed; pyright 0/0.
+- Task 3: the 7-round script waited up to 120 s for the archive count to reach the count before the start + 1; in round 7 it never did (the game deleted one archive as it added one), which is how the pruning showed.
 - Task 2: red first was an `ImportError` at collection (the service module did not exist), not 28 individual failures; then 28 passed; pyright 0/0, ruff clean. The newline and full-width archive names are created on the host's APFS, so those cases run (built conditionally, never skipped).
 
 ### Completion Notes List
 
 - 2026-11-18: Story created (create-story, non-interactive) and checked against the create-story checklist: 6 tasks; every code task carries its tests (Task 3 is a container check, Task 5 documentation, Task 6 validation); every AC is mapped to a task (AC 13 to every code task and Task 6, AC 14 to Task 6.3).
 - 2026-11-18: Validated (create-story checklist, fresh context) against the epic, ADR-7/9/10/14, project-context.md, CLAUDE.md and the code at `4bc01ea1` (every line reference re-checked; the Python 3.14.10 `shutil.rmtree`, `re` and `strptime` claims re-run). Applied the four controller decisions (Dev Notes "Controller decisions during validation"; ADR-9, ADR-10 and the change proposal updated). Fixed: AC 2 and AC 4 for decisions 1 and 2, the archive rules ("What is deleted"), the settings' descriptions, the test rows (explicit directory mtimes in `make_archive`, decision 1 and 2 cases, mtime boundary, keep order), Task 3's old copies (`touch -m` so decision 2 does not keep them) and the mtime record; `disk_cleanup_delete_failed` logs `e.strerror` and `errno`, not `str(e)` (an `OSError`'s text holds the absolute path); `_delete_tree` must not pass `onexc`/`ignore_errors`; the link check comes before the directory check; the conftest fixture lands once `jobs/disk_cleanup.py` exists (its string target imports it).
+- 2026-11-19: Tasks 1 and 2 done (dev-story). Task 1: the three settings with their bounds, not in `SCHEDULED_SETTINGS`. Task 2: `DiskCleanupService` with the archive and backup rules, the link and path checks and the log lines of Dev Notes; 28 tests in `tests/test_disk_cleanup.py`.
+- 2026-11-19: Task 3 done (throwaway container, game 1.22.7, `TZ=Europe/Berlin`). Archive names and their zone are as expected (the archived run's start time in Berlin time; the directory's mtime is the archiving start), and the service deleted exactly the expected entries in the archive runs. **Task 3.7 stop rule fired, twice:**
+  1. **The game prunes its own log archives.** At round 7's start it deleted the oldest archive (`2026-11-19_04_25_16`) as it added a new one, keeping 5. No manager code ran a deletion (no cleanup job in that image, no such log line), and `serverconfig.json` has no archive setting. ADR-9 decision 7's premise ("the game does not prune archives itself") does not hold.
+  2. **`/genbackup` wrote nothing.** The first call failed inside the game (`NullReferenceException` in `ServerSystemSupplyChunkCommands.GenBackup`); the second answered "Can't run backup. A backup is already in progress" and "Ok, generating backup, this might take a while"; `Backups/` and `BackupSaves/` stayed empty until the stop more than 4 minutes later. What `/genbackup` writes is still unconfirmed, and the backup service run (3) had nothing to delete.
+  
+  **Question for the maintainer (through the controller), with the evidence in "Throwaway-container results":** (a) the game already keeps at most 5 archives, the same number as `log_archive_keep_min`'s default: should the manager's archive cleanup still ship (it then only matters when the game's own limit is larger or changes, or for archives left by other versions), ship with other defaults, or be dropped in favour of documenting the game's own limit? Note that with the game's 5 and the default 14 days, the manager would never delete an archive the game keeps. (b) Is the backup half kept as designed without a confirmed `/genbackup` output (one more container run on a world that has played longer, or a different command, could confirm it), or deferred? Task 4 (the job, the only `feat` commit) and Tasks 5 and 6 wait for the answer; the story stays `in-progress`.
+  
+  Deviation: Task 4's code and tests were drafted in the working tree while the container ran (tests red first, then green: 396 passed in the Task 4.5 set, pyright 0/0) but are **not committed**; they were set aside with `git stash push -u -m "story-22.4 task-4 draft (uncommitted, awaiting the Task 3.7 answer)"` so the Task 3 commit holds only the record. Nothing was registered in any committed code.
 
 ### File List
 
@@ -513,6 +601,7 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive
 - `api/tests/test_routers_config.py` (Task 1)
 - `api/src/vintagestory_api/services/disk_cleanup.py` (Task 2, new)
 - `api/tests/test_disk_cleanup.py` (Task 2, new)
+- `_bmad-output/planning-artifacts/architecture/epic-22-server-operations-and-metrics.md` (Task 3: ADR-9 "Results (Story 22.4)")
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint` only: in-progress, then review)
 - `_bmad-output/implementation-artifacts/22-4-log-archive-and-backup-cleanup.md` (this file)
 
@@ -520,3 +609,4 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive
 
 - 2026-11-18: Story 22.4 created (ready-for-dev).
 - 2026-11-18: Validated; four controller decisions applied (newest archive always kept; age from the later of name and directory mtime; 03:00 stays; logging example in the README only); fixes listed in Completion Notes.
+- 2026-11-19: Tasks 1 to 3 done; Task 3.7 stop rule fired (the game keeps at most 5 log archives itself; `/genbackup` wrote no file). Waiting for the maintainer's answer before Task 4.
