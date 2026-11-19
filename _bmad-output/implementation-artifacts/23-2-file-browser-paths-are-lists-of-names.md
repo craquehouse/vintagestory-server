@@ -53,10 +53,10 @@ so that **a name is never split or joined by mistake, and the editor and history
   - [x] 2.4: `just test-web`; `just typecheck-web`; `just format-web`, `just lint-web`
   - [x] 2.5: Commit `refactor(story-23.2/task-2): carry file browser paths as lists of names`
 
-- [ ] Task 3: Highlight the selected file in a subfolder + test (AC: 4, 5)
-  - [ ] 3.1: Red first: `FileManagerPanel.test.tsx`: open `ModConfig`, select `x.json`; the item has the selected state (the attribute or class the existing root-level test "highlights selected file in the list" checks); see it fail
-  - [ ] 3.2: `FileManagerPanel.tsx`: pass `FileList` the selected file's `name` when its `directory` equals `currentDirectory` (element by element), else `null`
-  - [ ] 3.3: Commit `fix(story-23.2/task-3): highlight the selected file in a subfolder of the file browser`
+- [x] Task 3: Highlight the selected file in a subfolder + test (AC: 4, 5)
+  - [x] 3.1: Red first: `FileManagerPanel.test.tsx`: open `ModConfig`, select `x.json`; the item has the selected state (the attribute or class the existing root-level test "highlights selected file in the list" checks); see it fail
+  - [x] 3.2: `FileManagerPanel.tsx`: pass `FileList` the selected file's `name` when its `directory` equals `currentDirectory` (element by element), else `null`
+  - [x] 3.3: Commit `fix(story-23.2/task-3): highlight the selected file in a subfolder of the file browser`
 
 - [ ] Task 4: Validate and move the story to review (AC: all)
   - [ ] 4.1: `just check` green (web 0 skipped); `git diff 03218c12 -- api` empty; added lines hold no suppression, `cast`, skip or `.only`

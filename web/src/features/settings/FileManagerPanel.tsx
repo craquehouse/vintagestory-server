@@ -145,6 +145,15 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
   );
 
   const selectedPath = selectedFile ? displayPath(selectedFile) : null;
+  // The list shows names in the current directory: highlight the selected file only there
+  // (Story 23.2; before, the full path was compared with the bare name, so a file in a
+  // subfolder was never highlighted)
+  const selectedNameHere =
+    selectedFile &&
+    selectedFile.directory.length === currentDirectory.length &&
+    selectedFile.directory.every((name, index) => name === currentDirectory[index])
+      ? selectedFile.name
+      : null;
 
   // Combined loading state
   const isLoading = isLoadingFiles || isLoadingDirectories;
@@ -192,7 +201,7 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
         <div className="w-56 shrink-0 border-r flex flex-col">
           <FileList
             items={items}
-            selectedFile={selectedPath}
+            selectedFile={selectedNameHere}
             isLoading={isLoading}
             onSelectFile={handleSelectFile}
             onSelectDirectory={handleSelectDirectory}
