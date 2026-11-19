@@ -95,13 +95,13 @@ so that **a later live setting change cannot quietly undo it while "Restart requ
   - [x] 3.5: `cd api && uv run ruff format <changed files>`; `just test-api tests/server tests/test_main.py tests/test_shared_pending_restart.py tests/test_game_config.py tests/test_pending_config_edits.py tests/test_scheduled_restart.py tests/test_routers_config.py` green; `just typecheck-api` 0/0; `git status --short dev/ data/` empty
   - [x] 3.6: Commit `fix(story-22.7/task-3): keep a Port or Ip change saved while the server runs when a later live setting change rewrites the config` (body: Story 22.7 / task 3; the change is kept in `vsmanager/state/pending-config-edits.json` and written to `serverconfig.json` again after the game exits, before every start and when the API starts; "Restart required" stays if it could not be written; closes the gap Story 22.3 found, `VSS-zws`)
 
-- [ ] Task 4: Repeat Story 22.3's `VSS-zws` check with the fix in a throwaway container (AC: 9)
-  - [ ] 4.1: Run Dev Notes "The throwaway-container run" exactly: image `vss-22-7-zws:local` built from this branch after Task 3's commit, container `vss-22-7-zws` on `127.0.0.1:18094`, no game port published, placeholder key, no `-v`/`--mount`/`--env-file`, no compose, not `just test-e2e-ci`. Never the dev stack (`vintagestory-manager-dev`, port 9080), whose game server is not started or stopped, and never `./data` or `dev/`
-  - [ ] 4.2: Run A (stop path), run B (exit by itself through `/stop`) and run C (`docker restart` between the live change and the start), reading `Port` and `ServerName` from `serverconfig.json` and the state file at each step, as listed there
-  - [ ] 4.3: Remove the container and the image (`docker rm -f vss-22-7-zws; docker image rm vss-22-7-zws:local`); `docker ps -a --filter name=vss-22-7` and `docker image ls vss-22-7-zws` are empty; `git status --short dev/ data/` is empty
-  - [ ] 4.4: Record the results in Dev Agent Record "Throwaway-container results" (host architecture, game version, one table per run, the log lines, the commands) and append a "Results (Story 22.7)" paragraph to ADR-15's section in `_bmad-output/planning-artifacts/architecture/epic-22-server-operations-and-metrics.md`. No instance data, no real key, no address
-  - [ ] 4.5: **Stop rule:** if any read after an exit or an API start does not hold the expected value, or the game does not listen on it after the start: commit the record (4.6), then stop and report it to the controller with the reads and the log lines. Tasks 5 and 6 wait for the answer; the story does not go to review before it
-  - [ ] 4.6: Commit `docs(story-22.7/task-4): record a Port change surviving a live setting change in a throwaway container`
+- [x] Task 4: Repeat Story 22.3's `VSS-zws` check with the fix in a throwaway container (AC: 9)
+  - [x] 4.1: Run Dev Notes "The throwaway-container run" exactly: image `vss-22-7-zws:local` built from this branch after Task 3's commit, container `vss-22-7-zws` on `127.0.0.1:18094`, no game port published, placeholder key, no `-v`/`--mount`/`--env-file`, no compose, not `just test-e2e-ci`. Never the dev stack (`vintagestory-manager-dev`, port 9080), whose game server is not started or stopped, and never `./data` or `dev/`
+  - [x] 4.2: Run A (stop path), run B (exit by itself through `/stop`) and run C (`docker restart` between the live change and the start), reading `Port` and `ServerName` from `serverconfig.json` and the state file at each step, as listed there
+  - [x] 4.3: Remove the container and the image (`docker rm -f vss-22-7-zws; docker image rm vss-22-7-zws:local`); `docker ps -a --filter name=vss-22-7` and `docker image ls vss-22-7-zws` are empty; `git status --short dev/ data/` is empty
+  - [x] 4.4: Record the results in Dev Agent Record "Throwaway-container results" (host architecture, game version, one table per run, the log lines, the commands) and append a "Results (Story 22.7)" paragraph to ADR-15's section in `_bmad-output/planning-artifacts/architecture/epic-22-server-operations-and-metrics.md`. No instance data, no real key, no address
+  - [x] 4.5: **Stop rule:** if any read after an exit or an API start does not hold the expected value, or the game does not listen on it after the start: commit the record (4.6), then stop and report it to the controller with the reads and the log lines. Tasks 5 and 6 wait for the answer; the story does not go to review before it
+  - [x] 4.6: Commit `docs(story-22.7/task-4): record a Port change surviving a live setting change in a throwaway container`
 
 - [ ] Task 5: The README paragraph (AC: 10)
   - [ ] 5.1: `README.md`: the paragraph of Dev Notes "Documentation" between the Configuration table (ends `:91`) and `### Scheduled restarts` (`:93`)
@@ -408,6 +408,99 @@ Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive
 
 <!-- Task 4.4: host architecture, game version, a table per run (Port, ServerName, state file at each read), the log lines, the commands. -->
 
+Run on 2026-11-19 (UTC) from this branch at `c886d3fe` (Task 3's commit).
+
+- **Host:** `uname -m` = `arm64` (Docker 29.9.2). The image is `linux/amd64`, so the game ran emulated.
+- **Game version:** `stable` resolved to **1.22.7** (`POST /api/v1alpha1/server/install`); fresh world created by the first start.
+- **Isolation:** image `vss-22-7-zws:local`, container `vss-22-7-zws`, only `127.0.0.1:18094 -> 8080` published (game port not published), placeholder admin key `vss-22-7-placeholder-admin-key`, `VS_DATA_DIR=/data`, no `-v`/`--mount`/`--env-file`, no compose; `docker inspect` showed `Mounts=[]`. No other container was running; the dev stack was not touched. Auto-start was off (default).
+- **Reads:** `read_cfg` prints `Port` and `ServerName` from `/data/serverdata/serverconfig.json`; `read_state` prints `/data/vsmanager/state/pending-config-edits.json` (whitespace removed). Times are UTC. "missing" = no state file yet.
+
+**Run A (stop path, AC 1)**
+
+| Read | Time | Step before it | `Port` | `ServerName` | State file |
+|---|---|---|---|---|---|
+| A1 | 13:28:43 | start (ready 13:28:11, `now running on Port 42420`), 30 s | 42420 | Vintage Story Server | missing |
+| A2 | 13:28:43 | `Port` 42421 -> `file_update`, `pending_restart: true` | 42421 | Vintage Story Server | `{"edits":{"Port":{"value":42421,"recorded_at":"2026-11-19T13:28:43.607196Z"}}}` |
+| A3 | 13:28:48 | `ServerName` "vss-22-7 live change" -> `console_command`; 5 s | **42420** (the game wrote) | vss-22-7 live change | same as A2 |
+| A4 | 13:28:49 | `POST /server/stop` | **42421** | vss-22-7 live change | same as A2 (kept until a start) |
+| A5 | 13:29:04 | `POST /server/start`, ready 13:29:03 `now running on Port 42421` | 42421 | vss-22-7 live change | `{"edits":{}}` |
+
+`GET /healthz` after A5: `game_server_pending_restart` false. Log lines (request ids removed):
+
+```
+{"key": "Port", "event": "pending_config_edit_recorded", "timestamp": "2026-11-19T13:28:43.609462Z", "level": "info"}
+{"keys": ["Port"], "trigger": "exit", "event": "pending_config_edits_reapplied", "timestamp": "2026-11-19T13:28:49.953333Z", "level": "info"}
+{"keys": ["Port"], "reason": "started", "event": "pending_config_edits_dropped", "timestamp": "2026-11-19T13:28:50.293243Z", "level": "info"}
+```
+
+No `trigger=start` line at the start: the file already held 42421, so nothing was written.
+
+**Run B (exit by itself through `/stop`, AC 2)**
+
+| Read | Time | Step before it | `Port` | `ServerName` | State file |
+|---|---|---|---|---|---|
+| B0 | 13:29:12 | game running on 42421 | 42421 | vss-22-7 live change | `{"edits":{}}` |
+| B1 | 13:29:17 | `Port` 42422 (`file_update`, `pending_restart: true`); `ServerName` "vss-22-7 run b" (`console_command`); 5 s | **42421** (the game wrote) | vss-22-7 run b | `{"edits":{"Port":{"value":42422,"recorded_at":"2026-11-19T13:29:12.628838Z"}}}` |
+| B2 | 13:29:19 | `POST /console/command {"command": "/stop"}`; status `installed` at 13:29:19 | **42422** | vss-22-7 run b | same as B1 |
+| B3 | 13:29:34 | `POST /server/start`, ready 13:29:33 `now running on Port 42422` | 42422 | vss-22-7 run b | `{"edits":{}}` |
+
+```
+{"key": "Port", "event": "pending_config_edit_recorded", "timestamp": "2026-11-19T13:29:12.628996Z", "level": "info"}
+{"keys": ["Port"], "trigger": "exit", "event": "pending_config_edits_reapplied", "timestamp": "2026-11-19T13:29:18.664257Z", "level": "info"}
+{"returncode": 0, "event": "server_exited_normally", "timestamp": "2026-11-19T13:29:18.664333Z", "level": "info"}
+{"keys": ["Port"], "reason": "started", "event": "pending_config_edits_dropped", "timestamp": "2026-11-19T13:29:19.385422Z", "level": "info"}
+```
+
+(The monitor's lines carry the request id of the start that created the monitor task; structlog's context variables are copied into the task.)
+
+**Run C (`docker restart` between the live change and the start, AC 3 and 9)**
+
+| Read | Time | Step before it | `Port` | `ServerName` | State file |
+|---|---|---|---|---|---|
+| C0 | 13:29:40 | game running on 42422 | 42422 | vss-22-7 run b | `{"edits":{}}` |
+| C1 | 13:29:45 | `Port` 42420 (`file_update`, `pending_restart: true`); `ServerName` "vss-22-7 run c" (`console_command`); 5 s | **42422** (the game wrote) | vss-22-7 run c | `{"edits":{"Port":{"value":42420,"recorded_at":"2026-11-19T13:29:40.391158Z"}}}` |
+| C2 | 13:29:48 | `docker restart vss-22-7-zws` at 13:29:45, `/healthz` up | **42420** | vss-22-7 run c | same as C1 |
+| C3 | 13:30:03 | `POST /server/start`, ready 13:30:02 `now running on Port 42420` | 42420 | vss-22-7 run c | `{"edits":{}}` |
+| C4 | 13:30:04 | `POST /server/stop` | 42420 | vss-22-7 run c | `{"edits":{}}` |
+
+After the restart `GET /server/status` was `installed` (no auto-start line: auto-start off). API log since the restart:
+
+```
+{"debug_mode": false, "log_level": "INFO", "data_dir": "/data", "event": "api_starting", "timestamp": "2026-11-19T13:29:46.760627Z", "level": "info"}
+{"keys": ["Port"], "trigger": "api_start", "event": "pending_config_edits_reapplied", "timestamp": "2026-11-19T13:29:46.766660Z", "level": "info"}
+{"keys": ["Port"], "reason": "started", "event": "pending_config_edits_dropped", "timestamp": "2026-11-19T13:29:48.552097Z", "level": "info"}
+```
+
+What the game printed at the `docker restart`: nothing. The archived `server-main.log` of that run (`Logs/Archive/2026-11-19_13_29_19/`) ends with `[Notification] Handling Console Command /serverconfig name vss-22-7 run c` and `Server name set to vss-22-7 run c` at 13:29:40; no SIGTERM, save or shutdown line follows, so the game neither saved nor logged an exit before the container stopped. The API wrote the edit back at its next start. (The old run's API shut down at 13:29:45.88 with `scheduler_stopped` and `api_shutting_down`; the API's shutdown does not stop the game.)
+
+**Result:** every read after an exit or an API start held the expected value (A4 42421, B2 42422, C2 42420), and the game listened on it after each start (42421, 42422, 42420). The stop rule (Task 4.5) did not fire.
+
+**Commands** (from the repo root; helpers kept in the session scratchpad, not committed):
+
+```bash
+IMAGE=vss-22-7-zws:local; NAME=vss-22-7-zws; BASE=http://127.0.0.1:18094
+KEY=vss-22-7-placeholder-admin-key; H=(-H "X-API-Key: $KEY" -H "Content-Type: application/json")
+docker rm -f "$NAME" >/dev/null 2>&1 || true
+docker build --platform linux/amd64 -t "$IMAGE" .
+docker run -d --name "$NAME" --platform linux/amd64 -p 127.0.0.1:18094:8080 \
+  -e VS_API_KEY_ADMIN="$KEY" -e VS_DATA_DIR=/data "$IMAGE"
+curl -s "${H[@]}" -X POST "$BASE/api/v1alpha1/server/install" -d '{"version":"stable"}'   # poll /server/install/status
+read_cfg() { docker exec "$NAME" python3 -c "import json; c=json.load(open('/data/serverdata/serverconfig.json')); print(c.get('Port'), c.get('ServerName'))"; }
+read_state() { docker exec "$NAME" sh -c 'cat /data/vsmanager/state/pending-config-edits.json 2>/dev/null | tr -d "\n "'; }
+# start: POST /server/start, then wait for a "now running on Port" line in Logs/server-main.log
+#   that differs from the last one before the start (the game archives the old log at each start)
+curl -s "${H[@]}" -X POST "$BASE/api/v1alpha1/config/game/settings/Port" -d '{"value": 42421}'
+curl -s "${H[@]}" -X POST "$BASE/api/v1alpha1/config/game/settings/ServerName" -d '{"value": "vss-22-7 live change"}'
+curl -s "${H[@]}" -X POST "$BASE/api/v1alpha1/server/stop"
+curl -s "${H[@]}" -X POST "$BASE/api/v1alpha1/console/command" -d '{"command": "/stop"}'
+docker restart "$NAME"
+docker logs "$NAME" 2>&1 | grep pending_config_edit
+docker rm -f "$NAME"; docker image rm "$IMAGE"
+docker ps -a --filter name=vss-22-7; docker image ls vss-22-7-zws   # both empty
+```
+
+**Clean-up:** `docker rm -f vss-22-7-zws; docker image rm vss-22-7-zws:local`; afterwards `docker ps -a --filter name=vss-22-7` and `docker image ls vss-22-7-zws` listed nothing, and `git status --short dev/ data/` was empty.
+
 ### Debug Log References
 
 ### Completion Notes List
@@ -417,6 +510,7 @@ Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive
 - Task 1: `services/pending_config_edits.py` holds `PendingConfigEdit`/`PendingConfigEditsFile` (Pydantic), `PendingConfigEdits` (`edits` copy, `record`, `drop`, `drop_if_unchanged`, lazy load with the WARNING rules, atomic save that logs `pending_config_edits_save_failed` with `error_type`/`errno`/`strerror` and keeps the edit in memory) and `reapply_edits` (narrows parsed JSON with a module-level `TypeAdapter(dict[str, object])`; an absent key is added; no write when every value is equal). 30 tests in `tests/test_pending_config_edits.py`, red first (`ModuleNotFoundError` at collection), then green; Pyright 0/0. Nothing calls the store yet.
 - Task 2: `ServerService.__init__` builds the one store (`PendingConfigEdits(self._settings.state_dir)`, not read until first use) and exposes `pending_config_edits`. `GameConfigService.update_setting` now keeps the console/file call's result and, after it returns, calls `_track_pending_edit`: record on a `file_update` with `pending_restart` while `game_server_pid` is not `None`, otherwise `drop([key], reason="changed_again")`; nothing when `server_service` is `None`. Nothing in `_update_config_file` or `_execute_console_command` changed. Tests (red first: 14 failed with `AttributeError`): `TestPendingConfigEditTracking` (14 tests, including the Secrets guard and the no-value log check) on a real temp-dir `ServerService` with a small typed live-process fake; `test_port_saved_while_running_is_recorded` in `test_shared_pending_restart.py`; `TestOwner` in `test_pending_config_edits.py` (building a `ServerService` reads no state file: the controller decision). Full API suite 3747 passed; Pyright 0/0; no existing test changed.
 - Task 3: `services/server.py` gains `ReapplyOutcome` (frozen dataclass), `_reapply_pending_config_edits(trigger)` (synchronous; missing `serverconfig.json` -> nothing written, empty `written`; `OSError`/`ValueError` -> ERROR `pending_config_edits_reapply_failed` with `keys`, `trigger`, `error_type` and, for an `OSError`, `errno`/`strerror`, never `str(e)` or a value), called at the four points: `_stop_server_locked` after the state lines and before `_cancel_background_tasks()`, `_settle_state_after_failed_stop` in the exited branch, `_monitor_process` on an exit by itself after `INSTALLED`, and `_start_server_locked` as the first statement inside the spawn's `try`. After a successful spawn `drop_if_unchanged(outcome.written, reason="started")`. `_last_start_reapply_failed_keys` (set in `__init__`, set at each start) drives `_reflag_unapplied_edits()` after both `_clear_pending_restart()` calls. `ServerService.reapply_pending_config_edits_at_api_start()` (returns when a pid lives) and the module-level `reapply_pending_config_edits_at_api_start()`. `main.py` imports the latter at module level and calls it after the `prepare_mod_files` guard and before the auto-start block, in a `try`/`except Exception` that logs `pending_config_edits_startup_failed` (`error_type`). `tests/conftest.py`: autouse `reapply_at_api_start_recorder` (`ReapplyAtApiStartRecorder`). Tests, red first (collection `ImportError`; every test errored on the conftest `setattr` until the function existed): `tests/server/test_pending_config_edits_lifecycle.py` (19 tests: stop, stop then start, kill, exit by itself, failed stop of an exited process, missing config at exit, before-spawn on a fresh service through start and restart, scheduled restart through `run_restart_sequence`, equal values, failed spawn, edit recorded during the spawn, failure rule for a directory and invalid JSON through start and restart, API start, the pid guard, auto-start through the real lifespan); 4 lifespan tests in `tests/test_main.py` (order with auto-start on and off, a failing write-back, a `not json` state file on a real temp-dir service); one route test in `tests/test_shared_pending_restart.py` (save while running, game write, stop, start, `/healthz` false, edit gone). Mutation checks: removing the start re-flag, the restart re-flag, any of the three exit write-backs, or replacing the identity drop each fail at least one test. Full API suite 3771 passed; Pyright 0/0; ruff clean; `git status --short dev/ data/` empty. No existing test changed.
+- Task 4: the throwaway-container run of Dev Notes "The throwaway-container run" (runs A, B and C) passed: see "Throwaway-container results". The stop rule did not fire. A "Results (Story 22.7)" paragraph was appended to ADR-15; its last sentence records open question 2's accepted limitation there, as the controller decision for that question asks ("in ADR-15's consequences through this story"); ADR-15's Consequences paragraph itself is unchanged. Container and image removed.
 - Task 3 test detail: the lifecycle tests record the edit after the start that would load it (`start_with_the_edit_overwritten`), since a start drops an edit it has written; the fake process is a small typed class whose `wait()` awaits an `asyncio.Event` with no timeout. The lifecycle and route tests set `services.mods._mod_service` to a stand-in so `_update_mod_service_server_state` never builds a mod service from `Settings()` (`dev/`).
 
 ### File List
@@ -431,6 +525,7 @@ Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive
 - `api/tests/conftest.py` (modified, Task 3)
 - `api/tests/test_main.py` (modified, Task 3)
 - `api/tests/server/test_pending_config_edits_lifecycle.py` (new, Task 3)
+- `_bmad-output/planning-artifacts/architecture/epic-22-server-operations-and-metrics.md` (ADR-15 "Results (Story 22.7)", Task 4)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (`just sprint set`: in-progress in Task 1)
 - `_bmad-output/implementation-artifacts/22-7-restart-required-settings-survive-a-live-change.md` (this file)
 
