@@ -18,7 +18,7 @@ import { fetchOnNewConnection, pretendServerInstalled, serveConfigKey } from './
  * prints the password (compared with `includes`, so a failure does not print it).
  *
  * Requirements:
- * - Docker stack on E2E_BASE_URL (default http://localhost:8080) with a serverconfig.json,
+ * - Docker stack on E2E_BASE_URL (default http://localhost:9080) with a serverconfig.json,
  *   which the seeded stack and a stack with a game server both have (the page is shown as
  *   installed by `pretendServerInstalled`): `just test-e2e-ci`, or `just docker restart` then
  *   `cd web && bunx playwright test e2e/monitor-password-redaction.spec.ts`

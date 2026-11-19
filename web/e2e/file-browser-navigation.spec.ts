@@ -15,7 +15,7 @@ import { serveConfigKey } from './config-js';
  * Requirements:
  * - A stack whose serverdata has at least one directory inside another: `just test-e2e-ci`
  *   seeds `Logs/Archive` in its throwaway container; on another stack (E2E_BASE_URL,
- *   default http://localhost:8080) it needs a game server that has run, which writes one
+ *   default http://localhost:9080) it needs a game server that has run, which writes one
  */
 
 // API key from environment or default from docker-compose.dev.yaml

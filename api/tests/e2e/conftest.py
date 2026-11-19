@@ -65,10 +65,10 @@ def require_docker_running(base_url: str) -> None:
 def base_url() -> str:
     """Base URL for the running application.
 
-    Defaults to http://localhost:8080 which is the Docker Compose exposed port.
+    Defaults to http://localhost:9080 which is the Docker Compose exposed port.
     Can be overridden via PLAYWRIGHT_BASE_URL environment variable.
     """
-    return os.environ.get("PLAYWRIGHT_BASE_URL", "http://localhost:8080")
+    return os.environ.get("PLAYWRIGHT_BASE_URL", "http://localhost:9080")
 
 
 @pytest.fixture

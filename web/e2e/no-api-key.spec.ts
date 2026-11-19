@@ -20,7 +20,7 @@ import { serveConfigKey } from './config-js';
  * Needs only the stack (no mod database, no game server).
  *
  * Requirements:
- * - Docker stack on E2E_BASE_URL (default http://localhost:8080) built from this branch:
+ * - Docker stack on E2E_BASE_URL (default http://localhost:9080) built from this branch:
  *   `just docker restart` then `cd web && bunx playwright test e2e/no-api-key.spec.ts`
  * - VS_API_KEY_ADMIN exported (default from docker-compose.dev.yaml).
  */

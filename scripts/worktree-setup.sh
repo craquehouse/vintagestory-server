@@ -13,7 +13,7 @@
 # The script generates random ports in these ranges:
 #   - API server: 8000-8999
 #   - Web server: 5173-6172
-#   - Docker stack: 8080-8179
+#   - Docker stack: 9081-9180 (the main checkout uses 9080)
 #
 
 set -euo pipefail
@@ -32,8 +32,8 @@ echo ""
 API_PORT=$((8000 + RANDOM % 1000))
 # Web: 5173-6172 range
 WEB_PORT=$((5173 + RANDOM % 1000))
-# Docker: 8080-8179 range (for containerized stack)
-DOCKER_PORT=$((8080 + RANDOM % 100))
+# Docker: 9081-9180 range (for containerized stack; the main checkout uses 9080)
+DOCKER_PORT=$((9081 + RANDOM % 100))
 
 echo "Generated ports:"
 echo "  API server:   $API_PORT"

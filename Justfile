@@ -62,13 +62,15 @@ test-e2e-api *ARGS:
 
 # Run web E2E tests (Playwright) - manages Docker stack automatically
 # Starts fresh Docker stack, waits for health, runs tests, then stops stack
-# Uses DOCKER_PORT env var for host port (default: 8080)
+# Uses DOCKER_PORT (environment, then .env) for the host port (default: 9080)
 # Examples: just test-e2e-web | just test-e2e-web --headed | just test-e2e-web --ui
 [positional-arguments]
 test-e2e-web *ARGS:
     #!/usr/bin/env bash
     set -e
-    DOCKER_PORT="${DOCKER_PORT:-8080}"
+    # Host port of the dev stack: DOCKER_PORT from the environment, else from .env, else 9080
+    DOCKER_PORT="${DOCKER_PORT:-$(sed -n 's/^DOCKER_PORT=//p' .env 2>/dev/null | tr -d '"' | tail -1)}"
+    export DOCKER_PORT="${DOCKER_PORT:-9080}"
     echo "🐳 Starting Docker stack..."
     just docker start
 
@@ -88,7 +90,7 @@ test-e2e-web *ARGS:
     done
 
     echo "🎭 Running Playwright tests..."
-    mise exec -C web -- bun run test:e2e "$@" || TEST_EXIT=$?
+    E2E_BASE_URL="${E2E_BASE_URL:-http://localhost:$DOCKER_PORT}" mise exec -C web -- bun run test:e2e "$@" || TEST_EXIT=$?
 
     echo "🧹 Stopping Docker stack..."
     just docker stop
@@ -266,11 +268,13 @@ install-web *ARGS:
 
 # Docker commands: build, start, stop, restart, status, logs
 # Usage: just docker <command> [args]
-# Uses DOCKER_PORT env var for host port mapping (default: 8080)
+# Uses DOCKER_PORT (environment, then .env) for the host port mapping (default: 9080)
 [positional-arguments]
 docker COMMAND *ARGS:
     #!/usr/bin/env bash
-    DOCKER_PORT="${DOCKER_PORT:-8080}"
+    # Host port of the dev stack: DOCKER_PORT from the environment, else from .env, else 9080
+    DOCKER_PORT="${DOCKER_PORT:-$(sed -n 's/^DOCKER_PORT=//p' .env 2>/dev/null | tr -d '"' | tail -1)}"
+    export DOCKER_PORT="${DOCKER_PORT:-9080}"
     command="$1"
     shift
     case "$command" in

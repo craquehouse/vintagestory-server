@@ -16,7 +16,7 @@ import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } fro
  * installed before the run, so the dev stack ends as it started.
  *
  * Requirements:
- * - Docker stack on E2E_BASE_URL (default http://localhost:8080): `just test-e2e-web`,
+ * - Docker stack on E2E_BASE_URL (default http://localhost:9080): `just test-e2e-web`,
  *   or `just docker restart` then
  *   `cd web && bunx playwright test e2e/mod-install-release.spec.ts`
  * - Network access to the public mod database.

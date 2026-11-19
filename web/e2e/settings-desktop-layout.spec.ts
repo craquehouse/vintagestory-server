@@ -14,7 +14,7 @@ import { pretendServerInstalled, serveConfigKey } from './config-js';
  * state only.
  *
  * Requirements:
- * - Docker stack on E2E_BASE_URL (default http://localhost:8080) with a serverconfig.json,
+ * - Docker stack on E2E_BASE_URL (default http://localhost:9080) with a serverconfig.json,
  *   which the seeded stack and a stack with a game server both have (the page is shown as
  *   installed by `pretendServerInstalled`): `just test-e2e-ci`, `just test-e2e-web`, or
  *   `just docker restart` then `cd web && bunx playwright test e2e/settings-desktop-layout.spec.ts`

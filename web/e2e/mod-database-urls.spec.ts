@@ -22,7 +22,7 @@ import { pretendServerInstalled, serveConfigKey } from './config-js';
  * It carries no tag.
  *
  * Requirements:
- * - Docker stack on E2E_BASE_URL (default http://localhost:8080), rebuilt from this branch:
+ * - Docker stack on E2E_BASE_URL (default http://localhost:9080), rebuilt from this branch:
  *   `just docker restart`, then `cd web && bunx playwright test e2e/mod-database-urls.spec.ts`
  *   with VS_API_KEY_ADMIN exported.
  */
