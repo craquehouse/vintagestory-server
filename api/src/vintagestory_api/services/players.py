@@ -6,11 +6,11 @@ import structlog
 
 logger = structlog.get_logger()
 
-# PROVISIONAL until the maintainer's sample lines (Story 22.1, Task 6.4): the game's
-# Logger.Event lines are assumed to carry the "[Event]" tag (seen in v1.22.7 logs), with
-# nothing but a timestamp (no "[") before it. A chat line carries its own tag first, so it
-# never matches.
-_EVENT_PREFIX = re.compile(r"^[^\[]*\[Event\] (?P<message>.+)$")
+# The game's Logger.Event lines, from the maintainer's v1.22.7 sample (Story 22.1, Task 6.4):
+# the console (stdout, which the tracker reads) tags them "[Server Event]", server-main.log
+# tags them "[Event]"; both are accepted. Nothing but a timestamp (no "[") comes before the
+# tag. A chat line carries its own tag first, so it never matches.
+_EVENT_PREFIX = re.compile(r"^[^\[]*\[(?:Server )?Event\] (?P<message>.+)$")
 
 # The VintagestoryLib.dll v1.22.7 literals, anchored at the end of the message.
 _JOIN = re.compile(r"^(?P<name>.+) \S+ joins\.$")  # '{0} {1} joins.'
