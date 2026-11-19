@@ -115,11 +115,11 @@ so that **it runs fresh every day without me being there, and nobody is surprise
   - [x] 4.3: `cd api && uv run ruff format <changed files>`; `just test-api tests/test_jobs_registration.py tests/test_routers_config.py tests/test_api_settings.py tests/test_scheduled_restart.py tests/test_scheduler.py tests/test_main.py` green; `just typecheck-api` 0/0
   - [x] 4.4: Commit `feat(story-22.3/task-4): restart the game server at scheduled times, warning players first` (body: Story 22.3 / task 4; the API setting `scheduled_restart_times` takes daily `HH:MM` times in the container's time zone; players are warned with `/announce` 15, 5 and 1 minutes before; only a running server is restarted, through the Restart button's path; each time is a `scheduled_restart_HHMM` job in Scheduled Jobs)
 
-- [ ] Task 5: Document `TZ` and scheduled restarts (AC: 12)
-  - [ ] 5.1: `README.md`: the `TZ` row in the Configuration table (`:77-90`, after `VS_MOD_CACHE_MAX_SIZE_MB`), a new `### Scheduled restarts` section between Configuration and Metrics (`:92`), and the Features "Scheduled jobs" bullet (`:17`), with the text of Dev Notes "Documentation"
-  - [ ] 5.2: `.env.example`: a commented `TZ` block at the end of the OPTIONAL section, in the file's style (Dev Notes "Documentation")
-  - [ ] 5.3: `just lint` green (nothing else moved)
-  - [ ] 5.4: Commit `docs(story-22.3/task-5): document TZ and scheduled restarts`
+- [x] Task 5: Document `TZ` and scheduled restarts (AC: 12)
+  - [x] 5.1: `README.md`: the `TZ` row in the Configuration table (`:77-90`, after `VS_MOD_CACHE_MAX_SIZE_MB`), a new `### Scheduled restarts` section between Configuration and Metrics (`:92`), and the Features "Scheduled jobs" bullet (`:17`), with the text of Dev Notes "Documentation"
+  - [x] 5.2: `.env.example`: a commented `TZ` block at the end of the OPTIONAL section, in the file's style (Dev Notes "Documentation")
+  - [x] 5.3: `just lint` green (nothing else moved)
+  - [x] 5.4: Commit `docs(story-22.3/task-5): document TZ and scheduled restarts`
 
 - [ ] Task 6: Validate and move the story to review (AC: all)
   - [ ] 6.1: `just check` green: API tests, pyright 0 errors and 0 warnings, ruff; web tests with 0 skipped, tsc, Prettier. The added lines in `api/src` and `api/tests` hold no `type: ignore`, `pyright:`, `noqa`, `cast(`, skip, `xfail` or `.only`; `services/scheduler.py` and `models/jobs.py` are unchanged (`git diff 0067a09b -- api/src/vintagestory_api/services/scheduler.py api/src/vintagestory_api/models/jobs.py` is empty). `git status --short dev/` is empty after the runs

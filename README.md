@@ -14,7 +14,7 @@ This project is developed with the assistance of AI coding tools (such as Claude
 - **Update alerts:** scheduled update checks with a count in the navigation and Dashboard, and optional webhook alerts (Discord or any HTTP receiver)
 - **Configuration:** edit the game's JSON configuration files and server settings, and manage server files
 - **Dashboard:** server status, player and resource metrics, disk space warnings
-- **Scheduled jobs:** background tasks such as mod cache refreshes, with their status in the UI
+- **Scheduled jobs:** background tasks such as mod cache refreshes, and daily scheduled restarts that warn players first, with their status in the UI
 - **API:** a versioned REST API (`/api/v1alpha1`) with Admin and Monitor (read-only) keys, health endpoints (`/healthz`, `/readyz`), Prometheus metrics (`/metrics`) and an OpenAPI document
 
 ## Installation
@@ -88,6 +88,26 @@ Set these in `.env` (see [`.env.example`](.env.example) for all of them). The ga
 | `VS_CONSOLE_HISTORY_LINES` | No | Console lines sent when the console connects (`100`) |
 | `VS_DISK_SPACE_WARNING_THRESHOLD_GB` | No | Free space below which the health check warns (`1.0`; `0` turns the fixed threshold off). Negative values stop start-up |
 | `VS_MOD_CACHE_MAX_SIZE_MB` | No | Size of the downloaded-mods cache before old files are evicted (`500`; `0` turns eviction off) |
+| `TZ` | No | Time zone of the container, for example `Europe/Berlin` (UTC when unset). Scheduled restarts follow it; log timestamps stay in UTC |
+
+### Scheduled restarts
+
+The API setting `scheduled_restart_times` holds daily times as `HH:MM` (24-hour) in the container's time zone (`TZ`); it is empty by default. Example with an Admin key:
+
+```bash
+curl -X POST http://<host>:8080/api/v1alpha1/config/api/settings/scheduled_restart_times \
+  -H "X-API-Key: <admin key>" -H "Content-Type: application/json" \
+  -d '{"value": ["04:00", "16:00"]}'
+```
+
+`{"value": []}` turns them off. Up to 24 times, at least 16 minutes apart; duplicates are dropped and the list is stored sorted.
+
+- Players are warned with `/announce`: `Server restarts in 15 minutes`, `in 5 minutes`, `in 1 minute`; then the game server restarts the way the Restart button does, whether or not players are online.
+- A stopped server is never started. If it is not running when the warnings start or stops during them, nothing more is announced. If a start, stop, restart, install or uninstall is in progress at the restart time, the restart is skipped. Skips are logged as `scheduled_restart_skipped` with the reason.
+- Removing a time during its warnings cancels that restart; players are not told. Deleting a `scheduled_restart_HHMM` job in Scheduled Jobs also cancels a restart in its warnings, and that time then has no job until the setting is saved again or the API restarts.
+- A time less than 15 minutes ahead when it is saved first runs the next day. The same holds when the API (or the container) starts less than 15 minutes before a time: that day's restart does not happen.
+- Each time is a `scheduled_restart_HHMM` job in **Settings → Scheduled Jobs**; its next run is the first warning, 15 minutes before the restart, shown in your browser's time zone.
+- With a time zone that has daylight saving, a restart whose first warning falls in the hour the clocks change runs late or not at all when they go forward and twice when they go back; choose times outside that hour.
 
 ### Metrics
 
