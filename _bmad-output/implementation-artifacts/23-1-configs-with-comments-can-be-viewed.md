@@ -63,11 +63,11 @@ so that **I can read the configs the game itself accepts instead of a parse erro
   - [x] 1.2: In the new `api/tests/test_config_parse.py`, a test that pins what Dev Notes "pyjson5 facts" records: a `Json5DecoderException` subclass, `.message` ending in `near N` with N the 1-based character position of the offending character, and `Infinity` decoding to `inf` (so the API must refuse it)
   - [x] 1.3: Commit `build(story-23.1/task-1): add the pyjson5 dependency`
 
-- [ ] Task 2: `services/config_parse.py` + tests (AC: 1, 2, 3, 4, 9)
-  - [ ] 2.1: Red first: the parser rows of Dev Notes "API tests" in `api/tests/test_config_parse.py`; see them fail
-  - [ ] 2.2: The module of Dev Notes "The parser"
-  - [ ] 2.3: `just test-api tests/test_config_parse.py`; `just typecheck-api` 0/0; `just lint-api`
-  - [ ] 2.4: Commit `refactor(story-23.1/task-2): add a JSON5 parser for config files`
+- [x] Task 2: `services/config_parse.py` + tests (AC: 1, 2, 3, 4, 9)
+  - [x] 2.1: Red first: the parser rows of Dev Notes "API tests" in `api/tests/test_config_parse.py`; see them fail
+  - [x] 2.2: The module of Dev Notes "The parser"
+  - [x] 2.3: `just test-api tests/test_config_parse.py`; `just typecheck-api` 0/0; `just lint-api`
+  - [x] 2.4: Commit `refactor(story-23.1/task-2): add a JSON5 parser for config files`
 
 - [ ] Task 3: `read_file` uses it and returns `parse_error`, `text`, `version` + tests (AC: 1-5, 9)
   - [ ] 3.1: Red first: the service and router rows of Dev Notes "API tests"; update the tests whose expectations change (Dev Notes "Existing tests that change"); see them fail
