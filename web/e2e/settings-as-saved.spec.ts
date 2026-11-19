@@ -586,7 +586,10 @@ test.describe('Restart times and the backup limit: real API (Story 22.6)', () =>
       page.getByTestId(`job-name-${RESTART_JOB_PREFIX}${time.replace(':', '')}`);
     const timeInput = (n: number) => page.getByLabel(`Restart time ${n}`, { exact: true });
     const addTime = page.getByTestId('add-restart-time');
-    const toasts = page.locator('[data-sonner-toast]');
+    // Only this save's toast: an earlier test's may still be showing
+    const restartToasts = page.locator('[data-sonner-toast]', {
+      hasText: `${RESTART_KEY} updated`,
+    });
 
     await page.goto('/config');
     // Open Scheduled Jobs first, so its data is cached before the change
@@ -601,8 +604,7 @@ test.describe('Restart times and the backup limit: real API (Story 22.6)', () =>
     await expect(timeInput(n)).toBeFocused();
     await timeInput(n).fill(h1);
     await timeInput(n).press('Enter');
-    await expect(toasts).toHaveCount(1);
-    await expect(toasts).toContainText(`${RESTART_KEY} updated`);
+    await expect(restartToasts).toHaveCount(1);
     const withH1 = [...snapshotTimes, h1].sort();
     await expect.poll(() => apiRestartTimes(request)).toEqual(withH1);
     await page.getByTestId('scheduled-jobs-tab').click();
@@ -660,8 +662,10 @@ test.describe('Restart times and the backup limit: real API (Story 22.6)', () =>
 
     await input.fill(String(target));
     await input.blur();
-    await expect(page.locator('[data-sonner-toast]')).toHaveCount(1);
-    await expect(page.locator('[data-sonner-toast]')).toContainText(`${BACKUP_KEY} updated`);
+    // Only this save's toast: an earlier test's may still be showing
+    await expect(
+      page.locator('[data-sonner-toast]', { hasText: `${BACKUP_KEY} updated` })
+    ).toHaveCount(1);
     await expect.poll(() => apiKeepCount(request)).toBe(target);
 
     const backupPosts = await countPosts(page, BACKUP_POST);
