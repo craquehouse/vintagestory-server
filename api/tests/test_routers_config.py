@@ -2406,3 +2406,75 @@ class TestIntervalSettingsReschedule:
         assert "applies when the API restarts" in detail["message"]
         settings = await reschedule_client.get("/api/v1alpha1/config/api", headers=ADMIN)
         assert settings.json()["data"]["settings"]["mod_list_refresh_interval"] == 1800
+
+
+# ==============================================================================
+# Story 22.3: scheduled_restart_times through the route (AC 1 and 2)
+# ==============================================================================
+
+RESTART_TIMES_PATH = "/api/v1alpha1/config/api/settings/scheduled_restart_times"
+
+
+async def _restart_times(client: httpx.AsyncClient) -> object:
+    response = await client.get("/api/v1alpha1/config/api", headers=ADMIN)
+    assert response.status_code == 200
+    return response.json()["data"]["settings"]["scheduled_restart_times"]
+
+
+class TestScheduledRestartTimesSetting:
+    """POST /config/api/settings/scheduled_restart_times (Story 22.3)."""
+
+    async def test_default_is_empty(self, reschedule_client: httpx.AsyncClient) -> None:
+        assert await _restart_times(reschedule_client) == []
+
+    async def test_saved_sorted_without_duplicates(
+        self, reschedule_client: httpx.AsyncClient, temp_settings: Settings
+    ) -> None:
+        response = await reschedule_client.post(
+            RESTART_TIMES_PATH, json={"value": ["16:00", "04:00", "04:00"]}, headers=ADMIN
+        )
+
+        assert response.status_code == 200
+        assert response.json()["data"] == {
+            "key": "scheduled_restart_times",
+            "value": ["04:00", "16:00"],
+        }
+        assert await _restart_times(reschedule_client) == ["04:00", "16:00"]
+        saved = json.loads((temp_settings.state_dir / "api-settings.json").read_text())
+        assert saved["scheduled_restart_times"] == ["04:00", "16:00"]
+
+    async def test_times_too_close_are_refused(self, reschedule_client: httpx.AsyncClient) -> None:
+        await reschedule_client.post(RESTART_TIMES_PATH, json={"value": ["08:00"]}, headers=ADMIN)
+
+        response = await reschedule_client.post(
+            RESTART_TIMES_PATH, json={"value": ["04:00", "04:10"]}, headers=ADMIN
+        )
+
+        assert response.status_code == 400
+        detail = response.json()["detail"]
+        assert detail["code"] == ErrorCode.API_SETTING_INVALID
+        assert "10 minutes apart" in detail["message"]
+        assert await _restart_times(reschedule_client) == ["08:00"]
+
+    async def test_not_a_list_is_refused(self, reschedule_client: httpx.AsyncClient) -> None:
+        response = await reschedule_client.post(
+            RESTART_TIMES_PATH, json={"value": "04:00"}, headers=ADMIN
+        )
+
+        assert response.status_code == 400
+        detail = response.json()["detail"]
+        assert detail["code"] == ErrorCode.API_SETTING_INVALID
+        assert "must be a list of times in HH:MM" in detail["message"]
+        assert await _restart_times(reschedule_client) == []
+
+    async def test_monitor_cannot_set_restart_times(
+        self, reschedule_client: httpx.AsyncClient
+    ) -> None:
+        response = await reschedule_client.post(
+            RESTART_TIMES_PATH,
+            json={"value": ["04:00"]},
+            headers={"X-API-Key": TEST_MONITOR_KEY},
+        )
+
+        assert response.status_code == 403
+        assert await _restart_times(reschedule_client) == []

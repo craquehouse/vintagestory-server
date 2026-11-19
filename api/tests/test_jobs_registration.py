@@ -718,9 +718,9 @@ class TestApplyIntervalSetting:
 
     def test_settings_service_uses_the_same_keys(self) -> None:
         """The service's interval keys and INTERVAL_JOBS cannot drift apart (review M2)."""
-        from vintagestory_api.services.api_settings import INTERVAL_SETTINGS, ApiSettings
+        from vintagestory_api.services.api_settings import SCHEDULED_SETTINGS, ApiSettings
 
-        assert set(INTERVAL_SETTINGS) == set(INTERVAL_JOBS)
+        assert set(SCHEDULED_SETTINGS) == set(INTERVAL_JOBS)
         for key in INTERVAL_JOBS:
             assert ApiSettings.model_fields[key].annotation is int
 
