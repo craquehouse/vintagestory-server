@@ -40,7 +40,10 @@ from vintagestory_api.routers import (
 )
 from vintagestory_api.services.mods import prepare_mod_files
 from vintagestory_api.services.scheduler import SchedulerService
-from vintagestory_api.services.server import reapply_pending_config_edits_at_api_start
+from vintagestory_api.services.server import (
+    reapply_pending_config_edits_at_api_start,
+    stop_game_server_for_api_shutdown,
+)
 
 logger = structlog.get_logger()
 
@@ -226,7 +229,15 @@ def lifespan_for(settings: Settings) -> Callable[[FastAPI], AbstractAsyncContext
 
         yield
 
-        # Shutdown scheduler first (before other cleanup)
+        # Stop a running game through its normal stop first, so its world is saved, while the
+        # scheduler still runs: its shutdown cancels running jobs without waiting (Story 22.8,
+        # Epic 22 ADR-16 decisions 1 and 3). The API always finishes shutting down
+        try:
+            await stop_game_server_for_api_shutdown()
+        except Exception as e:
+            logger.error("api_shutdown_game_stop_failed", error_type=type(e).__name__)
+
+        # Then the scheduler (before other cleanup)
         if scheduler_service:
             scheduler_service.shutdown(wait=True)
 

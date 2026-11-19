@@ -9,13 +9,17 @@ from __future__ import annotations
 
 import asyncio
 import json
+import signal
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi import FastAPI
 from structlog.testing import capture_logs
 
+from vintagestory_api import jobs as jobs_module
+from vintagestory_api import main as main_module
 from vintagestory_api.config import Settings
 from vintagestory_api.jobs.scheduled_restart import run_restart_sequence
 from vintagestory_api.models.errors import ErrorCode
@@ -317,3 +321,75 @@ class TestStopGameServerForApiShutdown:
         assert spawner.processes[0].returncode == 0
         assert state_of(running) == ServerState.INSTALLED
         assert events(logs, "api_shutdown_stopping_game")[0]["timeout"] == 8.0
+
+
+class TestLifespanRunsTheShutdownStop:
+    """Story 22.8 Task 2: the real step in the lifespan, on a temp-dir service."""
+
+    async def run_lifespan(
+        self, settings: Settings, monkeypatch: pytest.MonkeyPatch, calls: list[str]
+    ) -> None:
+        monkeypatch.setattr(
+            main_module, "stop_game_server_for_api_shutdown", stop_game_server_for_api_shutdown
+        )
+        scheduler = MagicMock()
+
+        def scheduler_shutdown(wait: bool) -> None:
+            calls.append("scheduler_shutdown")
+
+        scheduler.shutdown.side_effect = scheduler_shutdown
+
+        with (
+            patch("vintagestory_api.main.initialize_debug_state"),
+            patch("vintagestory_api.main.SchedulerService", return_value=scheduler),
+            patch.object(jobs_module, "register_default_jobs"),
+            patch("vintagestory_api.services.mods.close_mod_service", new_callable=AsyncMock),
+        ):
+            async with main_module.lifespan_for(settings)(FastAPI()):
+                pass
+
+    @pytest.mark.asyncio
+    async def test_the_running_game_is_stopped_before_the_scheduler(
+        self,
+        running: ServerService,
+        spawner: Spawner,
+        installed_settings: Settings,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """AC 1."""
+        monkeypatch.setattr(server_module, "_server_service", running)
+        calls: list[str] = []
+        process = spawner.processes[0]
+        signals: list[int] = []
+
+        def on_signal(sig: int) -> None:
+            signals.append(sig)
+            calls.append("game_sigterm")
+            process.exit(0)
+
+        process.on_signal = on_signal
+
+        with capture_logs() as logs:
+            await self.run_lifespan(installed_settings, monkeypatch, calls)
+
+        assert signals == [signal.SIGTERM]
+        assert calls == ["game_sigterm", "scheduler_shutdown"]
+        assert state_of(running) == ServerState.INSTALLED
+        names = event_names(logs)
+        assert names.index("api_shutdown_stopping_game") < names.index("api_shutdown_game_stopped")
+        assert names.index("api_shutdown_game_stopped") < names.index("api_shutting_down")
+
+    @pytest.mark.asyncio
+    async def test_no_service_builds_nothing_and_the_shutdown_completes(
+        self, installed_settings: Settings, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """AC 2."""
+        monkeypatch.setattr(server_module, "_server_service", None)
+        monkeypatch.setattr(server_module, "ServerService", fail_if_built)
+
+        with capture_logs() as logs:
+            await self.run_lifespan(installed_settings, monkeypatch, [])
+
+        names = event_names(logs)
+        assert "api_shutdown_stopping_game" not in names
+        assert "api_shutting_down" in names

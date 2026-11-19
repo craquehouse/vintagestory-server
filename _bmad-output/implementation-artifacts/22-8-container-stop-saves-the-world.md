@@ -1,6 +1,6 @@
 # Story 22.8: Stopping the Container Saves the World
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Implements FR308, Epic 22 ADR-16 and ADR-14. No bead: found inside the epic by Story 22.7's throwaway Run C (its Completion Notes, drawdown item 1) and drawn down there on the maintainer's answer 13 (Matt, 2026-11-19). ADR-16 decisions 1 to 9 are the planner's and not reviewed yet. Order: 22.1, 22.2, 22.3, 22.4, 22.7, 22.8, 22.5, 22.6. This branch, story/22-8-container-stop-saves-the-world, is stacked on story/22-7-restart-required-settings-survive-a-live-change (22.7 in review) at da55999b; Story 22.8 was planned in 4dd719f1 (planning files only). The PR targets main and merges after 22.7's. Line references were verified at da55999b (the code is unchanged in 4dd719f1); re-check them at implementation time. API, one image `CMD` flag and documentation: no new route, no response change, no new setting, no web change, no new dependency, no compose change. The `CMD` flag (`--timeout-graceful-shutdown 1`, Task 3) was added at validation (2026-11-19); see "ADR against the code" 6. -->
 
@@ -67,12 +67,12 @@ so that **the world is saved and players do not lose their progress when I upgra
   - [x] 1.3: `cd api && uv run ruff format <changed files>`; `just test-api tests/server tests/test_scheduled_restart.py` green; `just typecheck-api` 0 errors, 0 warnings
   - [x] 1.4: Commit `refactor(story-22.8/task-1): add a game server stop for the API's shutdown`
 
-- [ ] Task 2: The lifespan stops the game before the scheduler + tests (AC: 1, 2, 5, 9)
-  - [ ] 2.1: Red first: the Task 2 rows of Dev Notes "API tests" in `api/tests/test_main.py` (new class `TestLifespanShutdownStopsTheGame`), in `api/tests/server/test_api_shutdown_stop.py` (new class `TestLifespanRunsTheShutdownStop`) and the autouse recorder in `api/tests/conftest.py`; see them fail
-  - [ ] 2.2: `main.py`: import `stop_game_server_for_api_shutdown` at module level next to `reapply_pending_config_edits_at_api_start` (`:43`); await it after `yield` (`:227`) and before `# Shutdown scheduler first` (`:229-231`), in its own `try`/`except Exception` (Dev Notes "The lifespan"); fix the old comment so it no longer says the scheduler goes first
-  - [ ] 2.3: `api/tests/conftest.py`: the autouse fixture of Dev Notes "Test safety", next to `reapply_at_api_start_recorder` (`:90-120`)
-  - [ ] 2.4: `cd api && uv run ruff format <changed files>`; `just test-api tests/test_main.py tests/server tests/test_scheduled_restart.py tests/test_shared_pending_restart.py` green; `just typecheck-api` 0/0; `git status --short dev/ data/` empty
-  - [ ] 2.5: Commit `fix(story-22.8/task-2): stop the game server, saving the world, when the container stops or restarts` (body: Story 22.8 / task 2; on SIGTERM the manager now stops a running game through the normal stop, waiting up to 8 s, before it shuts down its scheduler and exits; no start is allowed once the shutdown has begun; before, the game died with the container without saving, found by Story 22.7's throwaway run)
+- [x] Task 2: The lifespan stops the game before the scheduler + tests (AC: 1, 2, 5, 9)
+  - [x] 2.1: Red first: the Task 2 rows of Dev Notes "API tests" in `api/tests/test_main.py` (new class `TestLifespanShutdownStopsTheGame`), in `api/tests/server/test_api_shutdown_stop.py` (new class `TestLifespanRunsTheShutdownStop`) and the autouse recorder in `api/tests/conftest.py`; see them fail
+  - [x] 2.2: `main.py`: import `stop_game_server_for_api_shutdown` at module level next to `reapply_pending_config_edits_at_api_start` (`:43`); await it after `yield` (`:227`) and before `# Shutdown scheduler first` (`:229-231`), in its own `try`/`except Exception` (Dev Notes "The lifespan"); fix the old comment so it no longer says the scheduler goes first
+  - [x] 2.3: `api/tests/conftest.py`: the autouse fixture of Dev Notes "Test safety", next to `reapply_at_api_start_recorder` (`:90-120`)
+  - [x] 2.4: `cd api && uv run ruff format <changed files>`; `just test-api tests/test_main.py tests/server tests/test_scheduled_restart.py tests/test_shared_pending_restart.py` green; `just typecheck-api` 0/0; `git status --short dev/ data/` empty
+  - [x] 2.5: Commit `fix(story-22.8/task-2): stop the game server, saving the world, when the container stops or restarts` (body: Story 22.8 / task 2; on SIGTERM the manager now stops a running game through the normal stop, waiting up to 8 s, before it shuts down its scheduler and exits; no start is allowed once the shutdown has begun; before, the game died with the container without saving, found by Story 22.7's throwaway run)
 
 - [ ] Task 3: Bound uvicorn's wait for open requests in the image, so the shutdown stop runs inside the grace (AC: 1, 7, 9)
   - [ ] 3.1: Red first: in `scripts/tests/test-docker-context.sh`, an `assert_contains` that the `Dockerfile`'s `CMD` line holds `"--timeout-graceful-shutdown", "1"`; `just test-scripts test-docker-context.sh` fails
