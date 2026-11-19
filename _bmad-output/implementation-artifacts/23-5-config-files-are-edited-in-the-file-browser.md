@@ -64,10 +64,10 @@ so that **I can change mod and server configs without a shell on the host**.
   - [x] 1.3: `json5-language.ts` (Dev Notes "JSON5 highlighting") and `CodeView.tsx` (Dev Notes "CodeView"); `LazyCodeView.tsx` (`React.lazy` + `Suspense` with a skeleton)
   - [x] 1.4: Commit `build(story-23.5/task-1): add CodeMirror for viewing and editing config files`
 
-- [ ] Task 2: API functions, error details and hooks + tests (AC: 1, 2, 3, 9)
-  - [ ] 2.1: Red first: `client.test.ts` (an error detail's keys other than `code`/`message`/`details` reach `ApiError.details`); `config.test.ts` (`saveConfigFile(path, text, version)` sends `PUT` with `{text, version}` and returns `{filename, version}`; `checkConfigText(path, text)` sends `POST /files/validate` with `{filename, text}` and maps `{valid, parse_error}`; both refuse an invalid name without a request); hook tests for `useSaveConfigFile` (invalidates the file's read on success) and `useConfigTextCheck` (debounce 500 ms with fake timers; latest text wins; disabled when `path` is null)
-  - [ ] 2.2: `client.ts` `handleApiError`: `details` = `detail.details` if present, else the detail's other keys (if any); `config.ts`, `use-config-files.ts`, `types.ts` (Dev Notes "API functions")
-  - [ ] 2.3: Commit `refactor(story-23.5/task-2): add the web API calls for saving and checking config files`
+- [x] Task 2: API functions, error details and hooks + tests (AC: 1, 2, 3, 9)
+  - [x] 2.1: Red first: `client.test.ts` (an error detail's keys other than `code`/`message`/`details` reach `ApiError.details`); `config.test.ts` (`saveConfigFile(path, text, version)` sends `PUT` with `{text, version}` and returns `{filename, version}`; `checkConfigText(path, text)` sends `POST /files/validate` with `{filename, text}` and maps `{valid, parse_error}`; both refuse an invalid name without a request); hook tests for `useSaveConfigFile` (invalidates the file's read on success) and `useConfigTextCheck` (debounce 500 ms with fake timers; latest text wins; disabled when `path` is null)
+  - [x] 2.2: `client.ts` `handleApiError`: `details` = `detail.details` if present, else the detail's other keys (if any); `config.ts`, `use-config-files.ts`, `types.ts` (Dev Notes "API functions")
+  - [x] 2.3: Commit `refactor(story-23.5/task-2): add the web API calls for saving and checking config files`
 
 - [ ] Task 3: The Admin read-only text view + tests (AC: 6, 9)
   - [ ] 3.1: Red first: `FileViewer.test.tsx` rows (Admin with `text` and no parse error: `file-viewer-code` with the text, comments included, no `file-viewer-content`; Monitor (no `text`): the highlighted content as before; word wrap passes through); mock `LazyCodeView` with a light stub in component tests (Dev Notes "Testing")

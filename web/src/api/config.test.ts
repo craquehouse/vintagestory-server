@@ -8,6 +8,9 @@ import {
   fetchConfigFiles,
   fetchConfigFileContent,
   toConfigPath,
+  saveConfigFile,
+  checkConfigText,
+  parseErrorFromApiError,
   InvalidConfigPathError,
   API_SETTING_DEFAULTS,
   INTERVAL_API_SETTINGS,
@@ -17,6 +20,7 @@ import {
   MIN_RESTART_GAP_MINUTES,
   MAX_BACKUP_KEEP_COUNT,
 } from './config';
+import { ApiError } from './errors';
 import type {
   ApiResponse,
   GameConfigData,
@@ -812,5 +816,78 @@ describe('an invalid name sends no request (Story 23.2)', () => {
   ])('%s rejects without calling the API', async (_name, call) => {
     await expect(call()).rejects.toThrow(InvalidConfigPathError);
     expect(apiClient).not.toHaveBeenCalled();
+  });
+});
+
+// Story 23.5 (FR314, FR317): saving and checking a config file's text
+describe('saveConfigFile', () => {
+  beforeEach(() => {
+    vi.mocked(apiClient).mockReset();
+  });
+
+  it('sends PUT with the text and the version', async () => {
+    vi.mocked(apiClient).mockResolvedValue({
+      status: 'ok',
+      data: { filename: 'ModConfig/x.json', version: 'v2' },
+    });
+
+    const result = await saveConfigFile(['ModConfig', 'x.json'], '{} // c', 'v1');
+
+    expect(apiClient).toHaveBeenCalledWith('/api/v1alpha1/config/files/ModConfig%2Fx.json', {
+      method: 'PUT',
+      body: { text: '{} // c', version: 'v1' },
+    });
+    expect(result.data).toEqual({ filename: 'ModConfig/x.json', version: 'v2' });
+  });
+
+  it('refuses an invalid name without a request', async () => {
+    await expect(saveConfigFile(['..'], '{}', 'v')).rejects.toThrow(InvalidConfigPathError);
+    expect(apiClient).not.toHaveBeenCalled();
+  });
+});
+
+describe('checkConfigText', () => {
+  beforeEach(() => {
+    vi.mocked(apiClient).mockReset();
+  });
+
+  it('posts the path and the text and maps the answer', async () => {
+    vi.mocked(apiClient).mockResolvedValue({
+      status: 'ok',
+      data: { valid: false, parse_error: { message: 'm', line: 2, column: 3 } },
+    });
+
+    const result = await checkConfigText(['serverconfig.json'], '{,}');
+
+    expect(apiClient).toHaveBeenCalledWith('/api/v1alpha1/config/files/validate', {
+      method: 'POST',
+      body: { filename: 'serverconfig.json', text: '{,}' },
+      transformResponse: false,
+    });
+    expect(result).toEqual({ valid: false, parseError: { message: 'm', line: 2, column: 3 } });
+  });
+
+  it('maps a valid answer', async () => {
+    vi.mocked(apiClient).mockResolvedValue({
+      status: 'ok',
+      data: { valid: true, parse_error: null },
+    });
+
+    expect(await checkConfigText(['x.json'], '{}')).toEqual({ valid: true, parseError: null });
+  });
+});
+
+describe('parseErrorFromApiError', () => {
+  it('reads parse_error from a CONFIG_FILE_INVALID error', () => {
+    const error = new ApiError('CONFIG_FILE_INVALID', 'bad', 422, {
+      parse_error: { message: 'm', line: 1, column: 4 },
+    });
+
+    expect(parseErrorFromApiError(error)).toEqual({ message: 'm', line: 1, column: 4 });
+  });
+
+  it('is null for other errors', () => {
+    expect(parseErrorFromApiError(new ApiError('CONFIG_FILE_CHANGED', 'x', 409))).toBeNull();
+    expect(parseErrorFromApiError(new Error('x'))).toBeNull();
   });
 });

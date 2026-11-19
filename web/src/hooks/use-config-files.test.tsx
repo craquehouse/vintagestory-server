@@ -2,7 +2,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
-import { useConfigFiles, useConfigFileContent, useConfigDirectories } from './use-config-files';
+import {
+  useConfigFiles,
+  useConfigFileContent,
+  useConfigDirectories,
+  useSaveConfigFile,
+  useConfigTextCheck,
+} from './use-config-files';
+import { act } from '@testing-library/react';
+import { queryKeys } from '@/api/query-keys';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -538,5 +546,108 @@ describe('useConfigFileContent', () => {
         WorldName: 'Test World',
       });
     });
+  });
+});
+
+// Story 23.5: saving and checking config file text
+describe('useSaveConfigFile', () => {
+  const originalFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("refetches the file's read after a save", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ status: 'ok', data: { filename: 'x.json', version: 'v2' } }),
+    });
+    const queryClient = createTestQueryClient();
+    queryClient.setQueryData(queryKeys.config.file('ModConfig/x.json'), { status: 'ok' });
+    const { result } = renderHook(() => useSaveConfigFile(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        path: ['ModConfig', 'x.json'],
+        text: '{}',
+        version: 'v1',
+      });
+    });
+
+    expect(
+      queryClient.getQueryState(queryKeys.config.file('ModConfig/x.json'))?.isInvalidated
+    ).toBe(true);
+  });
+});
+
+describe('useConfigTextCheck', () => {
+  const originalFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    vi.useRealTimers();
+  });
+
+  function answer(valid: boolean) {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          status: 'ok',
+          data: valid
+            ? { valid: true, parse_error: null }
+            : { valid: false, parse_error: { message: 'm', line: 1, column: 2 } },
+        }),
+    });
+  }
+
+  it('checks on opening, then the latest text once typing has paused for 500 ms', async () => {
+    answer(true);
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { result, rerender } = renderHook(
+      ({ text }: { text: string }) => useConfigTextCheck(['x.json'], text, true),
+      { wrapper: createWrapper(createTestQueryClient()), initialProps: { text: '{' } }
+    );
+
+    rerender({ text: '{"' });
+    rerender({ text: '{}' });
+    expect(result.current.isPending).toBe(true);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(600);
+    });
+
+    await waitFor(() => expect(result.current.check).toEqual({ valid: true, parseError: null }));
+    expect(result.current.isPending).toBe(false);
+    const bodies = vi
+      .mocked(globalThis.fetch)
+      .mock.calls.map(([, init]) => JSON.parse(String((init as RequestInit).body)) as object);
+    expect(bodies).toEqual([
+      { filename: 'x.json', text: '{' },
+      { filename: 'x.json', text: '{}' },
+    ]);
+  });
+
+  it('reports an invalid text with its position', async () => {
+    answer(false);
+    const { result } = renderHook(() => useConfigTextCheck(['x.json'], '{,}', true), {
+      wrapper: createWrapper(createTestQueryClient()),
+    });
+
+    await waitFor(() =>
+      expect(result.current.check).toEqual({
+        valid: false,
+        parseError: { message: 'm', line: 1, column: 2 },
+      })
+    );
+  });
+
+  it('sends nothing when disabled', async () => {
+    answer(true);
+    renderHook(() => useConfigTextCheck(['x.json'], '{}', false), {
+      wrapper: createWrapper(createTestQueryClient()),
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 });

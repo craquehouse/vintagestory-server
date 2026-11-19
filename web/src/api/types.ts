@@ -22,6 +22,8 @@ export interface ApiErrorDetail {
   message?: string;
   /** Structured context for some errors, e.g. confirmation reasons. */
   details?: Record<string, unknown>;
+  /** Other keys some errors carry directly, e.g. a config save's `parse_error` (Story 23.5). */
+  [key: string]: unknown;
 }
 
 /**
@@ -369,6 +371,19 @@ export interface ConfigParseError {
   message: string;
   line: number | null;
   column: number | null;
+}
+
+/** A config file save's answer (Story 23.5). */
+export interface ConfigFileSaveData {
+  filename: string;
+  /** The SHA-256 of the bytes written */
+  version: string;
+}
+
+/** The answer of a text check (Story 23.5). */
+export interface ConfigTextCheck {
+  valid: boolean;
+  parseError: ConfigParseError | null;
 }
 
 export interface ConfigFileContentData {
