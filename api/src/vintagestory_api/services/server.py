@@ -346,7 +346,7 @@ class ServerService:
             )
         except Exception as e:
             # Non-fatal, as _clear_pending_restart: restart state integration is optional
-            logger.debug("pending_restart_reflag_skipped", reason=str(e))
+            logger.debug("pending_restart_reflag_skipped", error_type=type(e).__name__)
 
     def _reapply_pending_config_edits(self, trigger: ReapplyTrigger) -> ReapplyOutcome:
         """Write the pending config edits to serverconfig.json again (Story 22.7).
