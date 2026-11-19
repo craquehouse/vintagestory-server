@@ -1,6 +1,6 @@
 # Story 22.8: Stopping the Container Saves the World
 
-Status: in-progress
+Status: review
 
 <!-- Implements FR308, Epic 22 ADR-16 and ADR-14. No bead: found inside the epic by Story 22.7's throwaway Run C (its Completion Notes, drawdown item 1) and drawn down there on the maintainer's answer 13 (Matt, 2026-11-19). ADR-16 decisions 1 to 9 are the planner's and not reviewed yet. Order: 22.1, 22.2, 22.3, 22.4, 22.7, 22.8, 22.5, 22.6. This branch, story/22-8-container-stop-saves-the-world, is stacked on story/22-7-restart-required-settings-survive-a-live-change (22.7 in review) at da55999b; Story 22.8 was planned in 4dd719f1 (planning files only). The PR targets main and merges after 22.7's. Line references were verified at da55999b (the code is unchanged in 4dd719f1); re-check them at implementation time. API, one image `CMD` flag and documentation: no new route, no response change, no new setting, no web change, no new dependency, no compose change. The `CMD` flag (`--timeout-graceful-shutdown 1`, Task 3) was added at validation (2026-11-19); see "ADR against the code" 6. -->
 
@@ -94,11 +94,11 @@ so that **the world is saved and players do not lose their progress when I upgra
   - [x] 5.3: Commit `docs(story-22.8/task-5): explain what stopping the container does to the game server`
 
 - [ ] Task 6: Validate and move the story to review (AC: all)
-  - [ ] 6.1: `just check` green: API tests, pyright 0 errors and 0 warnings, ruff; web tests with 0 skipped, tsc, Prettier; and `just test-scripts`. The added lines in `api/src` and `api/tests` hold no `type: ignore`, `pyright:`, `noqa`, `cast(`, skip, `xfail` or `.only`. `git diff da55999b -- web/ docker-compose.yaml docker-compose.dev.yaml api/src/vintagestory_api/routers/ api/src/vintagestory_api/models/ api/src/vintagestory_api/services/scheduler.py api/src/vintagestory_api/jobs/ api/src/vintagestory_api/services/pending_config_edits.py` is empty, and `git diff da55999b -- Dockerfile` is Task 3's `CMD` line and its comment only. `git status --short dev/ data/` is empty after the runs
-  - [ ] 6.2: `just changelog` lists exactly one new entry from this story (Task 2's fix subject; Task 3's `build` commit is not a release note); check by this branch's hashes, as Stories 22.2 to 22.7 did
+  - [x] 6.1: `just check` green: API tests, pyright 0 errors and 0 warnings, ruff; web tests with 0 skipped, tsc, Prettier; and `just test-scripts`. The added lines in `api/src` and `api/tests` hold no `type: ignore`, `pyright:`, `noqa`, `cast(`, skip, `xfail` or `.only`. `git diff da55999b -- web/ docker-compose.yaml docker-compose.dev.yaml api/src/vintagestory_api/routers/ api/src/vintagestory_api/models/ api/src/vintagestory_api/services/scheduler.py api/src/vintagestory_api/jobs/ api/src/vintagestory_api/services/pending_config_edits.py` is empty, and `git diff da55999b -- Dockerfile` is Task 3's `CMD` line and its comment only. `git status --short dev/ data/` is empty after the runs
+  - [x] 6.2: `just changelog` lists exactly one new entry from this story (Task 2's fix subject; Task 3's `build` commit is not a release note); check by this branch's hashes, as Stories 22.2 to 22.7 did
   - [ ] 6.3: Manual check (maintainer only; leave unticked until he confirms, AC 9): on a non-production server he runs, with a client connected, place a few blocks, wait less than the autosave interval, then `docker compose restart` (or `docker compose up -d` after changing the image tag); start the game if auto-start is off, reconnect, and the blocks are there; `server-main.log` of the stopped run (now in `Logs/Archive/`) ends with the save and stop lines. No agent runs this, and never on the dev stack's game server
-  - [ ] 6.4: Story status `review` in this file; `just sprint set 22-8-container-stop-saves-the-world review`; Dev Agent Record and File List filled in, every statement true of the code
-  - [ ] 6.5: Commit `chore(story-22.8/task-6): validate and move story 22.8 to review`. No bead to close (none was filed); pushing and the PR wait for the maintainer's go-ahead
+  - [x] 6.4: Story status `review` in this file; `just sprint set 22-8-container-stop-saves-the-world review`; Dev Agent Record and File List filled in, every statement true of the code
+  - [x] 6.5: Commit `chore(story-22.8/task-6): validate and move story 22.8 to review`. No bead to close (none was filed); pushing and the PR wait for the maintainer's go-ahead
 
 ## Dev Notes
 
@@ -338,6 +338,8 @@ None. No route, field, status code or setting changes. The visible change is in 
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive
+
 ### Throwaway-container results
 
 <!-- Task 4.4: host architecture, Docker version, game version, the process tree, a block per run (duration, exit code, API lines with timestamps, the game's last lines), the commands. -->
@@ -412,13 +414,37 @@ No `Waiting for connections to close` and no `Cancel N running task(s), timeout 
 
 ### Debug Log References
 
+- Task 1 red: `just test-api tests/server/test_api_shutdown_stop.py` -> `ImportError: cannot import name 'SHUTDOWN_STOP_TIMEOUT_SECONDS'` at collection (the expected first red); green after 1.2 (12 passed). Pyright then flagged `list[dict[str, object]]` against structlog's `list[EventDict]` in a helper; fixed with `Sequence[Mapping[str, object]]`.
+- Task 2 red: every test in `tests/test_main.py` and the new file errored at the autouse fixture (`monkeypatch.setattr(main_module, "stop_game_server_for_api_shutdown", ...)`: no such attribute); green after 2.2. Pyright `reportUnknownLambdaType` on `lambda wait: ...` scheduler side effects; replaced with typed local functions.
+- Task 3 red: `just test-scripts test-docker-context.sh` 10/11 (the new `assert_contains` on the `CMD` line); green 11/11 after 3.2.
+- Task 4: see "Throwaway-container results"; uvicorn's signal re-raise checked in `api/.venv/lib/python3.14/site-packages/uvicorn/server.py:348-352`.
+
 ### Completion Notes List
 
+- 2026-11-19 (dev-story): Tasks 1 to 6 done; 6.3 (the maintainer's manual check) left unticked for him.
+- **What changed.** `services/server.py`: `SHUTDOWN_STOP_TIMEOUT_SECONDS = 8.0`; `self._shutting_down` (set by `stop_for_api_shutdown`, never cleared); the refusal in `_start_server_locked` after `already_starting` and before the template step (`start_server_failed reason=api_shutting_down`, `RuntimeError(SERVER_START_FAILED)`); `ServerService.stop_for_api_shutdown(timeout=8.0)` (flag before the lock, then under the lock: `api_shutdown_game_not_running` at DEBUG when no process lives, else `api_shutdown_stopping_game`, `_stop_server_locked`, `api_shutdown_game_stopped seconds`; a `RuntimeError` from the stop -> `api_shutdown_game_stop_failed error_code` at ERROR, no raise); module-level `stop_game_server_for_api_shutdown()` that reads `_server_service` and builds nothing. `main.py`: imported at module level, awaited after `yield` and before the scheduler shutdown in its own `try`/`except Exception` (`api_shutdown_game_stop_failed error_type`); the old "scheduler first" comment now says "Then the scheduler". `tests/conftest.py`: autouse `StopGameAtShutdownRecorder`. `Dockerfile`: `"--timeout-graceful-shutdown", "1"` on the `CMD` with its comment; `scripts/tests/test-docker-context.sh` asserts it. README: "Stopping and restarting the container" between "Upgrading" and "Verifying an image", the Dev Notes wording unchanged (every sentence held in Task 4: stops took 1.27 s to 1.33 s, the game's stop 0.84 s to 0.92 s). ADR-16: decisions 6 and 9 amended for the `CMD` flag ("controller decision during validation (2026-11-19), for the maintainer to review") and a "Results (Story 22.8)" paragraph.
+- **Tests.** 16 new API tests: 14 in `tests/server/test_api_shutdown_stop.py` (12 in `TestStopForApiShutdown` and `TestStopGameServerForApiShutdown` for Task 1; 2 in `TestLifespanRunsTheShutdownStop` for Task 2) and 2 in `tests/test_main.py` `TestLifespanShutdownStopsTheGame`; one new script assertion in `test-docker-context.sh`. `just check` green: API 3787 passed, web 3567 passed (137 files), 0 skipped; Pyright 0 errors, 0 warnings; ruff, Prettier, ShellCheck, actionlint green; `just test-scripts` all green. No added line in `api/src` or `api/tests` holds a suppression, `cast(`, skip, `xfail` or `.only`. `git diff da55999b` is empty for `web/`, both compose files, `routers/`, `models/`, `services/scheduler.py`, `jobs/` and `services/pending_config_edits.py`; the `Dockerfile` diff is the `CMD` line and its comment. `git status --short dev/ data/` empty after every run. `just changelog` lists exactly one entry from this story's hashes: `ff3a8ce` (Task 2's fix).
+- **Throwaway container (Task 4).** The fix works in the image: every run (A, B, C, D) logged AC 1's lines in order and the game's `World saved! ...` before `Stopped the server!`; each stop took about 1.3 s; the console WebSocket closed with 1012 at once; the stop rule did not fire.
+- **Deviations.** (1) **Exit code 143, not the expected 0** (Runs A, C, D): uvicorn 0.54 re-raises the caught SIGTERM after its shutdown, including the lifespan shutdown, has finished, so `uv` exits with 128 + 15. Docker did not kill the container (not 137, the stop rule's trigger); recorded, nothing changed. (2) The `Dockerfile`'s existing comment line gained a final full stop so the new comment reads as a second sentence; no other change. (3) In the new test file `fail_if_built` and the "no service" test assert that nothing was logged (`logs == []`) as the visible sign that nothing was built or stopped, since reading the private `_server_service` back would need a private-usage escape.
+- **Drawdown items (not done here, for the maintainer):** (1) The exit code 143 on every clean stop may confuse an operator or a monitor that treats non-zero as a crash; if wanted, a later story could make the API exit 0 after a completed shutdown (for example by running uvicorn programmatically, or a small wrapper), which changes the `CMD` beyond this story's one flag. (2) Task 4 did not exercise `--timeout-graceful-shutdown 1` with a request in flight (an install or a mod download at SIGTERM); a later throwaway run could show the `Cancel N running task(s)` line and the stop still inside the grace. (3) The runs used a fresh, small world (saves of 0 to 8 chunks); a large world's save time inside the 8 s is unmeasured (open question 1).
 - 2026-11-19: Story created (create-story, non-interactive) from Epic 22's Story 22.8 entry, ADR-16 and FR308, and checked against the create-story checklist: 5 tasks; every code task carries its tests (Task 3 is a container check, Task 4 documentation, Task 5 validation); every AC is mapped to a task (AC 9 to every code task and Task 5, the maintainer check to Task 5.3). Line references verified at da55999b.
 
 ### File List
+
+- `api/src/vintagestory_api/services/server.py` (modified)
+- `api/src/vintagestory_api/main.py` (modified)
+- `api/tests/server/test_api_shutdown_stop.py` (new)
+- `api/tests/conftest.py` (modified)
+- `api/tests/test_main.py` (modified)
+- `Dockerfile` (modified)
+- `scripts/tests/test-docker-context.sh` (modified)
+- `README.md` (modified)
+- `_bmad-output/planning-artifacts/architecture/epic-22-server-operations-and-metrics.md` (modified: ADR-16 decisions 6 and 9, "Results (Story 22.8)")
+- `_bmad-output/implementation-artifacts/22-8-container-stop-saves-the-world.md` (this file)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
 
 ## Change Log
 
 - 2026-11-19: Story 22.8 created (ready-for-dev).
 - 2026-11-19: Validated against the create-story checklist, ADR-16, FR308 and the code at dd781b5c. Added Task 3 (`--timeout-graceful-shutdown 1` in the image `CMD`, a `build` commit; uvicorn otherwise waits without limit for in-flight requests and background tasks before the lifespan shutdown) and renumbered the later tasks (now 6); recorded that `uv run` forwards SIGTERM to uvicorn (uv docs); the new test file defines its own `config_path`/`spawner` fixtures; the refused-start test now proves the refusal comes before the 22.7 write-back; the module-function test checks the 8 s default.
+- 2026-11-19: Implemented (dev-story): Tasks 1 to 6; throwaway-container run recorded (exit code 143, not 0; stop rule not fired); status review. Task 6.3 waits for the maintainer.
