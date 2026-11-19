@@ -223,7 +223,7 @@ The scope is three open beads the maintainer named: `VSS-bhw` (game server metri
 
 **Decision:**
 
-1. **The switch:** each of the three interval settings shows a switch labelled "On" beside its label. Turning it off saves 0 and hides the duration input, showing "Off". Turning it on saves the API's default for that setting (14400, 86400, 10) and shows the input. The saved value decides the switch: 0 is off.
+1. **The switch:** each of the three interval settings shows a switch labelled "On" beside its label. Turning it off saves 0 and hides the duration input, showing "Off". Turning it on saves the API's default for that setting (14400, 86400, 10) and shows the input. The saved value decides the switch: 0 is off. Amended by controller decision during validation of Story 22.5 (2026-11-19), for the maintainer to review: turning a job back on restores the last non-zero value seen for that setting in this page session (the value shown before it was turned off), falling back to the API default above when none is known (for example the page loaded with the job already off); the maintainer's chosen option read "on restores the default (or last value)".
 2. **Bounds:** Mod List Refresh and Server Versions Refresh accept 60 seconds to 31,536,000 seconds (365 days), matching the API's maximum; Metrics Collection accepts 1 second to 3600 seconds.
 3. **Metrics Collection's help text** says that when it is off the dashboard charts stop updating, and that `/metrics` is read live and keeps working.
 4. **Fallbacks match the API defaults:** `serverVersionsRefreshInterval ?? 86400`, `enforceEnvOnRestart ?? false`. The defaults live in one web constant next to `INTERVAL_API_SETTINGS` (`web/src/api/config.ts`), used by the fallbacks and by "on".
