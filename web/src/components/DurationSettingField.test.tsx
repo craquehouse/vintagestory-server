@@ -897,7 +897,9 @@ describe('DurationSettingField', () => {
         save.reject(new Error('boom'));
       });
       await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('boom'));
-      // The rollback has not reached the prop yet: the switch stays where it is
+      // Once the save has settled the rollback has still not reached the prop: the switch
+      // stays where it is
+      await waitFor(() => expect(toggle).not.toBeDisabled());
       expect(toggle).toHaveAttribute('aria-checked', 'false');
 
       // The parent's rollback

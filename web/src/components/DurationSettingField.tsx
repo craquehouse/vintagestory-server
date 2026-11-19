@@ -146,7 +146,6 @@ export function DurationSettingField({
   const appliedValueRef = useRef(value);
   // The latest value prop, read after a switch save settles
   const latestValueRef = useRef(value);
-  latestValueRef.current = value;
   // Set synchronously while a save is in flight, before a re-render can disable the field
   const savingRef = useRef(false);
 
@@ -170,6 +169,10 @@ export function DurationSettingField({
     },
     [offValue, onValue, settingKey]
   );
+
+  useEffect(() => {
+    latestValueRef.current = value;
+  }, [value]);
 
   // Remember the value the field mounts with
   useEffect(() => {
@@ -299,7 +302,10 @@ export function DurationSettingField({
         const message = err instanceof Error ? err.message : 'Failed to save setting';
         setError(message);
         // A parent that echoes saves moves the prop (the optimistic value, then the
-        // rollback or the kept value); follow it instead of reverting here
+        // rollback or the kept value); follow it instead of reverting here. TanStack Query
+        // delivers those changes on a setTimeout(0) queued before the save failed, which a
+        // fast answer can beat: wait one timer tick so they have landed (Story 22.5 review)
+        await new Promise((resolve) => setTimeout(resolve, 0));
         if (latestValueRef.current === appliedValueRef.current) {
           setCurrentSeconds(previous);
         }

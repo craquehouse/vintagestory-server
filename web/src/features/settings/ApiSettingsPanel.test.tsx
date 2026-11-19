@@ -1003,13 +1003,16 @@ describe('ApiSettingsPanel', () => {
       expect(screen.getByLabelText('Mod List Refresh')).toHaveValue('5m');
     });
 
-    it('a not-applied switch save shows one warning and stays Off', async () => {
+    // TanStack Query notifies listeners with setTimeout(0), so a save's optimistic value
+    // reaches the panel after a round trip of a timer tick, but after the answer when the
+    // answer comes at once, as it may on localhost (Story 22.5 review)
+    it.each([
+      ['a 0 ms round trip', true],
+      ['an answer that comes at once', false],
+    ])('a not-applied switch save shows one warning and stays Off, after %s', async (_, wait) => {
       const notApplied = 'Saved, but its job could not be rescheduled';
-      // The save takes a network round trip, as it does in a browser: the hook's optimistic
-      // value reaches the panel (TanStack notifies listeners with setTimeout(0)) before the
-      // answer does
       serveSettings(loaded, async (_url, saved) => {
-        await new Promise((resolve) => setTimeout(resolve, 20));
+        if (wait) await new Promise((resolve) => setTimeout(resolve, 0));
         saved.modListRefreshInterval = 0;
         return failWith('API_SETTING_NOT_APPLIED', notApplied);
       });
