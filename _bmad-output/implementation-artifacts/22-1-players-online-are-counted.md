@@ -82,13 +82,13 @@ so that **I know whether anyone is playing before I restart or change something,
   - [x] 2.7: `ruff format` the changed files; `just test-api tests/server tests/test_players.py` green
   - [x] 2.8: Commit `refactor(story-22.1/task-2): count players from the game's output in the server service` (not yet visible in any response)
 
-- [ ] Task 3: `players_online` in `MetricsSnapshot` and `playersOnline` in the responses + tests (AC: 5, 6)
-  - [ ] 3.1: Red first: the Task 3 rows of Dev Notes "API tests" in `api/tests/test_metrics.py` and `api/tests/test_metrics_api.py`; see them fail
-  - [ ] 3.2: `models/metrics.py`: `MetricsSnapshot` gains `players_online: int | None = None` as its last field (`:25-26` are the game fields; comment: the tracker's count while the game runs, None otherwise, Epic 22 ADR-2); `MetricsSnapshotResponse` gains `players_online: int | None = Field(serialization_alias="playersOnline")` after `game_cpu_percent` (`:40`); `from_snapshot` (`:54-60`) passes it
-  - [ ] 3.3: `services/metrics.py` `collect()` (`:127-163`): `players_online = self._get_players_online()` and pass it to the snapshot explicitly (`:145-151`); a new `_get_players_online()` after `_get_game_server_pid` (`:193-205`) shaped like it (`None` without a server service, otherwise `server_service.players_online`); add `players_online` to the `metrics_collected` DEBUG line (`:155-161`, a count, no name)
-  - [ ] 3.4: Docstrings: `collect()` and the `MetricsSnapshotResponse` docstring name the new field; the two routes in `routers/metrics.py` (`:42-48`, `:76-82`) need no change (their text says nothing about fields)
-  - [ ] 3.5: `ruff format` the changed files; `just test-api tests/test_metrics.py tests/test_metrics_api.py tests/test_metrics_edge_cases.py tests/test_metrics_job.py` green
-  - [ ] 3.6: Commit `feat(api): count the players online and include them in the metrics` (body: Story 22.1 / task 3; `playersOnline` is a new field of each snapshot from `/metrics/current` and `/metrics/history`, null when the game is not running; counted from the game's join and leave lines)
+- [x] Task 3: `players_online` in `MetricsSnapshot` and `playersOnline` in the responses + tests (AC: 5, 6)
+  - [x] 3.1: Red first: the Task 3 rows of Dev Notes "API tests" in `api/tests/test_metrics.py` and `api/tests/test_metrics_api.py`; see them fail
+  - [x] 3.2: `models/metrics.py`: `MetricsSnapshot` gains `players_online: int | None = None` as its last field (`:25-26` are the game fields; comment: the tracker's count while the game runs, None otherwise, Epic 22 ADR-2); `MetricsSnapshotResponse` gains `players_online: int | None = Field(serialization_alias="playersOnline")` after `game_cpu_percent` (`:40`); `from_snapshot` (`:54-60`) passes it
+  - [x] 3.3: `services/metrics.py` `collect()` (`:127-163`): `players_online = self._get_players_online()` and pass it to the snapshot explicitly (`:145-151`); a new `_get_players_online()` after `_get_game_server_pid` (`:193-205`) shaped like it (`None` without a server service, otherwise `server_service.players_online`); add `players_online` to the `metrics_collected` DEBUG line (`:155-161`, a count, no name)
+  - [x] 3.4: Docstrings: `collect()` and the `MetricsSnapshotResponse` docstring name the new field; the two routes in `routers/metrics.py` (`:42-48`, `:76-82`) need no change (their text says nothing about fields)
+  - [x] 3.5: `ruff format` the changed files; `just test-api tests/test_metrics.py tests/test_metrics_api.py tests/test_metrics_edge_cases.py tests/test_metrics_job.py` green
+  - [x] 3.6: Commit `feat(api): count the players online and include them in the metrics` (body: Story 22.1 / task 3; `playersOnline` is a new field of each snapshot from `/metrics/current` and `/metrics/history`, null when the game is not running; counted from the game's join and leave lines)
 
 - [ ] Task 4: `playersOnline` in the web type and the Players card on the dashboard + tests (AC: 8)
   - [ ] 4.1: Red first: new `web/src/features/dashboard/PlayersCard.test.tsx` and the Dashboard rows of Dev Notes "Web tests"; run `just test-web src/features/dashboard` and see them fail
@@ -392,12 +392,15 @@ Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive
 
 - Task 1 red: `just test-api tests/test_players.py` failed at collection (`cannot import name 'players'`).
 - Task 2 red: the 10 new tests in `tests/server/test_internal_methods.py` and `tests/server/test_lifecycle.py` failed (`ServerService` had no `players_online` or `_player_tracker`).
+- Task 3 red: 19 tests failed in `tests/test_metrics.py` and `tests/test_metrics_api.py` (`MetricsSnapshot` had no `players_online`; `_create_snapshot` passed it).
 
 ### Completion Notes List
 
 - 2026-11-18: Story created (create-story, non-interactive) and checked against the create-story checklist: 6 tasks; every code task carries its tests; every AC is mapped to a task (AC 9 to Task 6 and every task's test run, AC 10 to Task 6.4). Ultimate context engine analysis completed - comprehensive developer guide created.
 - Task 1: `PlayerTracker` in `services/players.py` with the provisional `_EVENT_PREFIX` and the three DLL literals; `observe` checks prefix, then rejoin, join, leave. Logging is DEBUG only, with counts and the `reason` field, never a name, address or line. 26 tests in `tests/test_players.py` (literal patterns, counting, chat and other lines, reset, logging with `capture_logs`). Decision: a rejoin line for a name not in the set adds it (the line says the player is on the server; the story names only the already-online case, which changes nothing); pinned by `test_rejoin_of_a_name_not_online_counts_it`. Formatted with `cd api && uv run ruff format <files>` (as Dev Notes "Development Commands" says; `just format-api` takes no file arguments and formats the whole tree).
 - Task 2: `ServerService` owns a `PlayerTracker`; `players_online` reports its count while `game_server_pid` is set, else `None`. `_read_stream` passes each line to the tracker after the console append, inside its own `try`/`except Exception` that logs `player_tracker_error` (WARNING, `stream` and `error_type` only) and continues. Resets in `_start_server_locked` (before the spawn), `_stop_server_locked` (after the readers are cancelled), the exited branch of `_settle_state_after_failed_stop`, and `_monitor_process` right after the wait. Tests: 3 in `TestReadStream` (count while running, `None` without a process, AC 7 tracker fault: lines kept, one WARNING per line, no `stream_read_error`, no line text logged) and 7 in a new `TestPlayersOnline` class in `test_lifecycle.py` (count while running with a no-name log check, start, stop, exit, failed stop of an exited and of a live process, restart). The lifecycle tests use a blocking-`wait` fake process (as `test_stop_server_records_exit_code`) so the start and stop resets are tested on their own, not by the monitor's; the exit and restart tests use `mock_subprocess`.
+- Task 3: `MetricsSnapshot.players_online: int | None = None` (last field); `MetricsSnapshotResponse.players_online` (alias `playersOnline`, no default) after `game_cpu_percent`; `MetricsService.collect()` passes `players_online` from the new `_get_players_online()` explicitly and logs it in `metrics_collected`. Tests: 3 new in `TestMetricsSnapshot` (default `None`, explicit value frozen and hashable, field order), `players_online` assertions in the running and no-server-service `collect()` tests, 3 new in `TestMetricsService` (game stopped gives `None`, `collect()` names the field when it builds the snapshot, `_get_players_online()` without a server service), and a new `TestPlayersOnline` class in `test_metrics_api.py` (`/current` 2 and null with the full key set, `/history` items, no name in the response text). Full API suite: 3503 passed.
+- Commit subject: `feat(story-22.1/task-3): count the players online and include them in the metrics` instead of the story's `feat(api): ...` (orchestrator's instruction: the project's `type(story-X.Y/task-N)` convention; the scope is stripped from release notes, so the release note reads the same).
 
 ### File List
 
@@ -406,6 +409,10 @@ Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive
 - `api/src/vintagestory_api/services/server.py` (modified)
 - `api/tests/server/test_internal_methods.py` (modified)
 - `api/tests/server/test_lifecycle.py` (modified)
+- `api/src/vintagestory_api/models/metrics.py` (modified)
+- `api/src/vintagestory_api/services/metrics.py` (modified)
+- `api/tests/test_metrics.py` (modified)
+- `api/tests/test_metrics_api.py` (modified)
 
 ## Change Log
 

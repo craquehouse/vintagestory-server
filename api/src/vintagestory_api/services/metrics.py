@@ -130,6 +130,8 @@ class MetricsService:
         Collects API server metrics (always available) and game server
         metrics (when game server is running). If game server is not
         running or metrics collection fails, game metrics are set to None.
+        The players online are the server service's count while the game
+        runs, None otherwise (Story 22.1).
 
         Returns:
             The collected metrics snapshot.
@@ -142,12 +144,16 @@ class MetricsService:
         # Collect game server metrics (AC: 2, 3)
         game_memory_mb, game_cpu_percent = self._get_game_metrics()
 
+        # Players online, counted from the game's output (Story 22.1)
+        players_online = self._get_players_online()
+
         snapshot = MetricsSnapshot(
             timestamp=timestamp,
             api_memory_mb=api_memory_mb,
             api_cpu_percent=api_cpu_percent,
             game_memory_mb=game_memory_mb,
             game_cpu_percent=game_cpu_percent,
+            players_online=players_online,
         )
 
         self._buffer.append(snapshot)
@@ -158,6 +164,7 @@ class MetricsService:
             api_cpu_percent=round(api_cpu_percent, 2),
             game_memory_mb=round(game_memory_mb, 2) if game_memory_mb else None,
             game_cpu_percent=round(game_cpu_percent, 2) if game_cpu_percent else None,
+            players_online=players_online,
         )
 
         return snapshot
@@ -203,6 +210,20 @@ class MetricsService:
             return None
 
         return server_service.game_server_pid
+
+    def _get_players_online(self) -> int | None:
+        """Get the number of players online if the game server is running.
+
+        Delegates to ServerService.players_online property.
+
+        Returns:
+            Players online while the game runs, None otherwise.
+        """
+        server_service = self._get_server_service()
+        if server_service is None:
+            return None
+
+        return server_service.players_online
 
     def _get_game_metrics(self) -> tuple[float | None, float | None]:
         """Get game server process metrics.
