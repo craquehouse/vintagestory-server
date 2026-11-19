@@ -2126,23 +2126,24 @@ class TestConfigFilesResponseFormat:
 class TestDependencyInjection:
     """Tests for dependency injection functions to achieve 100% coverage."""
 
-    def test_get_pending_restart_state_singleton_initialization(self) -> None:
-        """Test that get_pending_restart_state creates singleton on first call.
+    def test_get_pending_restart_state_singleton_initialization(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """get_pending_restart_state returns the one shared state (Story 22.2, AC 13).
 
-        This covers lines 74-76 where the singleton is initialized.
+        Game settings, /healthz and the mods list read and clear the same object.
         """
-        # Import the module to reset the global state
         from vintagestory_api.routers import config as config_module
+        from vintagestory_api.services import mods as mods_module
 
-        # Clear any existing singleton to test initialization path
-        config_module._pending_restart_state = None
+        # A fresh shared singleton; monkeypatch restores the previous one after
+        monkeypatch.setattr(mods_module, "_restart_state", None)
 
-        # First call should initialize the singleton
         state1 = config_module.get_pending_restart_state()
-        assert state1 is not None
         assert isinstance(state1, PendingRestartState)
+        assert state1 is mods_module.get_restart_state()
 
-        # Second call should return the same instance
+        # Second call returns the same instance
         state2 = config_module.get_pending_restart_state()
         assert state2 is state1
 

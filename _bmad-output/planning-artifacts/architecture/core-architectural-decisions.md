@@ -18,7 +18,7 @@
 
 **Deferred Decisions (Post-MVP):**
 
-- Prometheus metrics implementation
+- Prometheus metrics implementation (decided in Epic 22: architecture/epic-22-server-operations-and-metrics.md, ADR-3 and ADR-4)
 - Backup storage strategy
 - Multi-server fleet patterns
 

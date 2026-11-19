@@ -15,7 +15,7 @@ This project is developed with the assistance of AI coding tools (such as Claude
 - **Configuration:** edit the game's JSON configuration files and server settings, and manage server files
 - **Dashboard:** server status, player and resource metrics, disk space warnings
 - **Scheduled jobs:** background tasks such as mod cache refreshes, with their status in the UI
-- **API:** a versioned REST API (`/api/v1alpha1`) with Admin and Monitor (read-only) keys, health endpoints (`/healthz`, `/readyz`) and an OpenAPI document
+- **API:** a versioned REST API (`/api/v1alpha1`) with Admin and Monitor (read-only) keys, health endpoints (`/healthz`, `/readyz`), Prometheus metrics (`/metrics`) and an OpenAPI document
 
 ## Installation
 
@@ -88,6 +88,34 @@ Set these in `.env` (see [`.env.example`](.env.example) for all of them). The ga
 | `VS_CONSOLE_HISTORY_LINES` | No | Console lines sent when the console connects (`100`) |
 | `VS_DISK_SPACE_WARNING_THRESHOLD_GB` | No | Free space below which the health check warns (`1.0`; `0` turns the fixed threshold off). Negative values stop start-up |
 | `VS_MOD_CACHE_MAX_SIZE_MB` | No | Size of the downloaded-mods cache before old files are evicted (`500`; `0` turns eviction off) |
+
+### Metrics
+
+`GET /metrics` serves the game server's metrics and the manager's own in the Prometheus text format. Values are read at each scrape, so it works with metrics collection turned off in API Settings.
+
+| Series | Meaning | Absent when |
+|---|---|---|
+| `vintagestory_server_info{version="..."}` | The installed game version; always 1 | No game is installed, or the installed version file is missing |
+| `vintagestory_server_up` | 1 while the game server is running, else 0 (also 0 while it starts or stops) | Never |
+| `vintagestory_server_state{state="..."}` | 1 for the current state, 0 for the others (`not_installed`, `installing`, `installed`, `starting`, `running`, `stopping`, `error`) | Never |
+| `vintagestory_server_uptime_seconds` | Seconds since the game server was started | The game server is not running |
+| `vintagestory_players_online` | Players on the game server, counted from its join and leave lines; 0 when it is not running | Never |
+| `vintagestory_players_max` | `MaxClients` from the game's `serverconfig.json` | The file does not exist yet (before the first start) or the value is not a whole number; also when the file cannot be read or is not valid JSON, with a `prometheus_source_failed` warning |
+| `vintagestory_server_pending_restart` | 1 after a mod change or a game setting change that needs a restart, until the game server is next started or restarted; else 0 | Never |
+| `vintagestory_server_process_cpu_seconds_total` | User and system CPU time of the game server process, in seconds (a counter; it starts again from 0 when the game restarts) | No game server process |
+| `vintagestory_server_process_resident_memory_bytes` | Resident memory of the game server process, in bytes | No game server process |
+
+Any read that fails leaves the series built from it out of the scrape, and the API logs a `prometheus_source_failed` warning; "Never" means that is the only time the series is absent. The info, up, state and uptime series come from one read of the server status, so they go missing together. The manager's own process, Python and garbage collector series (`process_*`, `python_info`, `python_gc_*`) come in the same scrape. To alert when the game server is down, use `vintagestory_server_up == 0`.
+
+**The endpoint is open, like `/healthz`:** it needs no API key. It shows the game version, the state, player counts and resource use, never player names. To keep it off the internet, do not publish `/metrics` through your reverse proxy (or block the path there), and let Prometheus reach port 8080 on the internal network.
+
+```yaml
+scrape_configs:
+  - job_name: vintagestory
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["vintagestory-manager.example.internal:8080"]
+```
 
 ## Development
 

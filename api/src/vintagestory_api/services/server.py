@@ -244,9 +244,10 @@ class ServerService:
             )
 
     def _clear_pending_restart(self) -> None:
-        """Clear the pending restart state after successful server restart.
+        """Clear the pending restart state after a successful start or restart.
 
-        Called after the server has been successfully restarted.
+        Called after the server has been successfully started (start_server, which the
+        Start button and auto-start use) or restarted (Story 22.2).
         """
         try:
             mod_module = _get_mod_service_module()
@@ -962,7 +963,11 @@ class ServerService:
             RuntimeError: If server cannot be started.
         """
         async with self._lifecycle_lock:
-            return await self._start_server_locked()
+            response = await self._start_server_locked()
+            # A fresh start loads every pending change (Story 22.2); a failed start
+            # raised above and leaves the flag. A restart clears it the same way.
+            self._clear_pending_restart()
+            return response
 
     async def _start_server_locked(self) -> LifecycleResponse:
         """Internal start logic (must be called with lock held)."""

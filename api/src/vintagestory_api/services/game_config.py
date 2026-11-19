@@ -661,6 +661,19 @@ class GameConfigService:
             last_modified=last_modified,
         )
 
+    def get_max_clients(self) -> int | None:
+        """MaxClients from serverconfig.json (Epic 22 ADR-4).
+
+        None when the file does not exist yet or the value is not a whole number.
+        Raises when the file exists but cannot be read or is not valid JSON.
+        """
+        if not self.config_path.exists():
+            return None
+        value = self._load_config().get("MaxClients")
+        if isinstance(value, int) and not isinstance(value, bool):
+            return value
+        return None
+
     def _validate_value(
         self, key: str, value: Any, value_type: ValueType, nullable: bool = False
     ) -> Any:

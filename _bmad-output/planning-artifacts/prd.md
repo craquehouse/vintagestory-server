@@ -14,7 +14,7 @@ documentCounts:
 lastUpdated: '2026-11-18'
 updates:
   - date: '2026-11-18'
-    description: 'Added FR287-FR305 for Epic 22 (Server Operations and Metrics), with the maintainer''s answers of the same day'
+    description: 'Added FR287-FR305 for Epic 22 (Server Operations and Metrics), with the maintainer''s answers of the same day; revised the same day: FR306 added for the pending-restart fix pulled into Story 22.2 during its validation'
   - date: '2026-11-17'
     description: 'Added FR260-FR285 for Epic 21 (Maintainer Decisions and Web Polish); revised the same day: FR286 added for the pulled-in VSS-q38r'
   - date: '2026-11-17'
@@ -146,7 +146,7 @@ Two core capabilities define this product:
 - Renovate integration for automated dependency updates
 - SBOM generation (Epic 15) and security scanning in CI
 - Versioned GitHub releases with changelogs and published images (Epic 15)
-- Prometheus metrics endpoint (`/metrics`)
+- Prometheus metrics endpoint (`/metrics`) (Epic 22)
 - Enhanced API documentation (OpenAPI UI)
 
 ### Vision (Future)
@@ -282,7 +282,7 @@ If trivial to implement:
 - Mod update detection and one-click updates (Epic 14)
 - Mod version switching (rollback capability) (Epic 14)
 - Backup management (create, restore, download)
-- Prometheus `/metrics` endpoint
+- Prometheus `/metrics` endpoint (Epic 22)
 - Renovate integration for dependency updates
 - SBOM generation (Epic 15) and security scanning
 - Versioned GitHub releases with changelogs and published images (Epic 15)
@@ -921,3 +921,7 @@ If trivial to implement:
 - FR303: A Monitor key does not see the API Settings tab, whose data only an Admin key can read
 - FR304: The API Settings tab edits the scheduled restart times (add, change and remove times, saved as one list, with the time zone and warning rules in its help text)
 - FR305: The API Settings tab edits the three disk cleanup limits within the API's bounds, each saying that 0 keeps all
+
+#### Pulled In (Story 22.2 validation, 2026-11-18)
+
+- FR306: A game setting change that needs a restart is a pending restart like a mod change: `/healthz`, the web's Restart required banner and `/metrics` show it, and a restart clears it

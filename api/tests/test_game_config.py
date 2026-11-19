@@ -1589,3 +1589,43 @@ class TestGameDefaults:
         assert settings["EntitySpawning"]["value"] is None
         assert settings["EntitySpawning"]["default"] is True
         assert [key for key, s in settings.items() if "default" in s] == ["EntitySpawning"]
+
+
+# ==============================================================================
+# MaxClients for the Prometheus metrics (Story 22.2, Epic 22 ADR-4)
+# ==============================================================================
+
+
+class TestGetMaxClients:
+    """get_max_clients reads MaxClients from serverconfig.json, nothing else."""
+
+    def test_missing_file_is_none(self, temp_settings: Settings) -> None:
+        assert GameConfigService(settings=temp_settings).get_max_clients() is None
+
+    def test_whole_number_is_returned(self, temp_settings: Settings, config_file: Path) -> None:
+        del config_file  # Fixture writes MaxClients 16
+        assert GameConfigService(settings=temp_settings).get_max_clients() == 16
+
+    @pytest.mark.parametrize(
+        "config",
+        [
+            {},
+            {"MaxClients": "16"},
+            {"MaxClients": 16.5},
+            {"MaxClients": True},
+            {"MaxClients": None},
+        ],
+        ids=["missing-key", "string", "float", "bool", "null"],
+    )
+    def test_not_a_whole_number_is_none(
+        self, temp_settings: Settings, config: dict[str, object]
+    ) -> None:
+        temp_settings.serverdata_dir.mkdir(parents=True, exist_ok=True)
+        (temp_settings.serverdata_dir / "serverconfig.json").write_text(json.dumps(config))
+        assert GameConfigService(settings=temp_settings).get_max_clients() is None
+
+    def test_invalid_json_raises(self, temp_settings: Settings) -> None:
+        temp_settings.serverdata_dir.mkdir(parents=True, exist_ok=True)
+        (temp_settings.serverdata_dir / "serverconfig.json").write_text("{not json")
+        with pytest.raises(json.JSONDecodeError):
+            GameConfigService(settings=temp_settings).get_max_clients()
