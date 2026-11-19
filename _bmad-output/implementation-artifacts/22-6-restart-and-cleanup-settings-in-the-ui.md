@@ -81,10 +81,10 @@ so that **I can schedule restarts and control disk use without calling the API**
   - [x] 2.4: Tests (Dev Notes "Web tests", Task 2 rows), red first; the panel fixture (`ApiSettingsPanel.test.tsx:45-58`) and `SettingsPage.test.tsx`'s settings fixture gain `scheduledRestartTimes: []` and `backupKeepCount: 0` (untyped; the typed fixtures changed in Task 1.2)
   - [x] 2.5: `just test-web`, `just typecheck`, Prettier on the changed files, `just lint-web`. Commit `feat(story-22.6/task-2): set restart times in API Settings` (body: Settings > API Settings > Scheduled Restarts lists the daily restart times, in server time (`TZ`, UTC unless set); Add time, change or Remove saves the whole list; times closer than 16 minutes (also across midnight), duplicates and more than 24 are refused with the reason; players are warned 15, 5 and 1 minutes before; a stopped server is not started)
 
-- [ ] Task 3: The Backup Cleanup group + tests (AC: 6, 7, 8, 9, 10)
-  - [ ] 3.1: `ApiSettingsPanel.tsx`: a `SettingGroup title="Backup Cleanup" description="Delete old backup files every day"` directly after Scheduled Restarts, holding one `SettingField` (`settingKey="backup_keep_count"`, `label="Backups kept"`, `type="int"`, `value={settings?.backupKeepCount ?? API_SETTING_DEFAULTS.backup_keep_count}`, `validate={validators.compose(validators.positiveInt(BACKUP_LIMIT_MESSAGE), validators.range(0, MAX_BACKUP_KEEP_COUNT, BACKUP_LIMIT_MESSAGE))}` with a module constant `` BACKUP_LIMIT_MESSAGE = `Must be between 0 and ${MAX_BACKUP_KEEP_COUNT}` `` ("Must be between 0 and 1000"), the help text of Dev Notes "Backup Cleanup help text", `onSave={handleSave}`). `validators` comes from `@/hooks/use-setting-field` (`:30-111`)
-  - [ ] 3.2: Tests (Dev Notes "Web tests", Task 3 rows), red first
-  - [ ] 3.3: `just test-web src/features/settings`, `just typecheck`, Prettier on the changed files, `just lint-web`. Commit `feat(story-22.6/task-3): set the backup limit in API Settings` (body: Settings > API Settings > Backup Cleanup sets how many of the newest files in `serverdata/Backups` the daily 03:00 cleanup keeps (server time); 0, the default, keeps all; older files are deleted permanently; `BackupSaves` and the world are never touched)
+- [x] Task 3: The Backup Cleanup group + tests (AC: 6, 7, 8, 9, 10)
+  - [x] 3.1: `ApiSettingsPanel.tsx`: a `SettingGroup title="Backup Cleanup" description="Delete old backup files every day"` directly after Scheduled Restarts, holding one `SettingField` (`settingKey="backup_keep_count"`, `label="Backups kept"`, `type="int"`, `value={settings?.backupKeepCount ?? API_SETTING_DEFAULTS.backup_keep_count}`, `validate={validators.compose(validators.positiveInt(BACKUP_LIMIT_MESSAGE), validators.range(0, MAX_BACKUP_KEEP_COUNT, BACKUP_LIMIT_MESSAGE))}` with a module constant `` BACKUP_LIMIT_MESSAGE = `Must be between 0 and ${MAX_BACKUP_KEEP_COUNT}` `` ("Must be between 0 and 1000"), the help text of Dev Notes "Backup Cleanup help text", `onSave={handleSave}`). `validators` comes from `@/hooks/use-setting-field` (`:30-111`)
+  - [x] 3.2: Tests (Dev Notes "Web tests", Task 3 rows), red first
+  - [x] 3.3: `just test-web src/features/settings`, `just typecheck`, Prettier on the changed files, `just lint-web`. Commit `feat(story-22.6/task-3): set the backup limit in API Settings` (body: Settings > API Settings > Backup Cleanup sets how many of the newest files in `serverdata/Backups` the daily 03:00 cleanup keeps (server time); 0, the default, keeps all; older files are deleted permanently; `BackupSaves` and the world are never touched)
 
 - [ ] Task 4: E2E for both groups, at 320px and desktop, with snapshot and restore + tests (AC: 2, 3, 5, 6, 7, 8, 9)
   - [ ] 4.1: `web/e2e/settings-as-saved.spec.ts`: the tests of Dev Notes "E2E" in a new serial describe with its own snapshot and restore of `scheduled_restart_times` and `backup_keep_count`; update the spec's header comment (`:4-36`) with this story's lines and its residue (none: both values are restored exactly; Dev Notes "E2E")
@@ -300,6 +300,8 @@ Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive.
 
 - Task 2: `restart-times.test.ts` was red (module missing) before `restart-times.ts`. `ScheduledRestartsSetting.test.tsx` and the component were written before the first run, so its red was confirmed afterwards by moving the component away (import fails); the six panel tests were red before the panel gained the group. Two panel tests then failed against the first version of the editor: jsdom blurs the time input when a pending save disables it, and that queued blur commit compared the list with the hook's optimistic prop (taken as "saved") and cleared the server's message. Fixed in the editor: the saved list does not follow the prop while a save is in flight, and a blur or Enter that changes nothing clears only a client message (a server message clears on a row change back to the saved list, controller decision 3).
 
+- Task 3: the Backup Cleanup panel tests were red (12 of 13; "no field for log archives" passes before as well) before the group. Adding the group broke Task 2's order test, which had checked Environment Variables *directly* after Scheduled Restarts (stricter than the story's "before"); relaxed to document order. The "a 400 ... under the field" test then passed in the full file but failed alone: `useSettingField` clears its error on every change of its value prop (`use-setting-field.ts:255-258` at 34a19a1b), and `useUpdateApiSetting`'s rollback reaches the field (TanStack's `setTimeout(0)` notification) after the field's `catch` set the API's message, so the message vanished. Fixed in `use-setting-field.ts` (deviation 2), red first in `use-setting-field.test.ts`.
+
 ### Completion Notes List
 
 ### File List
@@ -320,6 +322,8 @@ Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive.
 - `web/src/features/settings/ApiSettingsPanel.tsx` (Tasks 2, 3)
 - `web/src/features/settings/ApiSettingsPanel.test.tsx` (Tasks 2, 3)
 - `web/src/features/settings/SettingsPage.test.tsx` (Task 2)
+- `web/src/hooks/use-setting-field.ts` (Task 3, deviation 2)
+- `web/src/hooks/use-setting-field.test.ts` (Task 3, deviation 2)
 
 ## Change Log
 
