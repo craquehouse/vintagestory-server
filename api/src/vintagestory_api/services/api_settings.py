@@ -2,6 +2,7 @@
 
 Story 6.3: API Settings Service
 Story 17.6: Settings behave as saved (interval bound, ApiSettingNotAppliedError)
+Story 22.3: Scheduled restarts (scheduled_restart_times, Epic 22 ADR-5)
 
 This service provides read and update operations for API operational settings
 stored in api-settings.json. Unlike game settings, these are direct file
@@ -11,9 +12,10 @@ persistence without console command integration.
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, get_origin
 from urllib.parse import urlsplit
 
 import structlog
@@ -29,6 +31,27 @@ MAX_INTERVAL_SECONDS = 31_536_000
 Longer intervals cannot be scheduled reliably (now + interval can pass the largest date
 the scheduler holds), and 0 already disables a job, so anything longer means "never".
 """
+
+RESTART_TIMES_SETTING = "scheduled_restart_times"
+MAX_RESTART_TIMES = 24
+MIN_RESTART_GAP_MINUTES = 16
+"""Each sequence runs from 15 minutes before its time to the restart (Epic 22 ADR-6 decision 6)."""
+ScheduledSettingValue = int | list[str]
+"""The value the scheduler callback gets: an interval in seconds, or restart times (Story 22.3)."""
+_RESTART_TIME = re.compile(r"([01][0-9]|2[0-3]):[0-5][0-9]")
+_MINUTES_PER_DAY = 1440
+_SHOWN_ENTRY_LENGTH = 16
+
+
+def _minutes(restart_time: str) -> int:
+    """Minutes after midnight of a validated HH:MM time."""
+    hours, minutes = restart_time.split(":")
+    return int(hours) * 60 + int(minutes)
+
+
+def _is_json_array(value: object) -> bool:
+    """True for a JSON array (a list); kept out of line so pyright does not narrow Any."""
+    return isinstance(value, list)
 
 
 class ApiSettings(BaseModel):
@@ -69,6 +92,15 @@ class ApiSettings(BaseModel):
         le=MAX_INTERVAL_SECONDS,
         description="Seconds between metrics collection (0 = disabled, at most 365 days)",
     )
+    scheduled_restart_times: list[str] = Field(
+        default_factory=list[str],
+        description=(
+            "Daily restart times, HH:MM (24-hour) in the container's time zone (TZ, UTC when "
+            "unset). Players are warned 15, 5 and 1 minutes before; a stopped server is not "
+            "started; a time less than 15 minutes ahead first runs the next day. At most 24, "
+            "at least 16 minutes apart."
+        ),
+    )
     mod_update_webhook_url: str | None = Field(
         default=None,
         max_length=2048,
@@ -89,6 +121,35 @@ class ApiSettings(BaseModel):
             raise ValueError("must be an http or https URL with a host")
         return value
 
+    @field_validator("scheduled_restart_times")
+    @classmethod
+    def _validate_restart_times(cls, value: list[str]) -> list[str]:
+        # fullmatch and [0-9]: "04:00\n" and full-width digits are refused (Story 22.3).
+        for entry in value:
+            if not _RESTART_TIME.fullmatch(entry):
+                shown = (
+                    entry[:_SHOWN_ENTRY_LENGTH] + "..."
+                    if len(entry) > _SHOWN_ENTRY_LENGTH
+                    else entry
+                )
+                raise ValueError(f"{shown!r} is not a time in HH:MM (24-hour, 00:00 to 23:59)")
+        # Zero-padded HH:MM sorts as text.
+        times = sorted(set(value))
+        if len(times) > MAX_RESTART_TIMES:
+            raise ValueError(f"at most {MAX_RESTART_TIMES} times, got {len(times)}")
+        if len(times) >= 2:
+            # Each time and the next one, the last wrapping to the first: the jobs are daily,
+            # so two times around midnight overlap like any other two (Story 22.3).
+            for this, following in zip(times, [*times[1:], times[0]], strict=True):
+                gap = (_minutes(following) - _minutes(this)) % _MINUTES_PER_DAY
+                if gap < MIN_RESTART_GAP_MINUTES:
+                    apart = "1 minute" if gap == 1 else f"{gap} minutes"
+                    raise ValueError(
+                        f"{this!r} and {following!r} are {apart} apart; restart times "
+                        f"must be at least {MIN_RESTART_GAP_MINUTES} minutes apart"
+                    )
+        return times
+
     def redacted(self) -> dict[str, Any]:
         """Settings for API responses: secrets replaced by whether they are configured."""
         data = self.model_dump(exclude=set(SECRET_SETTINGS))
@@ -99,18 +160,19 @@ class ApiSettings(BaseModel):
 SECRET_SETTINGS = frozenset({"mod_update_webhook_url"})
 """Settings whose values are never logged or returned (FR149)."""
 
-INTERVAL_SETTINGS = frozenset(
+SCHEDULED_SETTINGS = frozenset(
     {
         "mod_list_refresh_interval",
         "server_versions_refresh_interval",
         "metrics_collection_interval",
+        RESTART_TIMES_SETTING,
     }
 )
-"""Settings whose saved value is passed to the scheduler callback (Story 17.6).
+"""Settings whose saved value is passed to the scheduler callback (Story 17.6, Story 22.3).
 
-The same keys as `vintagestory_api.jobs.INTERVAL_JOBS`; this module cannot import that
-one (`jobs` imports this module), and a test asserts the two match. The web's
-`INTERVAL_API_SETTINGS` (`web/src/api/config.ts`) lists them too.
+The interval keys are the same as `vintagestory_api.jobs.INTERVAL_JOBS`; this module
+cannot import that one (`jobs` imports this module), and a test asserts they match. The
+web's `INTERVAL_API_SETTINGS` (`web/src/api/config.ts`) lists the interval keys too.
 """
 
 
@@ -187,16 +249,17 @@ class ApiSettingsService:
     def __init__(
         self,
         settings: Settings | None = None,
-        scheduler_callback: Callable[[str, int], None] | None = None,
+        scheduler_callback: Callable[[str, ScheduledSettingValue], None] | None = None,
     ) -> None:
         """Initialize the API settings service.
 
         Args:
             settings: Application settings. If None, creates new Settings instance.
-            scheduler_callback: Optional callback invoked after a refresh interval
-                setting is saved, with (setting_key, new_value). The config router
-                passes `apply_interval_setting` bound to the scheduler, so the job
-                follows the saved value (Story 17.6).
+            scheduler_callback: Optional callback invoked after a scheduled setting
+                (a refresh interval or the restart times) is saved, with
+                (setting_key, stored_value). The config router passes `apply_setting`
+                bound to the scheduler, so the jobs follow the saved value (Story 17.6,
+                Story 22.3).
         """
         self._settings = settings or Settings()
         self._scheduler_callback = scheduler_callback
@@ -304,6 +367,12 @@ class ApiSettingsService:
                         raise ApiSettingInvalidError(key, "must be an integer")
                 else:
                     raise ApiSettingInvalidError(key, "must be an integer")
+            elif get_origin(expected_type) is list:
+                # A list setting (scheduled_restart_times, Story 22.3): only check it is a
+                # JSON array here; the model's validator checks the entries.
+                if not _is_json_array(value):
+                    raise ApiSettingInvalidError(key, "must be a list of times in HH:MM")
+                validated_value = value
             else:
                 validated_value = value
 
@@ -319,13 +388,12 @@ class ApiSettingsService:
         # Persist with atomic write
         self._save_settings(updated)
 
-        # Notify scheduler if refresh interval changed.
-        # Note: validated_value is safe to pass here because Pydantic validation
-        # (including the ge=0 and le=MAX_INTERVAL_SECONDS constraints) has already
-        # succeeded above. The callback will only receive valid integer values.
-        if key in INTERVAL_SETTINGS and self._scheduler_callback:
+        # Notify the scheduler of a scheduled setting with the stored value: the validated
+        # int for an interval, the sorted list without duplicates for restart times.
+        stored = getattr(updated, key)
+        if key in SCHEDULED_SETTINGS and self._scheduler_callback:
             try:
-                self._scheduler_callback(key, validated_value)
+                self._scheduler_callback(key, stored)
             except Exception as e:
                 # Deliberately broad (Story 17.6, ADR-5 decision 5): any scheduler
                 # failure after the save must be reported. It is re-raised as a typed
@@ -333,7 +401,7 @@ class ApiSettingsService:
                 logger.error(
                     "api_setting_not_applied",
                     key=key,
-                    value=validated_value,
+                    value=stored,
                     error=str(e),
                 )
                 raise ApiSettingNotAppliedError(key, str(e)) from e
@@ -352,12 +420,12 @@ class ApiSettingsService:
         logger.info(
             "api_setting_updated",
             key=key,
-            value=validated_value,
+            value=stored,
             old_value=old_value,
             source="api",
         )
 
-        return {"key": key, "value": getattr(updated, key)}
+        return {"key": key, "value": stored}
 
     def _save_settings(self, settings: ApiSettings) -> None:
         """Save settings with atomic write pattern.

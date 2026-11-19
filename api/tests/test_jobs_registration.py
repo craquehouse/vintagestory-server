@@ -3,6 +3,7 @@
 Story 8.0: Epic 8 Preparation
 Story 8.2: Server Versions Check Job
 Story 17.6: Settings behave as saved (apply_interval_setting)
+Story 22.3: Scheduled restarts (apply_restart_schedule, apply_setting)
 
 Tests cover:
 - Task 1: register_default_jobs() functionality and job patterns
@@ -15,24 +16,38 @@ Tests cover:
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator
+import os
+import time
+from collections.abc import AsyncIterator, Callable, Iterator
 from datetime import UTC, datetime, timedelta
 from io import StringIO
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock, patch
+from zoneinfo import ZoneInfo
 
 import pytest
+import tzlocal
+from structlog.testing import capture_logs
 
 from vintagestory_api.jobs import (
     INTERVAL_JOBS,
     apply_interval_setting,
+    apply_restart_schedule,
+    apply_setting,
     register_default_jobs,
 )
 from vintagestory_api.jobs.base import safe_job
+from vintagestory_api.jobs.scheduled_restart import (
+    restart_job_id,
+    run_restart_sequence,
+    scheduled_restart,
+)
 from vintagestory_api.models.jobs import JobInfo, job_to_info
+from vintagestory_api.services.api_settings import ApiSettings
 from vintagestory_api.services.scheduler import SchedulerService
 
 if TYPE_CHECKING:
+    from apscheduler.job import Job
     from pytest import CaptureFixture
 
 
@@ -686,6 +701,12 @@ def no_real_jobs(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("vintagestory_api.jobs.mod_cache_refresh.refresh_mod_cache", _no_op_job)
     monkeypatch.setattr("vintagestory_api.jobs.server_versions.check_server_versions", _no_op_job)
     monkeypatch.setattr("vintagestory_api.jobs.metrics_collection.collect_metrics", _no_op_job)
+    # Story 22.3: a registered restart time that fires during a run must not reach the game.
+    monkeypatch.setattr("vintagestory_api.jobs.scheduled_restart.scheduled_restart", _no_op_restart)
+
+
+async def _no_op_restart(**_: object) -> None:
+    """Stands in for the scheduled restart job (Story 22.3)."""
 
 
 @pytest.fixture
@@ -717,10 +738,10 @@ class TestApplyIntervalSetting:
     """apply_interval_setting makes the scheduler match one setting (Story 17.6, AC 1-4, 8)."""
 
     def test_settings_service_uses_the_same_keys(self) -> None:
-        """The service's interval keys and INTERVAL_JOBS cannot drift apart (review M2)."""
-        from vintagestory_api.services.api_settings import INTERVAL_SETTINGS, ApiSettings
+        """The service's scheduled keys are INTERVAL_JOBS and the restart times (Story 22.3)."""
+        from vintagestory_api.services.api_settings import SCHEDULED_SETTINGS, ApiSettings
 
-        assert set(INTERVAL_SETTINGS) == set(INTERVAL_JOBS)
+        assert set(SCHEDULED_SETTINGS) == set(INTERVAL_JOBS) | {"scheduled_restart_times"}
         for key in INTERVAL_JOBS:
             assert ApiSettings.model_fields[key].annotation is int
 
@@ -852,3 +873,378 @@ class TestApplyIntervalSetting:
                 break
             await asyncio.sleep(0.01)
         assert outcome == ["finished"]
+
+
+# ==============================================================================
+# Story 22.3: restart times as cron jobs (AC 3, 4, 8)
+# ==============================================================================
+
+_CRON_0400 = "cron[month='*', day='*', day_of_week='*', hour='3', minute='45']"
+
+
+@pytest.fixture
+def local_tz() -> Iterator[Callable[[str], None]]:
+    """Set the process's time zone (TZ) for one test; restored afterwards.
+
+    Not monkeypatch: its undo would run after this teardown, which must call tzset and
+    reload tzlocal's cache with the original zone back in place.
+    """
+    saved = os.environ.get("TZ")
+
+    def set_zone(name: str) -> None:
+        os.environ["TZ"] = name
+        time.tzset()
+        tzlocal.reload_localzone()
+
+    yield set_zone
+
+    if saved is None:
+        os.environ.pop("TZ", None)
+    else:
+        os.environ["TZ"] = saved
+    time.tzset()
+    tzlocal.reload_localzone()
+
+
+def _restart_ids(scheduler: SchedulerService) -> list[str]:
+    return sorted(
+        info.id
+        for info in (job_to_info(job) for job in scheduler.get_jobs())
+        if info.id.startswith("scheduled_restart_")
+    )
+
+
+def _in_ten_minutes() -> tuple[str, datetime]:
+    """A restart time about 10 minutes from now (local zone), and now."""
+    now = datetime.now().astimezone()
+    return (now + timedelta(minutes=10)).strftime("%H:%M"), now
+
+
+def _assert_first_fire_tomorrow(info: JobInfo, now: datetime) -> None:
+    """A time less than 15 minutes ahead first fires about 23 h 55 min later (±2 min)."""
+    assert info.next_run_time is not None
+    expected = now + timedelta(hours=23, minutes=55)
+    assert expected - timedelta(minutes=2) <= info.next_run_time <= expected + timedelta(minutes=2)
+
+
+class TestApplyRestartSchedule:
+    """apply_restart_schedule makes the restart jobs match the saved times."""
+
+    async def test_add(self, started_scheduler: SchedulerService) -> None:
+        apply_restart_schedule(started_scheduler, ["04:00"])
+
+        assert _restart_ids(started_scheduler) == ["scheduled_restart_0400"]
+        info = _job_info(started_scheduler, "scheduled_restart_0400")
+        assert info is not None
+        assert info.trigger_type == "cron"
+        assert info.trigger_details == _CRON_0400
+        assert info.next_run_time is not None
+        local = info.next_run_time.astimezone()
+        assert (local.hour, local.minute) == (3, 45)
+        assert info.next_run_time - datetime.now(UTC) <= timedelta(hours=24)
+
+    async def test_fire_before_midnight(self, started_scheduler: SchedulerService) -> None:
+        apply_restart_schedule(started_scheduler, ["00:10"])
+
+        info = _job_info(started_scheduler, "scheduled_restart_0010")
+        assert info is not None
+        assert info.trigger_details == (
+            "cron[month='*', day='*', day_of_week='*', hour='23', minute='55']"
+        )
+
+    async def test_replace_keeps_interval_jobs(self, started_scheduler: SchedulerService) -> None:
+        apply_interval_setting(started_scheduler, "mod_list_refresh_interval", 3600)
+        interval_before = _job_info(started_scheduler, "mod_cache_refresh")
+        apply_restart_schedule(started_scheduler, ["04:00", "16:00"])
+
+        apply_restart_schedule(started_scheduler, ["16:00", "20:00"])
+
+        assert _restart_ids(started_scheduler) == [
+            "scheduled_restart_1600",
+            "scheduled_restart_2000",
+        ]
+        assert _job_info(started_scheduler, "mod_cache_refresh") == interval_before
+
+    async def test_empty_removes_every_restart_job(
+        self, started_scheduler: SchedulerService
+    ) -> None:
+        apply_interval_setting(started_scheduler, "mod_list_refresh_interval", 3600)
+        apply_restart_schedule(started_scheduler, ["04:00", "16:00"])
+
+        with capture_logs() as logs:
+            apply_restart_schedule(started_scheduler, [])
+
+        assert _restart_ids(started_scheduler) == []
+        assert _job_info(started_scheduler, "mod_cache_refresh") is not None
+        applied = [log for log in logs if log["event"] == "restart_schedule_applied"]
+        assert len(applied) == 1
+        assert applied[0]["times"] == []
+        assert sorted(applied[0]["removed"]) == [
+            "scheduled_restart_0400",
+            "scheduled_restart_1600",
+        ]
+
+    async def test_logs_each_registration(self, started_scheduler: SchedulerService) -> None:
+        with capture_logs() as logs:
+            apply_restart_schedule(started_scheduler, ["04:00"])
+
+        registered = [log for log in logs if log["event"] == "job_registered"]
+        assert registered == [
+            {
+                "event": "job_registered",
+                "log_level": "info",
+                "job_id": "scheduled_restart_0400",
+                "restart_time": "04:00",
+                "first_warning": "03:45",
+            }
+        ]
+
+    async def test_less_than_15_minutes_ahead_first_runs_tomorrow(
+        self, started_scheduler: SchedulerService, local_tz: Callable[[str], None]
+    ) -> None:
+        local_tz("UTC")
+        restart_time, now = _in_ten_minutes()
+
+        apply_restart_schedule(started_scheduler, [restart_time])
+
+        info = _job_info(started_scheduler, restart_job_id(restart_time))
+        assert info is not None
+        _assert_first_fire_tomorrow(info, now)
+
+    async def test_berlin_time_zone(
+        self, started_scheduler: SchedulerService, local_tz: Callable[[str], None]
+    ) -> None:
+        local_tz("Europe/Berlin")
+
+        apply_restart_schedule(started_scheduler, ["04:00"])
+
+        info = _job_info(started_scheduler, "scheduled_restart_0400")
+        assert info is not None
+        assert info.next_run_time is not None
+        berlin = info.next_run_time.astimezone(ZoneInfo("Europe/Berlin"))
+        assert (berlin.hour, berlin.minute) == (3, 45)
+
+    async def test_utc_time_zone(
+        self, started_scheduler: SchedulerService, local_tz: Callable[[str], None]
+    ) -> None:
+        local_tz("UTC")
+
+        apply_restart_schedule(started_scheduler, ["04:00"])
+
+        info = _job_info(started_scheduler, "scheduled_restart_0400")
+        assert info is not None
+        assert info.next_run_time is not None
+        assert info.next_run_time.utcoffset() == timedelta(0)
+        assert (info.next_run_time.hour, info.next_run_time.minute) == (3, 45)
+
+
+class TestRegisterDefaultJobsRestartTimes:
+    """The saved times are applied at API start (AC 3)."""
+
+    async def test_startup_registers_the_saved_times(
+        self, started_scheduler: SchedulerService
+    ) -> None:
+        with patch("vintagestory_api.jobs.ApiSettingsService") as mock_settings_class:
+            mock_instance = MagicMock()
+            mock_instance.get_settings.return_value = ApiSettings(scheduled_restart_times=["04:00"])
+            mock_settings_class.return_value = mock_instance
+
+            with capture_logs() as logs:
+                register_default_jobs(started_scheduler)
+
+        assert _restart_ids(started_scheduler) == ["scheduled_restart_0400"]
+        registered = [log for log in logs if log["event"] == "default_jobs_registered"]
+        assert len(registered) == 1
+        assert registered[0]["restart_jobs"] == 1
+        assert registered[0]["count"] == 3
+
+    async def test_api_start_inside_the_window_does_not_fire_that_day(
+        self, started_scheduler: SchedulerService, local_tz: Callable[[str], None]
+    ) -> None:
+        local_tz("UTC")
+        restart_time, now = _in_ten_minutes()
+        with patch("vintagestory_api.jobs.ApiSettingsService") as mock_settings_class:
+            mock_instance = MagicMock()
+            mock_instance.get_settings.return_value = ApiSettings(
+                scheduled_restart_times=[restart_time]
+            )
+            mock_settings_class.return_value = mock_instance
+
+            register_default_jobs(started_scheduler)
+
+        info = _job_info(started_scheduler, restart_job_id(restart_time))
+        assert info is not None
+        _assert_first_fire_tomorrow(info, now)
+
+    async def test_default_settings_register_no_restart_job(
+        self, started_scheduler: SchedulerService
+    ) -> None:
+        with patch("vintagestory_api.jobs.ApiSettingsService") as mock_settings_class:
+            mock_instance = MagicMock()
+            mock_instance.get_settings.return_value = ApiSettings()
+            mock_settings_class.return_value = mock_instance
+
+            register_default_jobs(started_scheduler)
+
+        assert _restart_ids(started_scheduler) == []
+
+
+class TestApplySetting:
+    """apply_setting routes every scheduled setting (Epic 22 ADR-7 decision 2)."""
+
+    async def test_interval_key(self, started_scheduler: SchedulerService) -> None:
+        apply_setting(started_scheduler, "mod_list_refresh_interval", 600)
+
+        info = _job_info(started_scheduler, "mod_cache_refresh")
+        assert info is not None
+        assert info.trigger_details == "every 600 seconds"
+
+    async def test_restart_times(self, started_scheduler: SchedulerService) -> None:
+        apply_setting(started_scheduler, "scheduled_restart_times", ["04:00", "16:00"])
+
+        assert _restart_ids(started_scheduler) == [
+            "scheduled_restart_0400",
+            "scheduled_restart_1600",
+        ]
+
+    async def test_interval_key_with_a_list(self, started_scheduler: SchedulerService) -> None:
+        with pytest.raises(TypeError):
+            apply_setting(started_scheduler, "mod_list_refresh_interval", ["04:00"])
+        assert started_scheduler.get_jobs() == []
+
+    @pytest.mark.parametrize("value", [True, False])
+    async def test_interval_key_with_a_bool(
+        self, started_scheduler: SchedulerService, value: bool
+    ) -> None:
+        with pytest.raises(TypeError, match="takes an int, got bool"):
+            apply_setting(started_scheduler, "mod_list_refresh_interval", value)
+        assert started_scheduler.get_jobs() == []
+
+    async def test_restart_times_with_an_int(self, started_scheduler: SchedulerService) -> None:
+        with pytest.raises(TypeError):
+            apply_setting(started_scheduler, "scheduled_restart_times", 600)
+        assert started_scheduler.get_jobs() == []
+
+    async def test_other_key_does_nothing(self, started_scheduler: SchedulerService) -> None:
+        apply_setting(started_scheduler, "auto_start_server", 1)
+
+        assert started_scheduler.get_jobs() == []
+
+
+class _Server:
+    """Just enough of ServerService for the sequence."""
+
+    def __init__(self) -> None:
+        self.game_running = True
+        self.lifecycle_busy = False
+        self.players_online: int | None = 0
+        self.sent: list[str] = []
+        self.restarts = 0
+
+    async def send_command(self, command: str) -> bool:
+        self.sent.append(command)
+        return True
+
+    async def restart_server(self, timeout: float = 10.0) -> object:
+        self.restarts += 1
+        return None
+
+
+class TestStaleSequence:
+    """A sequence in its warnings follows its job id in the scheduler (AC 8)."""
+
+    @staticmethod
+    async def _run(
+        scheduler: SchedulerService, server: _Server, on_first_wait: Callable[[], None]
+    ) -> str:
+        calls = 0
+
+        async def fake_sleep(_seconds: float) -> None:
+            nonlocal calls
+            if calls == 0:
+                on_first_wait()
+            calls += 1
+
+        return await run_restart_sequence(
+            "04:00",
+            server=server,
+            still_scheduled=lambda: scheduler.get_job("scheduled_restart_0400") is not None,
+            sleep=fake_sleep,
+        )
+
+    async def test_removed_time_cancels(self, started_scheduler: SchedulerService) -> None:
+        apply_restart_schedule(started_scheduler, ["04:00"])
+        server = _Server()
+
+        outcome = await self._run(
+            started_scheduler, server, lambda: apply_restart_schedule(started_scheduler, [])
+        )
+
+        assert outcome == "cancelled"
+        assert len(server.sent) == 1
+        assert server.restarts == 0
+
+    async def test_same_time_saved_again_goes_on(self, started_scheduler: SchedulerService) -> None:
+        apply_restart_schedule(started_scheduler, ["04:00"])
+        server = _Server()
+
+        outcome = await self._run(
+            started_scheduler,
+            server,
+            lambda: apply_restart_schedule(started_scheduler, ["04:00"]),
+        )
+
+        assert outcome == "restarted"
+        assert len(server.sent) == 3
+        assert server.restarts == 1
+
+
+class _RecordingScheduler(SchedulerService):
+    """A real SchedulerService that also keeps what each cron job was registered with."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.cron_jobs: dict[str, tuple[Callable[..., Any], dict[str, Any]]] = {}
+
+    def add_cron_job(
+        self, func: Callable[..., Any], cron_expr: str, job_id: str, **kwargs: Any
+    ) -> Job:
+        self.cron_jobs[job_id] = (func, kwargs)
+        return super().add_cron_job(func, cron_expr, job_id, **kwargs)
+
+
+class TestRegisteredRestartJob:
+    """The registered restart job runs the real job function with its own arguments."""
+
+    async def test_registered_job_runs_against_the_server_service(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        server = _Server()
+        server.game_running = False
+        monkeypatch.setattr("vintagestory_api.services.server.get_server_service", lambda: server)
+        # Never started: the job cannot fire on its own during the test.
+        scheduler = _RecordingScheduler()
+
+        apply_restart_schedule(scheduler, ["04:00"])
+
+        func, add_job_kwargs = scheduler.cron_jobs["scheduled_restart_0400"]
+        assert func is scheduled_restart
+        job_kwargs = add_job_kwargs["kwargs"]
+        assert job_kwargs == {"restart_time": "04:00", "scheduler": scheduler}
+        assert scheduler.get_job("scheduled_restart_0400") is not None
+
+        with capture_logs() as logs:
+            await func(**job_kwargs)
+
+        skips = [log for log in logs if log["event"] == "scheduled_restart_skipped"]
+        assert skips == [
+            {
+                "event": "scheduled_restart_skipped",
+                "log_level": "info",
+                "restart_time": "04:00",
+                "reason": "not_running",
+                "minutes_left": 15,
+            }
+        ]
+        assert server.sent == []
+        assert server.restarts == 0

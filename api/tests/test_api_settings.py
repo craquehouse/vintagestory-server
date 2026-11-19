@@ -11,16 +11,22 @@ from unittest.mock import MagicMock
 
 import pytest
 from pydantic import ValidationError
+from structlog.testing import capture_logs
 
 from vintagestory_api.config import Settings
 from vintagestory_api.jobs import INTERVAL_JOBS
 from vintagestory_api.services.api_settings import (
     MAX_INTERVAL_SECONDS,
+    MAX_RESTART_TIMES,
+    MIN_RESTART_GAP_MINUTES,
+    RESTART_TIMES_SETTING,
+    SCHEDULED_SETTINGS,
     ApiSettingInvalidError,
     ApiSettingNotAppliedError,
     ApiSettings,
     ApiSettingsService,
     ApiSettingUnknownError,
+    ScheduledSettingValue,
 )
 
 
@@ -951,7 +957,7 @@ class TestSchedulerCallbackFailure:
     async def test_failed_callback_raises_after_saving(
         self, settings: Settings, key: str, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        def failing_callback(_key: str, _value: int) -> None:
+        def failing_callback(_key: str, _value: ScheduledSettingValue) -> None:
             raise RuntimeError("scheduler exploded")
 
         service = ApiSettingsService(settings=settings, scheduler_callback=failing_callback)
@@ -967,3 +973,199 @@ class TestSchedulerCallbackFailure:
         assert getattr(service.get_settings(), key) == 1234
         out = capsys.readouterr().out
         assert "api_setting_not_applied" in out
+
+
+# ==============================================================================
+# Story 22.3: scheduled_restart_times (Epic 22 ADR-5)
+# ==============================================================================
+
+RESTART_KEY = "scheduled_restart_times"
+
+_TWENTY_FIVE_TIMES = [f"{minutes // 60:02d}:{minutes % 60:02d}" for minutes in range(0, 1440, 57)][
+    :25
+]
+
+
+class TestScheduledRestartTimesModel:
+    """The setting's validator (Story 22.3, AC 1 and 2)."""
+
+    def test_constants(self) -> None:
+        assert MAX_RESTART_TIMES == 24
+        assert MIN_RESTART_GAP_MINUTES == 16
+        assert RESTART_TIMES_SETTING == RESTART_KEY
+
+    def test_default_is_empty(self) -> None:
+        assert ApiSettings().scheduled_restart_times == []
+
+    def test_sorted_and_deduplicated(self) -> None:
+        settings = ApiSettings.model_validate({RESTART_KEY: ["16:00", "04:00", "04:00"]})
+        assert settings.scheduled_restart_times == ["04:00", "16:00"]
+
+    @pytest.mark.parametrize(
+        "times",
+        [["00:00"], ["23:59"], ["04:00", "04:16"], [f"{hour:02d}:00" for hour in range(24)]],
+    )
+    def test_accepted(self, times: list[str]) -> None:
+        assert ApiSettings.model_validate({RESTART_KEY: times}).scheduled_restart_times == times
+
+    def test_first_and_last_minute_together_are_one_minute_apart(self) -> None:
+        """00:00 and 23:59 are each valid, but together they are 1 minute apart over midnight."""
+        with pytest.raises(ValidationError) as exc_info:
+            ApiSettings.model_validate({RESTART_KEY: ["00:00", "23:59"]})
+
+        assert "'23:59' and '00:00' are 1 minute apart;" in exc_info.value.errors()[0]["msg"]
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            (["4:00"], "'4:00' is not a time in HH:MM (24-hour, 00:00 to 23:59)"),
+            (["24:00"], "'24:00' is not a time in HH:MM"),
+            (["04:60"], "'04:60' is not a time in HH:MM"),
+            (["04:00\n"], "'04:00\\n' is not a time in HH:MM"),
+            (["04:00", 400], "valid string"),
+            (["04:00", True], "valid string"),
+            (_TWENTY_FIVE_TIMES, "at most 24 times, got 25"),
+            (["04:00", "04:10"], "'04:00' and '04:10' are 10 minutes apart"),
+            (["23:55", "00:05"], "'23:55' and '00:05' are 10 minutes apart"),
+            ("04:00", "valid list"),
+        ],
+    )
+    def test_rejected(self, value: object, expected: str) -> None:
+        with pytest.raises(ValidationError) as exc_info:
+            ApiSettings.model_validate({RESTART_KEY: value})
+
+        assert expected in exc_info.value.errors()[0]["msg"]
+
+    def test_gap_message_names_the_limit(self) -> None:
+        with pytest.raises(ValidationError) as exc_info:
+            ApiSettings.model_validate({RESTART_KEY: ["04:00", "04:10"]})
+
+        assert (
+            "restart times must be at least 16 minutes apart" in (exc_info.value.errors()[0]["msg"])
+        )
+
+    def test_long_entry_is_cut(self) -> None:
+        entry = "x" * 40
+        with pytest.raises(ValidationError) as exc_info:
+            ApiSettings.model_validate({RESTART_KEY: [entry]})
+
+        msg = exc_info.value.errors()[0]["msg"]
+        assert f"'{'x' * 16}...' is not a time" in msg
+        assert "x" * 17 not in msg
+
+    def test_full_width_digits_are_refused(self) -> None:
+        with pytest.raises(ValidationError):
+            ApiSettings.model_validate({RESTART_KEY: ["０４:00"]})
+
+    def test_twenty_five_times_are_distinct(self) -> None:
+        """The 25-time case above would pass the gap check: it fails on the count."""
+        assert len(set(_TWENTY_FIVE_TIMES)) == 25
+
+
+class TestScheduledRestartTimesService:
+    """update_setting with a list (Story 22.3, AC 1 and 2)."""
+
+    async def test_saves_sorted_list(self, service: ApiSettingsService) -> None:
+        result = await service.update_setting(RESTART_KEY, ["16:00", "04:00", "04:00"])
+
+        assert result == {"key": RESTART_KEY, "value": ["04:00", "16:00"]}
+        saved = json.loads(service.settings_file.read_text())
+        assert saved[RESTART_KEY] == ["04:00", "16:00"]
+        assert service.get_settings().scheduled_restart_times == ["04:00", "16:00"]
+
+    @pytest.mark.parametrize("value", ["04:00", 4, {"a": 1}])
+    async def test_non_list_is_refused(self, service: ApiSettingsService, value: object) -> None:
+        with pytest.raises(ApiSettingInvalidError) as exc_info:
+            await service.update_setting(RESTART_KEY, value)
+
+        assert exc_info.value.key == RESTART_KEY
+        assert "must be a list of times in HH:MM" in exc_info.value.message
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            (["4:00"], "'4:00' is not a time"),
+            (["24:00"], "'24:00' is not a time"),
+            (["04:60"], "'04:60' is not a time"),
+            (["04:00\n"], "is not a time"),
+            (["04:00", 400], "valid string"),
+            (_TWENTY_FIVE_TIMES, "at most 24 times, got 25"),
+            (["04:00", "04:10"], "'04:00' and '04:10' are 10 minutes apart"),
+            (["23:55", "00:05"], "'23:55' and '00:05' are 10 minutes apart"),
+        ],
+    )
+    async def test_invalid_list_saves_nothing_and_skips_the_callback(
+        self, settings: Settings, value: list[object], expected: str
+    ) -> None:
+        callback = MagicMock()
+        service = ApiSettingsService(settings=settings, scheduler_callback=callback)
+        await service.update_setting(RESTART_KEY, ["08:00"])
+        before = service.settings_file.read_bytes()
+        callback.reset_mock()
+
+        with pytest.raises(ApiSettingInvalidError) as exc_info:
+            await service.update_setting(RESTART_KEY, value)
+
+        assert exc_info.value.key == RESTART_KEY
+        assert RESTART_KEY in exc_info.value.message
+        assert expected in exc_info.value.message
+        assert service.settings_file.read_bytes() == before
+        callback.assert_not_called()
+
+    async def test_logs_the_list(self, service: ApiSettingsService) -> None:
+        await service.update_setting(RESTART_KEY, ["08:00"])
+        with capture_logs() as logs:
+            await service.update_setting(RESTART_KEY, ["16:00", "04:00"])
+
+        updated = [log for log in logs if log["event"] == "api_setting_updated"]
+        assert len(updated) == 1
+        assert updated[0]["key"] == RESTART_KEY
+        assert updated[0]["value"] == ["04:00", "16:00"]
+        assert updated[0]["old_value"] == ["08:00"]
+
+    async def test_logs_the_stored_list(self, service: ApiSettingsService) -> None:
+        """The log holds the list as saved: sorted, without duplicates."""
+        with capture_logs() as logs:
+            await service.update_setting(RESTART_KEY, ["16:00", "04:00", "16:00"])
+
+        updated = [log for log in logs if log["event"] == "api_setting_updated"]
+        assert len(updated) == 1
+        assert updated[0]["value"] == ["04:00", "16:00"]
+
+    async def test_callback_gets_the_stored_value(self, settings: Settings) -> None:
+        callback = MagicMock()
+        service = ApiSettingsService(settings=settings, scheduler_callback=callback)
+
+        await service.update_setting(RESTART_KEY, ["16:00", "04:00", "04:00"])
+
+        callback.assert_called_once_with(RESTART_KEY, ["04:00", "16:00"])
+
+    async def test_interval_callback_gets_the_stored_int(self, settings: Settings) -> None:
+        """A string interval is coerced; the callback gets the stored int."""
+        callback = MagicMock()
+        service = ApiSettingsService(settings=settings, scheduler_callback=callback)
+
+        await service.update_setting("mod_list_refresh_interval", "7200")
+
+        callback.assert_called_once_with("mod_list_refresh_interval", 7200)
+
+    def test_scheduled_settings_holds_the_interval_keys(self) -> None:
+        assert set(INTERVAL_JOBS) <= SCHEDULED_SETTINGS
+
+    def test_restart_times_are_a_scheduled_setting(self) -> None:
+        assert RESTART_TIMES_SETTING in SCHEDULED_SETTINGS
+
+    async def test_failed_callback_raises_after_saving(self, settings: Settings) -> None:
+        def failing_callback(_key: str, _value: ScheduledSettingValue) -> None:
+            raise RuntimeError("scheduler exploded")
+
+        service = ApiSettingsService(settings=settings, scheduler_callback=failing_callback)
+
+        with capture_logs() as logs, pytest.raises(ApiSettingNotAppliedError) as exc_info:
+            await service.update_setting(RESTART_KEY, ["16:00", "04:00"])
+
+        assert exc_info.value.key == RESTART_KEY
+        assert "scheduler exploded" in exc_info.value.message
+        assert service.get_settings().scheduled_restart_times == ["04:00", "16:00"]
+        not_applied = [log for log in logs if log["event"] == "api_setting_not_applied"]
+        assert [log["value"] for log in not_applied] == [["04:00", "16:00"]]
