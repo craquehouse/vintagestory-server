@@ -79,10 +79,10 @@ so that **I can change mod and server configs without a shell on the host**.
   - [x] 4.2: `web/src/features/settings/config-drafts.ts`, `ConfigFileEditor.tsx`, `EditFileButton` (in the editor's module or its own), `FileManagerPanel.tsx` changes, `SettingsPage.tsx` (`forceMount` on the File Manager tab content, hidden when inactive), the discard `AlertDialog` (Dev Notes "Editor", "Unsaved changes", "Server state")
   - [x] 4.3: Commit `feat(story-23.5/task-4): edit config files in the file browser while the game server is stopped`
 
-- [ ] Task 5: README + E2E (AC: 7, 8)
-  - [ ] 5.1: README `### Config files`: the editing paragraph (Dev Notes "Documentation")
-  - [ ] 5.2: `web/e2e/config-file-editor.spec.ts` (Dev Notes "E2E"): runs only when `E2E_CONTAINER` is the throwaway container (as `file-browser-new-directory.spec.ts`); creates `ModConfig/e2e-edit-<random>.json` with `docker exec`, edits, saves, reloads, checks the file's content through the API, removes the file; checks no `securitypolicyviolation` event fired and that Monitor (stubbed role) sees no Edit button. `just test-e2e-ci e2e/config-file-editor.spec.ts e2e/content-security-policy.spec.ts e2e/file-browser-*.spec.ts`
-  - [ ] 5.3: Commit `test(story-23.5/task-5): check editing a config file end to end, and document editing`
+- [x] Task 5: README + E2E (AC: 7, 8)
+  - [x] 5.1: README `### Config files`: the editing paragraph (Dev Notes "Documentation")
+  - [x] 5.2: `web/e2e/config-file-editor.spec.ts` (Dev Notes "E2E"): runs only when `E2E_CONTAINER` is the throwaway container (as `file-browser-new-directory.spec.ts`); creates `ModConfig/e2e-edit-<random>.json` with `docker exec`, edits, saves, reloads, checks the file's content through the API, removes the file; checks no `securitypolicyviolation` event fired and that Monitor (stubbed role) sees no Edit button. `just test-e2e-ci e2e/config-file-editor.spec.ts e2e/content-security-policy.spec.ts e2e/file-browser-*.spec.ts`
+  - [x] 5.3: Commit `test(story-23.5/task-5): check editing a config file end to end, and document editing`
 
 - [ ] Task 6: Validate and move the story to review (AC: all)
   - [ ] 6.1: `just check` green; `just build-web` and record the chunk sizes (main chunk vs the CodeMirror chunk) in the completion notes; `git diff 9a6e5e9c -- api` empty
