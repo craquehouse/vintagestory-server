@@ -20,12 +20,8 @@ OTHER_ADDRESS = "198.51.100.7:42420"
 
 
 def event(message: str) -> str:
-    """A game output line carrying an event message.
-
-    PROVISIONAL, as the tracker's prefix: the timestamp and "[Event]" tag are assumed
-    until the maintainer's sample lines arrive (Story 22.1, Task 6.4).
-    """
-    return f"18.11.2026 10:15:32 [Event] {message}"
+    """A console (stdout) line carrying an event message, as in the maintainer's sample."""
+    return f"18.11.2026 10:15:32 [Server Event] {message}"
 
 
 def join(name: str, address: str) -> str:
@@ -140,6 +136,45 @@ class TestCounting:
         assert tracker.count == 0
 
 
+class TestMaintainerSample:
+    """The maintainer's lines from game 1.22.7 (2026-11-19), anonymised.
+
+    The console (the game's stdout, which the tracker reads) tags them "[Server Event]";
+    server-main.log carries the same messages tagged "[Event]".
+    """
+
+    STDOUT_JOIN = (
+        "19.11.2026 16:33:41 [Server Event] ExamplePlayer [::ffff:203.0.113.5]:53382 joins."
+    )
+    STDOUT_LEAVE = "19.11.2026 16:34:28 [Server Event] Player ExamplePlayer left."
+    LOG_FILE_JOIN = "19.11.2026 16:33:41 [Event] ExamplePlayer [::ffff:203.0.113.5]:53382 joins."
+    LOG_FILE_LEAVE = "19.11.2026 16:34:28 [Event] Player ExamplePlayer left."
+    STDOUT_DISCONNECT = "19.11.2026 16:32:10 [Server Event] Client 1 disconnected."
+    LOG_FILE_DISCONNECT = "19.11.2026 16:32:10 [Event] Client 1 disconnected."
+
+    @pytest.mark.parametrize(
+        ("join_line", "leave_line"),
+        [(STDOUT_JOIN, STDOUT_LEAVE), (LOG_FILE_JOIN, LOG_FILE_LEAVE)],
+        ids=["stdout", "log_file"],
+    )
+    def test_join_then_leave(self, join_line: str, leave_line: str) -> None:
+        tracker = PlayerTracker()
+        tracker.observe(join_line)
+        assert tracker.count == 1
+        tracker.observe(leave_line)
+        assert tracker.count == 0
+
+    @pytest.mark.parametrize("line", [STDOUT_DISCONNECT, LOG_FILE_DISCONNECT])
+    def test_client_disconnected_changes_nothing(self, line: str) -> None:
+        tracker = PlayerTracker()
+        tracker.observe(line)
+        assert tracker.count == 0
+
+        tracker.observe(self.STDOUT_JOIN)
+        tracker.observe(line)
+        assert tracker.count == 1
+
+
 class TestOtherLines:
     """Chat and other lines are not counted (AC 4)."""
 
@@ -150,6 +185,10 @@ class TestOtherLines:
             f"18.11.2026 10:15:33 [Chat] {OTHER}: {NAME} {ADDRESS} joins.",
             f"18.11.2026 10:15:33 [Chat] 0 | {OTHER}: Player {NAME} left.",
             f"18.11.2026 10:15:33 [Chat] x [Event] {NAME} {ADDRESS} joins.",
+            f"18.11.2026 10:15:33 [Server Chat] {OTHER}: {NAME} {ADDRESS} joins.",
+            f"18.11.2026 10:15:33 [Server Chat] 0 | {OTHER}: Player {NAME} left.",
+            f"18.11.2026 10:15:33 [Server Chat] x [Server Event] {NAME} {ADDRESS} joins.",
+            f"18.11.2026 10:15:33 [Server Notification] {NAME} {ADDRESS} joins.",
             f"{NAME} {ADDRESS} joins.",
             f"18.11.2026 10:15:33 [Notification] {NAME} {ADDRESS} joins.",
             event("Client 3 disconnected."),
