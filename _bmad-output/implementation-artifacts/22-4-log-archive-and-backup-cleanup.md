@@ -91,11 +91,11 @@ so that **the disk does not fill up over months of restarts, and my world and it
   - [x] 1.3: `cd api && uv run ruff format <changed files>`; `just test-api tests/test_api_settings.py tests/test_routers_config.py tests/test_jobs_registration.py` green; `just typecheck-api` 0 errors, 0 warnings
   - [x] 1.4: Commit `refactor(story-22.4/task-1): accept the disk cleanup limits in the API settings` (nothing acts on them yet; precedent `refactor(story-22.3/task-2)`)
 
-- [ ] Task 2: `DiskCleanupService` with the archive and backup rules and the path and link checks + tests (AC: 1, 2, 3, 4, 5, 6, 7, 8, 13)
-  - [ ] 2.1: Red first: new `api/tests/test_disk_cleanup.py` with every Task 2 row of Dev Notes "API tests" (temporary directories, a fixed clock, no real `serverdata`); see them fail
-  - [ ] 2.2: New `api/src/vintagestory_api/services/disk_cleanup.py` as Dev Notes "The service": `CleanupLimits`, `CleanupResult`, `DiskCleanupService.run`, the rules of "What is deleted" and "What is never deleted", the log lines of "What is logged". Nothing calls it yet
-  - [ ] 2.3: `cd api && uv run ruff format <changed files>`; `just test-api tests/test_disk_cleanup.py` green; `just typecheck-api` 0/0
-  - [ ] 2.4: Commit `refactor(story-22.4/task-2): add the disk cleanup service for log archives and backups` (not registered yet)
+- [x] Task 2: `DiskCleanupService` with the archive and backup rules and the path and link checks + tests (AC: 1, 2, 3, 4, 5, 6, 7, 8, 13)
+  - [x] 2.1: Red first: new `api/tests/test_disk_cleanup.py` with every Task 2 row of Dev Notes "API tests" (temporary directories, a fixed clock, no real `serverdata`); see them fail
+  - [x] 2.2: New `api/src/vintagestory_api/services/disk_cleanup.py` as Dev Notes "The service": `CleanupLimits`, `CleanupResult`, `DiskCleanupService.run`, the rules of "What is deleted" and "What is never deleted", the log lines of "What is logged". Nothing calls it yet
+  - [x] 2.3: `cd api && uv run ruff format <changed files>`; `just test-api tests/test_disk_cleanup.py` green; `just typecheck-api` 0/0
+  - [x] 2.4: Commit `refactor(story-22.4/task-2): add the disk cleanup service for log archives and backups` (not registered yet)
 
 - [ ] Task 3: Check the game's archives and backups, and run the service on them, in a throwaway container (AC: 11)
   - [ ] 3.1: Run Dev Notes "The throwaway-container run" exactly: image `vss-22-4-cleanup:local` built from this branch (with Tasks 1 and 2), container `vss-22-4-cleanup` on `127.0.0.1:18092` with `TZ=Europe/Berlin`, no game port published, placeholder keys, no volume or bind mount, no `--env-file`, no compose, not `just test-e2e-ci`. Never the dev stack (`vintagestory-manager-dev`, `http://localhost:9080`), whose game server is not started or stopped, and never `./data` or `dev/`
@@ -499,6 +499,7 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive
 ### Debug Log References
 
 - Task 1: red first (`ImportError` for `MAX_BACKUP_KEEP_COUNT`; the router's defaults and save tests failed), then green: `just test-api tests/test_api_settings.py tests/test_routers_config.py tests/test_jobs_registration.py` 410 passed; pyright 0/0.
+- Task 2: red first was an `ImportError` at collection (the service module did not exist), not 28 individual failures; then 28 passed; pyright 0/0, ruff clean. The newline and full-width archive names are created on the host's APFS, so those cases run (built conditionally, never skipped).
 
 ### Completion Notes List
 
@@ -510,6 +511,8 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive
 - `api/src/vintagestory_api/services/api_settings.py` (Task 1: three constants and fields)
 - `api/tests/test_api_settings.py` (Task 1)
 - `api/tests/test_routers_config.py` (Task 1)
+- `api/src/vintagestory_api/services/disk_cleanup.py` (Task 2, new)
+- `api/tests/test_disk_cleanup.py` (Task 2, new)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint` only: in-progress, then review)
 - `_bmad-output/implementation-artifacts/22-4-log-archive-and-backup-cleanup.md` (this file)
 
