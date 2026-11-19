@@ -11,12 +11,13 @@
  * - Environment managed state
  * - Keyboard interaction (Enter to save)
  * - Loading state during save
+ * - Story 22.5: the optional On switch, following the value prop, remembering the last value
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { DurationSettingField } from './DurationSettingField';
+import { DurationSettingField, forgetRememberedDurations } from './DurationSettingField';
 import * as durationUtils from '@/lib/duration-utils';
 
 describe('DurationSettingField', () => {
@@ -29,6 +30,10 @@ describe('DurationSettingField', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    forgetRememberedDurations();
   });
 
   describe('basic rendering', () => {
@@ -626,6 +631,399 @@ describe('DurationSettingField', () => {
         expect(screen.getByText('Duration cannot be empty')).toBeInTheDocument();
       });
       expect(onSave).not.toHaveBeenCalled();
+    });
+  });
+  describe('following the value prop (Story 22.5)', () => {
+    it('shows a new value prop when not editing', () => {
+      const { rerender } = render(<DurationSettingField {...defaultProps} value={3600} />);
+      expect(screen.getByRole('textbox')).toHaveValue('1h');
+
+      rerender(<DurationSettingField {...defaultProps} value={7200} />);
+
+      expect(screen.getByRole('textbox')).toHaveValue('2h');
+    });
+
+    it('treats a new value prop as the saved value, so a blur saves nothing', async () => {
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      const { rerender } = render(
+        <DurationSettingField {...defaultProps} value={3600} onSave={onSave} />
+      );
+
+      rerender(<DurationSettingField {...defaultProps} value={7200} onSave={onSave} />);
+      await user.click(screen.getByRole('textbox'));
+      await user.tab();
+
+      expect(onSave).not.toHaveBeenCalled();
+    });
+
+    it('applies a value prop that changed during a save once the save settles', async () => {
+      let resolveSave: () => void = () => {};
+      const onSave = vi.fn().mockReturnValue(
+        new Promise<void>((resolve) => {
+          resolveSave = resolve;
+        })
+      );
+      const user = userEvent.setup();
+      const { rerender } = render(
+        <DurationSettingField {...defaultProps} value={3600} onSave={onSave} />
+      );
+
+      const input = screen.getByRole('textbox');
+      await user.clear(input);
+      await user.type(input, '2h');
+      await user.keyboard('{Enter}');
+      await waitFor(() => expect(screen.getByRole('textbox')).toBeDisabled());
+
+      rerender(<DurationSettingField {...defaultProps} value={10800} onSave={onSave} />);
+      expect(screen.getByRole('textbox')).toHaveValue('2h');
+
+      await act(async () => {
+        resolveSave();
+      });
+
+      await waitFor(() => expect(screen.getByRole('textbox')).toHaveValue('3h'));
+    });
+
+    it('keeps its own saved value when the prop never changes', async () => {
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      render(<DurationSettingField {...defaultProps} value={3600} onSave={onSave} />);
+
+      const input = screen.getByRole('textbox');
+      await user.clear(input);
+      await user.type(input, '2h');
+      await user.tab();
+
+      await waitFor(() =>
+        expect(onSave).toHaveBeenCalledWith({ key: 'test_setting', value: 7200 })
+      );
+      expect(screen.getByRole('textbox')).toHaveValue('2h');
+    });
+  });
+
+  describe('On switch (Story 22.5)', () => {
+    const switchProps = {
+      ...defaultProps,
+      value: 14400,
+      offValue: 0,
+      onValue: 14400,
+    };
+
+    function deferred() {
+      let resolve: () => void = () => {};
+      let reject: (err: Error) => void = () => {};
+      const promise = new Promise<void>((res, rej) => {
+        resolve = res;
+        reject = rej;
+      });
+      return { promise, resolve, reject };
+    }
+
+    it('renders a checked switch named "<label> On" and the input when on', () => {
+      render(<DurationSettingField {...switchProps} />);
+
+      const toggle = screen.getByRole('switch', { name: 'Test Setting On' });
+      expect(toggle).toHaveAttribute('aria-checked', 'true');
+      expect(screen.getByRole('textbox')).toHaveValue('4h');
+      expect(screen.getByText('On')).toBeInTheDocument();
+    });
+
+    it('shows Off and no input when the value is the off value', () => {
+      render(<DurationSettingField {...switchProps} value={0} />);
+
+      expect(screen.getByRole('switch', { name: 'Test Setting On' })).toHaveAttribute(
+        'aria-checked',
+        'false'
+      );
+      expect(screen.getByTestId('test_setting-off')).toHaveTextContent('Off');
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    });
+
+    it('does not point the field label at a missing input when off', () => {
+      render(<DurationSettingField {...switchProps} value={0} />);
+
+      expect(screen.getByText('Test Setting')).not.toHaveAttribute('for');
+    });
+
+    it('turning off saves the off value once and shows Off', async () => {
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      render(<DurationSettingField {...switchProps} onSave={onSave} />);
+
+      await user.click(screen.getByRole('switch', { name: 'Test Setting On' }));
+
+      await waitFor(() => expect(screen.getByTestId('test_setting-off')).toHaveTextContent('Off'));
+      expect(onSave).toHaveBeenCalledTimes(1);
+      expect(onSave).toHaveBeenCalledWith({ key: 'test_setting', value: 0 });
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    });
+
+    it('turning on from the off value saves the on value and shows it; a blur then saves nothing', async () => {
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      render(<DurationSettingField {...switchProps} value={0} onSave={onSave} />);
+
+      await user.click(screen.getByRole('switch', { name: 'Test Setting On' }));
+
+      await waitFor(() => expect(screen.getByRole('textbox')).toHaveValue('4h'));
+      expect(onSave).toHaveBeenCalledTimes(1);
+      expect(onSave).toHaveBeenCalledWith({ key: 'test_setting', value: 14400 });
+
+      await user.click(screen.getByRole('textbox'));
+      await user.tab();
+      expect(onSave).toHaveBeenCalledTimes(1);
+    });
+
+    it('a rejected save puts the switch back and shows the error', async () => {
+      const onSave = vi.fn().mockRejectedValue(new Error('boom'));
+      const user = userEvent.setup();
+      render(<DurationSettingField {...switchProps} onSave={onSave} />);
+
+      const toggle = screen.getByRole('switch', { name: 'Test Setting On' });
+      await user.click(toggle);
+
+      await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('boom'));
+      expect(toggle).toHaveAttribute('aria-checked', 'true');
+      expect(toggle).toHaveAttribute('aria-describedby', 'test_setting-error');
+      expect(screen.getByRole('textbox')).toHaveValue('4h');
+    });
+
+    it('is described by the help text when there is no error', () => {
+      render(<DurationSettingField {...switchProps} description="Help text" />);
+
+      expect(screen.getByRole('switch', { name: 'Test Setting On' })).toHaveAttribute(
+        'aria-describedby',
+        'test_setting-desc'
+      );
+    });
+
+    it('is disabled while a save is pending', async () => {
+      const save = deferred();
+      const onSave = vi.fn().mockReturnValue(save.promise);
+      const user = userEvent.setup();
+      render(<DurationSettingField {...switchProps} onSave={onSave} />);
+
+      const toggle = screen.getByRole('switch', { name: 'Test Setting On' });
+      await user.click(toggle);
+
+      await waitFor(() => expect(toggle).toBeDisabled());
+      await act(async () => {
+        save.resolve();
+      });
+      await waitFor(() => expect(toggle).not.toBeDisabled());
+    });
+
+    it('is disabled when env-managed', () => {
+      render(<DurationSettingField {...switchProps} envManaged />);
+
+      expect(screen.getByRole('switch', { name: 'Test Setting On' })).toBeDisabled();
+    });
+
+    it('one click on the "On" text saves once', async () => {
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      render(<DurationSettingField {...switchProps} onSave={onSave} />);
+
+      await user.click(screen.getByText('On'));
+
+      await waitFor(() => expect(screen.getByTestId('test_setting-off')).toBeInTheDocument());
+      expect(onSave).toHaveBeenCalledTimes(1);
+    });
+
+    it('one click on the switch saves once', async () => {
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      render(<DurationSettingField {...switchProps} onSave={onSave} />);
+
+      await user.click(screen.getByRole('switch', { name: 'Test Setting On' }));
+
+      await waitFor(() => expect(screen.getByTestId('test_setting-off')).toBeInTheDocument());
+      expect(onSave).toHaveBeenCalledTimes(1);
+    });
+
+    it('has a 44px tap target below lg', () => {
+      render(<DurationSettingField {...switchProps} />);
+
+      expect(screen.getByTestId('test_setting-switch-target')).toHaveClass('max-lg:min-h-11');
+    });
+
+    it('refuses a typed 0 with the min message; only the switch turns it off', async () => {
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      render(<DurationSettingField {...switchProps} min={60} onSave={onSave} />);
+
+      const input = screen.getByRole('textbox');
+      await user.clear(input);
+      await user.type(input, '0');
+      await user.tab();
+
+      expect(screen.getByRole('alert')).toHaveTextContent('Must be at least 1m');
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+      expect(onSave).not.toHaveBeenCalled();
+    });
+
+    it('renders no switch without the off/on pair', () => {
+      render(<DurationSettingField {...defaultProps} />);
+
+      expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+    });
+
+    it('follows a value prop to Off and back on', () => {
+      const { rerender } = render(<DurationSettingField {...switchProps} />);
+
+      rerender(<DurationSettingField {...switchProps} value={0} />);
+      expect(screen.getByTestId('test_setting-off')).toHaveTextContent('Off');
+
+      rerender(<DurationSettingField {...switchProps} value={14400} />);
+      expect(screen.getByRole('textbox')).toHaveValue('4h');
+    });
+
+    it('never shows the old state before the prop does when a save fails in a parent that echoes', async () => {
+      const save = deferred();
+      const onSave = vi.fn().mockReturnValue(save.promise);
+      const user = userEvent.setup();
+      const { rerender } = render(<DurationSettingField {...switchProps} onSave={onSave} />);
+
+      const toggle = screen.getByRole('switch', { name: 'Test Setting On' });
+      await user.click(toggle);
+      expect(toggle).toHaveAttribute('aria-checked', 'false');
+
+      // The parent's optimistic write
+      rerender(<DurationSettingField {...switchProps} value={0} onSave={onSave} />);
+      expect(toggle).toHaveAttribute('aria-checked', 'false');
+
+      await act(async () => {
+        save.reject(new Error('boom'));
+      });
+      await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('boom'));
+      // The rollback has not reached the prop yet: the switch stays where it is
+      expect(toggle).toHaveAttribute('aria-checked', 'false');
+
+      // The parent's rollback
+      rerender(<DurationSettingField {...switchProps} value={14400} onSave={onSave} />);
+      expect(toggle).toHaveAttribute('aria-checked', 'true');
+      expect(screen.getByRole('alert')).toHaveTextContent('boom');
+    });
+
+    describe('remembering the last value (AC 11)', () => {
+      it('turning on restores the value shown before off', async () => {
+        const onSave = vi.fn().mockResolvedValue(undefined);
+        const user = userEvent.setup();
+        render(<DurationSettingField {...switchProps} value={7200} onSave={onSave} />);
+
+        const toggle = screen.getByRole('switch', { name: 'Test Setting On' });
+        await user.click(toggle);
+        await waitFor(() => expect(screen.getByTestId('test_setting-off')).toBeInTheDocument());
+        await user.click(toggle);
+
+        await waitFor(() => expect(screen.getByRole('textbox')).toHaveValue('2h'));
+        expect(onSave).toHaveBeenNthCalledWith(2, { key: 'test_setting', value: 7200 });
+      });
+
+      it('saves the on value when the page has seen no earlier value', async () => {
+        const onSave = vi.fn().mockResolvedValue(undefined);
+        const user = userEvent.setup();
+        render(<DurationSettingField {...switchProps} value={0} onValue={600} onSave={onSave} />);
+
+        await user.click(screen.getByRole('switch', { name: 'Test Setting On' }));
+
+        await waitFor(() =>
+          expect(onSave).toHaveBeenCalledWith({ key: 'test_setting', value: 600 })
+        );
+      });
+
+      it('restores a value another tab saved and this page refetched', async () => {
+        const onSave = vi.fn().mockResolvedValue(undefined);
+        const user = userEvent.setup();
+        const { rerender } = render(
+          <DurationSettingField {...switchProps} value={7200} onSave={onSave} />
+        );
+
+        rerender(<DurationSettingField {...switchProps} value={21600} onSave={onSave} />);
+        const toggle = screen.getByRole('switch', { name: 'Test Setting On' });
+        await user.click(toggle);
+        await waitFor(() => expect(screen.getByTestId('test_setting-off')).toBeInTheDocument());
+        await user.click(toggle);
+
+        await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));
+        expect(onSave).toHaveBeenNthCalledWith(2, { key: 'test_setting', value: 21600 });
+      });
+
+      it('does not remember a typed value whose save failed', async () => {
+        const onSave = vi
+          .fn()
+          .mockRejectedValueOnce(new Error('boom'))
+          .mockResolvedValue(undefined);
+        const user = userEvent.setup();
+        render(<DurationSettingField {...switchProps} value={7200} onSave={onSave} />);
+
+        const input = screen.getByRole('textbox');
+        await user.clear(input);
+        await user.type(input, '3h');
+        await user.tab();
+        await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('boom'));
+
+        const toggle = screen.getByRole('switch', { name: 'Test Setting On' });
+        await user.click(toggle);
+        await waitFor(() => expect(screen.getByTestId('test_setting-off')).toBeInTheDocument());
+        await user.click(toggle);
+
+        await waitFor(() => expect(onSave).toHaveBeenCalledTimes(3));
+        expect(onSave).toHaveBeenNthCalledWith(3, { key: 'test_setting', value: 7200 });
+      });
+
+      it('remembers across an unmount (a tab switch)', async () => {
+        const onSave = vi.fn().mockResolvedValue(undefined);
+        const user = userEvent.setup();
+        const { unmount } = render(
+          <DurationSettingField {...switchProps} value={7200} onSave={onSave} />
+        );
+        await user.click(screen.getByRole('switch', { name: 'Test Setting On' }));
+        await waitFor(() => expect(screen.getByTestId('test_setting-off')).toBeInTheDocument());
+        unmount();
+
+        render(<DurationSettingField {...switchProps} value={0} onSave={onSave} />);
+        await user.click(screen.getByRole('switch', { name: 'Test Setting On' }));
+
+        await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));
+        expect(onSave).toHaveBeenNthCalledWith(2, { key: 'test_setting', value: 7200 });
+      });
+
+      it('restores an out-of-range value without a range check', async () => {
+        const onSave = vi.fn().mockResolvedValue(undefined);
+        const user = userEvent.setup();
+        render(<DurationSettingField {...switchProps} value={5} min={60} onSave={onSave} />);
+
+        expect(screen.getByRole('textbox')).toHaveValue('5s');
+        const toggle = screen.getByRole('switch', { name: 'Test Setting On' });
+        await user.click(toggle);
+        await waitFor(() => expect(screen.getByTestId('test_setting-off')).toBeInTheDocument());
+        await user.click(toggle);
+
+        await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));
+        expect(onSave).toHaveBeenNthCalledWith(2, { key: 'test_setting', value: 5 });
+      });
+    });
+
+    it('a click on the switch while a typed save is in flight saves nothing more', async () => {
+      const save = deferred();
+      const onSave = vi.fn().mockReturnValue(save.promise);
+      const user = userEvent.setup();
+      render(<DurationSettingField {...switchProps} onSave={onSave} />);
+
+      const input = screen.getByRole('textbox');
+      await user.clear(input);
+      await user.type(input, '2h');
+      // The click blurs the input first, which starts the typed save
+      await user.click(screen.getByRole('switch', { name: 'Test Setting On' }));
+
+      expect(onSave).toHaveBeenCalledTimes(1);
+      expect(onSave).toHaveBeenCalledWith({ key: 'test_setting', value: 7200 });
+      await act(async () => {
+        save.resolve();
+      });
+      expect(onSave).toHaveBeenCalledTimes(1);
     });
   });
 });
