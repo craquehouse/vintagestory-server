@@ -21,7 +21,7 @@ import { UIPreferencesPanel } from './UIPreferencesPanel';
 import { ApiSettingsPanel } from './ApiSettingsPanel';
 import { FileManagerPanel } from './FileManagerPanel';
 import { ScheduledJobsPanel } from './ScheduledJobsPanel';
-import { useAuthMe } from '@/api/hooks/use-auth-me';
+import { useIsAdmin } from '@/api/hooks/use-auth-me';
 
 /**
  * Settings page with tabbed navigation.
@@ -33,8 +33,7 @@ import { useAuthMe } from '@/api/hooks/use-auth-me';
  * - Scheduled Jobs: View registered background jobs (Admin only)
  */
 export function SettingsPage() {
-  const { data: auth } = useAuthMe();
-  const isAdmin = auth?.data?.role === 'admin';
+  const { isAdmin } = useIsAdmin();
 
   return (
     <div

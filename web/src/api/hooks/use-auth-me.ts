@@ -46,3 +46,23 @@ export function useAuthMe() {
     staleTime: Infinity,
   });
 }
+
+/**
+ * Whether the key is Admin, for role-gated controls (Story 23.3, Epic 23 ADR-6 decision 3).
+ *
+ * - `isAdmin`: the role is known to be Admin
+ * - `isKnown`: a role was returned (Admin or not)
+ * - `isError`: the role could not be loaded
+ *
+ * While loading, all three are false, so a control that needs Admin stays disabled
+ * until the role is known. The API enforces the role either way.
+ */
+export function useIsAdmin(): { isAdmin: boolean; isKnown: boolean; isError: boolean } {
+  const { data, isError } = useAuthMe();
+  const role = data?.data?.role;
+  return {
+    isAdmin: role === 'admin',
+    isKnown: typeof role === 'string',
+    isError,
+  };
+}

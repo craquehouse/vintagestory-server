@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 import { FileList, type FileListItem } from '@/components/FileList';
 import { FileViewer } from '@/components/FileViewer';
 import { PathBreadcrumb } from '@/components/PathBreadcrumb';
-import { useAuthMe } from '@/api/hooks/use-auth-me';
+import { useIsAdmin } from '@/api/hooks/use-auth-me';
 import { toConfigPath } from '@/api/config';
 import {
   useConfigFiles,
@@ -74,9 +74,8 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
 
   // Story 19.1 (FR233): roles other than Admin are shown fewer folders by the API. Hidden
   // while the role is loading or could not be loaded (role undefined).
-  const { data: auth } = useAuthMe();
-  const role = auth?.data?.role;
-  const showAdminNote = role !== undefined && role !== 'admin';
+  const { isAdmin, isKnown } = useIsAdmin();
+  const showAdminNote = isKnown && !isAdmin;
 
   // Fetch directories for the current path (Story 9.7 - nested directory support)
   const { data: directoriesData, isLoading: isLoadingDirectories } =

@@ -43,11 +43,11 @@ so that **I do not type a change that then fails with "Update failed"**.
 
 <!-- Red first. Subjects: type(story-23.3/task-N): ... One user-visible commit: Task 2 (fix(web)). -->
 
-- [ ] Task 1: `useIsAdmin`, and the two existing users moved to it + tests (AC: 4, 6)
-  - [ ] 1.1: Red first: `use-auth-me.test.tsx` rows for `useIsAdmin`: Admin `{ isAdmin: true, isKnown: true, isError: false }`; Monitor `{ false, true, false }`; loading `{ false, false, false }`; failed `{ false, false, true }`
-  - [ ] 1.2: `web/src/api/hooks/use-auth-me.ts`: `export function useIsAdmin(): { isAdmin: boolean; isKnown: boolean; isError: boolean }` over `useAuthMe` (`isKnown`: a role string was returned)
-  - [ ] 1.3: `FileManagerPanel.tsx` (`showAdminNote = isKnown && !isAdmin`, same as today's `role !== undefined && role !== 'admin'`) and `SettingsPage.tsx` (`isAdmin`) use it; their tests unchanged and green
-  - [ ] 1.4: Commit `refactor(story-23.3/task-1): read the key's role through one hook`
+- [x] Task 1: `useIsAdmin`, and the two existing users moved to it + tests (AC: 4, 6)
+  - [x] 1.1: Red first: `use-auth-me.test.tsx` rows for `useIsAdmin`: Admin `{ isAdmin: true, isKnown: true, isError: false }`; Monitor `{ false, true, false }`; loading `{ false, false, false }`; failed `{ false, false, true }`
+  - [x] 1.2: `web/src/api/hooks/use-auth-me.ts`: `export function useIsAdmin(): { isAdmin: boolean; isKnown: boolean; isError: boolean }` over `useAuthMe` (`isKnown`: a role string was returned)
+  - [x] 1.3: `FileManagerPanel.tsx` (`showAdminNote = isKnown && !isAdmin`, same as today's `role !== undefined && role !== 'admin'`) and `SettingsPage.tsx` (`isAdmin`) use it; their tests unchanged and green
+  - [x] 1.4: Commit `refactor(story-23.3/task-1): read the key's role through one hook`
 
 - [ ] Task 2: Game Settings disabled unless the key is Admin + tests (AC: 1, 2, 3, 6)
   - [ ] 2.1: Red first: `SettingField.test.tsx`: with `disabled`, the text input, number input and switch are disabled, no `onSave` on blur or toggle, and no env badge is shown; `GameConfigPanel.test.tsx`: the four AC rows (Admin, Monitor, loading, error), mocking `/auth/me` as the existing panel tests mock fetch
