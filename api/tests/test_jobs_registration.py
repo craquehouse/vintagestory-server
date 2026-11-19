@@ -21,7 +21,7 @@ import time
 from collections.abc import AsyncIterator, Callable, Iterator
 from datetime import UTC, datetime, timedelta
 from io import StringIO
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock, patch
 from zoneinfo import ZoneInfo
 
@@ -37,12 +37,17 @@ from vintagestory_api.jobs import (
     register_default_jobs,
 )
 from vintagestory_api.jobs.base import safe_job
-from vintagestory_api.jobs.scheduled_restart import restart_job_id, run_restart_sequence
+from vintagestory_api.jobs.scheduled_restart import (
+    restart_job_id,
+    run_restart_sequence,
+    scheduled_restart,
+)
 from vintagestory_api.models.jobs import JobInfo, job_to_info
 from vintagestory_api.services.api_settings import ApiSettings
 from vintagestory_api.services.scheduler import SchedulerService
 
 if TYPE_CHECKING:
+    from apscheduler.job import Job
     from pytest import CaptureFixture
 
 
@@ -1184,3 +1189,54 @@ class TestStaleSequence:
         assert outcome == "restarted"
         assert len(server.sent) == 3
         assert server.restarts == 1
+
+
+class _RecordingScheduler(SchedulerService):
+    """A real SchedulerService that also keeps what each cron job was registered with."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.cron_jobs: dict[str, tuple[Callable[..., Any], dict[str, Any]]] = {}
+
+    def add_cron_job(
+        self, func: Callable[..., Any], cron_expr: str, job_id: str, **kwargs: Any
+    ) -> Job:
+        self.cron_jobs[job_id] = (func, kwargs)
+        return super().add_cron_job(func, cron_expr, job_id, **kwargs)
+
+
+class TestRegisteredRestartJob:
+    """The registered restart job runs the real job function with its own arguments."""
+
+    async def test_registered_job_runs_against_the_server_service(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        server = _Server()
+        server.game_running = False
+        monkeypatch.setattr("vintagestory_api.services.server.get_server_service", lambda: server)
+        # Never started: the job cannot fire on its own during the test.
+        scheduler = _RecordingScheduler()
+
+        apply_restart_schedule(scheduler, ["04:00"])
+
+        func, add_job_kwargs = scheduler.cron_jobs["scheduled_restart_0400"]
+        assert func is scheduled_restart
+        job_kwargs = add_job_kwargs["kwargs"]
+        assert job_kwargs == {"restart_time": "04:00", "scheduler": scheduler}
+        assert scheduler.get_job("scheduled_restart_0400") is not None
+
+        with capture_logs() as logs:
+            await func(**job_kwargs)
+
+        skips = [log for log in logs if log["event"] == "scheduled_restart_skipped"]
+        assert skips == [
+            {
+                "event": "scheduled_restart_skipped",
+                "log_level": "info",
+                "restart_time": "04:00",
+                "reason": "not_running",
+                "minutes_left": 15,
+            }
+        ]
+        assert server.sent == []
+        assert server.restarts == 0
