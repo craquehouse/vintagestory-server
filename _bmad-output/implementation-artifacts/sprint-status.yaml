@@ -239,7 +239,7 @@ development_status:
   21-8-sidebar-default-and-content-width: done
   epic-22: in-progress
   epic-22-retrospective: optional
-  22-1-players-online-are-counted: review
+  22-1-players-online-are-counted: done
   22-2-prometheus-metrics-endpoint: review
   22-3-scheduled-restarts: backlog
   22-4-log-archive-and-backup-cleanup: backlog

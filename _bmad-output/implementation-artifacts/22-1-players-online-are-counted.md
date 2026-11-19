@@ -1,6 +1,6 @@
 # Story 22.1: Players Online Are Counted
 
-Status: review
+Status: done
 
 <!-- Implements FR287-FR288, Epic 22 ADR-1, ADR-2 and ADR-14. Bead: VSS-bhw (API-023), first half; Story 22.2 closes it. Maintainer answers 1 and 4 (Matt, 2026-11-18). Stories run in order 22.1 to 22.6; this is the first, branched from planning/epic-22-server-operations-and-metrics (3b15aa21, main e16a7932 plus the planning commit). The PR targets main. Line references were verified at 3b15aa21 (api/ and web/ identical to e16a7932, the commit the ADRs cite) and must be re-checked at implementation time. API and web change; one new service module, one new web component, one E2E test. No new dependency. -->
 
@@ -107,7 +107,7 @@ so that **I know whether anyone is playing before I restart or change something,
 - [ ] Task 6: Validate and move the story to review (AC: all)
   - [x] 6.1: `just check` green: API tests, pyright 0 errors and 0 warnings, ruff; web tests with 0 skipped, tsc 0 errors, Prettier. The diff adds no lint or type suppression (`# type: ignore`, `# pyright: ignore`, `eslint-disable`, `@ts-expect-error`), no `cast`, no skipped or `.only` test. `git status --short dev/` is empty after the runs
   - [x] 6.2: `rg -n "ExamplePlayer|AnotherPlayer|203\.0\.113|198\.51\.100" api/src web/src --glob '!*.test.*'` finds nothing (placeholders live in tests only)
-  - [ ] 6.3: Ask the maintainer, in the hand-off and the PR description, for one anonymised join line and one leave line copied from a real server's console (name replaced by `ExamplePlayer`, address by `203.0.113.5:42420`, timestamp kept as printed)
+  - [ ] 6.3: Ask the maintainer, in the hand-off and the PR description, for one anonymised join line and one leave line copied from a real server's console (name replaced by `ExamplePlayer`, address by `203.0.113.5:42420`, timestamp kept as printed). Check the sample for ANSI escape sequences (colour codes such as `\x1b[...m`); if it has them, the prefix pattern `_EVENT_PREFIX` (`services/players.py`) and the test `event()` helper (`tests/test_players.py`) change together, in the same commit
   - [ ] 6.4: Manual check (maintainer only; leave unticked until he confirms): his two sample lines are added to `test_players.py` as test cases and counted; if the provisional `_EVENT_PREFIX` does not match them it is corrected from them in the same commit (Dev Notes "When the sample arrives"); the Players card shows the count with a real client joining and leaving
   - [x] 6.5: Story status `review` in this file; `just sprint set 22-1-players-online-are-counted review`; Dev Agent Record and File List filled in, every statement true of the code
   - [x] 6.6: Commit `chore(story-22.1/task-6): validate and move story 22.1 to review`
@@ -324,6 +324,7 @@ All addresses are documentation ranges (RFC 5737 `203.0.113.0/24`, `198.51.100.0
 5. **"Server stopped" on the card.** ADR-2 decision 3 and the epic's AC say the card shows "Server stopped" and is built like `UptimeCard`, whose stopped value is `Stopped` with a subtitle (`UptimeCard.tsx:96-107`). The card shows `Stopped` as the value and `Server stopped` as the subtitle, so the two cards read alike and the text the AC names is shown.
 6. **"Next to the Uptime card" in a two-column grid.** The grid is `sm:grid-cols-2` with four cards (`Dashboard.tsx:118`); a fifth card directly after Uptime starts a third row from 640px and sits under Uptime below it. The story keeps the grid and the existing order (no other card moves) and places the card directly after Uptime in the document; AC 8 says so. A three-column grid or a reorder is a layout decision for the maintainer, not needed for the count.
 7. **`MaxClients`:** ADR-2 decision 3 lets the story decide; the dashboard does not read the game settings, so the card shows the count only.
+8. **A "joined again" line for a name not counted adds it.** ADR-1 decision 2 says a "joined again, killing previous client" line changes nothing. That holds for a name already in the set; for a name not in the set the implementation adds it, because the line says the player is online (for example a join line missed while the API restarted). Pinned by `test_rejoin_of_a_name_not_online_counts_it` (`tests/test_players.py`). Recorded at review.
 - The line numbers in ADR-1 and the facts section (`server.py:1014-1020`, `:1234`, `metrics.py:127`, `:207`, `models/metrics.py:12`) match 3b15aa21.
 
 ### Testing Requirements
@@ -414,13 +415,21 @@ Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive
   - `MetricsService` tests with a bare `MagicMock` server service that does not set `players_online` (the graceful-degradation tests) now put a `MagicMock` into the snapshot's `players_online` and the DEBUG log; harmless for their assertions, but a `spec=ServerService` mock would make such gaps visible.
   - Dashboard.test.tsx's file comment still lists the cards of Story 12.4 (no Players); its test names it.
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode. Verdict: approve. Three LOW findings, all resolved on this branch:
+
+1. **LOW: a start did not stop the previous run's readers.** `_start_server_locked` reset the tracker but left the old run's `_stdout_task`, `_stderr_task` and `_monitor_task` alone. After the game exited by itself, a start (or a restart, which skips the stop when `returncode` is set) could let the old readers drain buffered lines into the new run: a stale join line counted, old lines in the new run's console buffer. Fixed: after its precondition checks and before the tracker reset and the spawn, the start cancels and awaits any of the three tasks not yet done, through `_cancel_background_tasks()`, which the stop now uses too. The cancel comes after the checks so that a rejected start of a running server leaves that server's readers alone. Test: `TestPlayersOnline.test_start_cancels_previous_run_readers` (a fake old reader that would add a join line after the reset is cancelled and the new run's count stays 0; red before the fix). Commit `refactor(story-22.1/review): cancel the previous run's readers before a start`.
+2. **LOW: the rejoin decision was not recorded against the ADR.** Recorded as "ADR against the code" 8.
+3. **LOW: the sample request did not mention ANSI escape sequences.** Task 6.3 now asks for the check, and says the prefix pattern and the test `event()` helper change together if the sample has them.
+
 ### File List
 
 - `api/src/vintagestory_api/services/players.py` (new)
 - `api/tests/test_players.py` (new)
 - `api/src/vintagestory_api/services/server.py` (modified)
 - `api/tests/server/test_internal_methods.py` (modified)
-- `api/tests/server/test_lifecycle.py` (modified)
+- `api/tests/server/test_lifecycle.py` (modified; review: `test_start_cancels_previous_run_readers`)
 - `api/src/vintagestory_api/models/metrics.py` (modified)
 - `api/src/vintagestory_api/services/metrics.py` (modified)
 - `api/tests/test_metrics.py` (modified)
@@ -441,3 +450,4 @@ Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive
 - 2026-11-18: Story 22.1 created (ready-for-dev).
 - 2026-11-18: Implemented Tasks 1-5 and validated (Task 6); status review. Maintainer items 6.3 (PR half), 6.4 and 6.7 open.
 - 2026-11-18: Validated against the create-story checklist: AC 5 scoped to exclude the unchanged console and log-file routes; tracker snippet wrapped to the 100-column ruff limit; lifecycle test rows account for `mock_subprocess` (early monitor reset, `returncode` never set); web fixture list corrected to the files tsc checks; E2E route order (register the stub inside `openPage`); file comment range `:4-65`.
+- 2026-11-18: Code review (GLM-5.3-Flash via opencode): approve, three LOW findings resolved (see "Review"): the start cancels the previous run's readers, "ADR against the code" 8 records the rejoin decision, Task 6.3 asks for the ANSI check. Status done. Maintainer items 6.3 (PR half), 6.4 and 6.7 stay open.
