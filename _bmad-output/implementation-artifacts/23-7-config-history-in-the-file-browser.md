@@ -41,11 +41,11 @@ so that **I can see what an edit changed and undo it from the web UI**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: `@codemirror/merge` and the `RevisionCompare` component + tests (AC: 2, 5, 6)
-  - [ ] 1.1: `cd web && bun add @codemirror/merge@^6.12.3` (only it and its dependencies)
-  - [ ] 1.2: Red first: `RevisionCompare.test.tsx` (jsdom, real CodeMirror): side-by-side renders `.cm-mergeView` with both texts, read-only; unified renders one editor whose document is the current text and marks the deleted lines; `split` switching re-renders
-  - [ ] 1.3: `components/code-view/RevisionCompare.tsx` (props `original`, `current`, `split: boolean`, `wordWrap`; `MergeView` with `a` = original, `b` = current when split; otherwise an `EditorView` with `unifiedMergeView({ original, mergeControls: false })`; both read-only with the JSON5 language and styles, destroyed on unmount); `LazyRevisionCompare.tsx`
-  - [ ] 1.4: Commit `build(story-23.7/task-1): add CodeMirror's merge view for comparing config file versions`
+- [x] Task 1: `@codemirror/merge` and the `RevisionCompare` component + tests (AC: 2, 5, 6)
+  - [x] 1.1: `cd web && bun add @codemirror/merge@^6.12.3` (only it and its dependencies)
+  - [x] 1.2: Red first: `RevisionCompare.test.tsx` (jsdom, real CodeMirror): side-by-side renders `.cm-mergeView` with both texts, read-only; unified renders one editor whose document is the current text and marks the deleted lines; `split` switching re-renders
+  - [x] 1.3: `components/code-view/RevisionCompare.tsx` (props `original`, `current`, `split: boolean`, `wordWrap`; `MergeView` with `a` = original, `b` = current when split; otherwise an `EditorView` with `unifiedMergeView({ original, mergeControls: false })`; both read-only with the JSON5 language and styles, destroyed on unmount); `LazyRevisionCompare.tsx`
+  - [x] 1.4: Commit `build(story-23.7/task-1): add CodeMirror's merge view for comparing config file versions`
 
 - [ ] Task 2: API calls and hooks + tests (AC: 1, 3, 6)
   - [ ] 2.1: Red first: `config.test.ts` (`fetchConfigHistory(path)` -> `{filename, revisions}` mapped to camelCase `savedAt`, `savedBy`; `fetchConfigRevision(path, id)` -> `{revision, text}`; `restoreConfigRevision(path, revision, version)` -> `POST .../restore`; invalid names send nothing); hook tests (`useConfigHistory(path, enabled)`, `useConfigRevision(path, id)`, `useRestoreConfigRevision()` invalidating the history and the read)
