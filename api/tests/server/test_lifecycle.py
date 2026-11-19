@@ -1283,6 +1283,38 @@ class TestPlayersOnline:
             await installed_service.stop_server()
 
     @pytest.mark.asyncio
+    async def test_start_cancels_previous_run_readers(
+        self, installed_service: ServerService
+    ) -> None:
+        """A reader left from a run that exited by itself adds no name to the new run."""
+        spawned = asyncio.Event()
+
+        async def old_reader() -> None:
+            # Still draining the old run's buffered lines when the new run spawns
+            await spawned.wait()
+            installed_service._player_tracker.observe(_TRACKED_JOIN)
+
+        old_task = asyncio.create_task(old_reader())
+        installed_service._stdout_task = old_task
+        await asyncio.sleep(0)  # The old reader reaches its wait.
+
+        process = _running_process()
+
+        def spawn(*_args: object, **_kwargs: object) -> AsyncMock:
+            spawned.set()
+            return process
+
+        with patch("asyncio.create_subprocess_exec", side_effect=spawn):
+            await installed_service.start_server()
+            await asyncio.sleep(0.05)
+
+            assert old_task.cancelled()
+            assert installed_service.players_online == 0
+
+            _let_process_exit(process)
+            await installed_service.stop_server()
+
+    @pytest.mark.asyncio
     async def test_stop_resets_count(self, installed_service: ServerService) -> None:
         """A stop empties the set and players_online is None afterwards (AC 3)."""
         with patch("asyncio.create_subprocess_exec") as mock_exec:
