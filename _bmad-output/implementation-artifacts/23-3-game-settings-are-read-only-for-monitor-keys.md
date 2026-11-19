@@ -1,6 +1,6 @@
 # Story 23.3: Game Settings Are Read-Only for Monitor Keys
 
-Status: review
+Status: done
 
 <!-- Implements FR313, Epic 23 ADR-6. Bead: VSS-7z3 (UI-084), closed by this story after merge. Branch story/23-3-game-settings-are-read-only-for-monitor-keys, stacked on story/23-2-file-browser-paths-are-lists-of-names at f2405f9a (23.2 in review); the PR targets main and merges after 23.2's. Web only: no API change, no new dependency. Line references verified at f2405f9a. -->
 
@@ -114,7 +114,18 @@ Claude Opus 5.5 (claude-opus-5-5), as the epic's controller.
 - `_bmad-output/implementation-artifacts/23-3-game-settings-are-read-only-for-monitor-keys.md` (this file)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode. Verdict: approve. 0 HIGH, 0 MEDIUM, three LOW:
+
+1. **LOW: `isKnown` (`typeof role === 'string'`) differs from the old check (`role !== undefined`) for a non-string role.** Only reachable if `/auth/me` broke its schema (`role: string`). Accepted without a change: a role that is not a string is not a known role.
+2. **LOW: the E2E's "no POST" check is passive** (the stubbed Monitor test never tries to edit). Accepted: the disabled-control assertions carry it, and the unit panel test types and blurs with 0 POSTs.
+3. **LOW: the read-only note was not linked to the disabled controls.** Fixed: `SettingField` takes `disabledReasonId`, added to the control's `aria-describedby` while disabled; Game Settings passes the note's id. Two `SettingField` rows and one panel assertion.
+
+Observation (no change): `ScheduledJobsPanel` still reads `useAuthMe` directly, as ADR-6 decision 3 does not list it; it also needs the query's loading state, which `useIsAdmin` does not expose.
+
 ## Change Log
 
 - 2026-11-19: Story 23.3 created (ready-for-dev).
 - 2026-11-19: Implemented (dev-story): Tasks 1 to 4; status review.
+- 2026-11-19: Code review (GLM-5.3-Flash via opencode): approve; 0 HIGH, 0 MEDIUM, three LOW (one fixed: the note is named in the disabled fields' aria-describedby; two accepted) (see "Review"). Status done.
