@@ -10,6 +10,7 @@
  * Story 17.6: A saved interval that could not be applied shows a warning
  * Story 22.5: bounds and defaults match the API
  * Story 22.5: interval jobs can be turned off; Metrics Collection field
+ * Story 22.6: Scheduled Restarts and Backup Cleanup groups
  */
 
 import { AlertCircle, Loader2 } from 'lucide-react';
@@ -24,7 +25,8 @@ import { Switch } from '@/components/ui/switch';
 import { useApiSettings, useUpdateApiSetting } from '@/hooks/use-api-settings';
 import { useDebugStatus, useToggleDebug } from '@/hooks/use-debug';
 import { ModUpdateWebhookSetting } from './ModUpdateWebhookSetting';
-import { type SettingValue } from '@/hooks/use-setting-field';
+import { ScheduledRestartsSetting } from './ScheduledRestartsSetting';
+import type { ApiSettingValue } from '@/api/types';
 
 /**
  * Props for the ApiSettingsPanel component.
@@ -48,7 +50,7 @@ export function ApiSettingsPanel({ className }: ApiSettingsPanelProps) {
   const toggleDebug = useToggleDebug();
 
   // Handle save with toast notification
-  const handleSave = async (params: { key: string; value: SettingValue }) => {
+  const handleSave = async (params: { key: string; value: ApiSettingValue }) => {
     try {
       const result = await updateMutation.mutateAsync(params);
       toast.success(`${params.key} updated`);
@@ -125,6 +127,17 @@ export function ApiSettingsPanel({ className }: ApiSettingsPanelProps) {
             value={settings?.autoStartServer ?? API_SETTING_DEFAULTS.auto_start_server}
             type="bool"
             description="Automatically start the game server when the API starts"
+            onSave={handleSave}
+          />
+        </SettingGroup>
+
+        {/* Scheduled Restarts (Story 22.6) */}
+        <SettingGroup
+          title="Scheduled Restarts"
+          description="Restart the game server every day at these times"
+        >
+          <ScheduledRestartsSetting
+            times={settings?.scheduledRestartTimes ?? API_SETTING_DEFAULTS.scheduled_restart_times}
             onSave={handleSave}
           />
         </SettingGroup>
