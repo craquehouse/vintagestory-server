@@ -10,6 +10,8 @@
  * Story 9.6: JSON Syntax Colorization - AC: 1, 2, 3, 4
  * Polish UI-022: Word wrap support
  * Story 23.1: a file that cannot be parsed shows a warning and, for Admin, its text
+ * Story 23.5: a file that parsed is shown to Admin as its text, with its comments, in a
+ * read-only code view; the header takes actions (the Edit button)
  */
 
 import type { ReactNode } from 'react';
@@ -19,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { highlightJson, isJsonFile } from '@/lib/json-highlighter';
 import type { ConfigParseError } from '@/api/types';
+import { LazyCodeView } from '@/components/code-view/LazyCodeView';
 
 /**
  * Props for the FileViewer component.
@@ -58,6 +61,10 @@ export interface FileViewerProps {
    */
   text?: string;
   /**
+   * Buttons shown in the header before the word-wrap toggle (Story 23.5: Edit).
+   */
+  actions?: ReactNode;
+  /**
    * Additional CSS class names.
    */
   className?: string;
@@ -90,6 +97,7 @@ export function FileViewer({
   onWordWrapChange,
   parseError = null,
   text,
+  actions,
   className,
 }: FileViewerProps) {
   // Loading state
@@ -162,6 +170,17 @@ export function FileViewer({
         )}
       </>
     );
+  } else if (typeof text === 'string') {
+    // Story 23.5 (Epic 23 ADR-5 decision 7): Admin sees the text with its comments
+    body = (
+      <LazyCodeView
+        value={text}
+        readOnly
+        wordWrap={wordWrap}
+        ariaLabel={`Text of ${filename}`}
+        data-testid="file-viewer-code"
+      />
+    );
   } else {
     // Apply JSON syntax highlighting for .json files, plain text otherwise
     const isJson = isJsonFile(filename);
@@ -184,19 +203,24 @@ export function FileViewer({
   return (
     <div className={cn('flex flex-col', className)} data-testid="file-viewer">
       <div className="border-b px-4 py-2 bg-muted/30 flex items-center justify-between">
-        <span className="text-sm font-medium text-muted-foreground">{filename}</span>
-        {onWordWrapChange && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onWordWrapChange(!wordWrap)}
-            className={cn('h-7 w-7 p-0', wordWrap && 'bg-accent text-accent-foreground')}
-            title={wordWrap ? 'Disable word wrap' : 'Enable word wrap'}
-            data-testid="file-viewer-wrap-toggle"
-          >
-            <WrapText className="h-4 w-4" />
-          </Button>
-        )}
+        <span className="min-w-0 truncate text-sm font-medium text-muted-foreground">
+          {filename}
+        </span>
+        <div className="flex shrink-0 items-center gap-2">
+          {actions}
+          {onWordWrapChange && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onWordWrapChange(!wordWrap)}
+              className={cn('h-7 w-7 p-0', wordWrap && 'bg-accent text-accent-foreground')}
+              title={wordWrap ? 'Disable word wrap' : 'Enable word wrap'}
+              data-testid="file-viewer-wrap-toggle"
+            >
+              <WrapText className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
       <div className="flex-1 overflow-auto p-4">{body}</div>
     </div>

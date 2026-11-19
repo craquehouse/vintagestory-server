@@ -69,10 +69,10 @@ so that **I can change mod and server configs without a shell on the host**.
   - [x] 2.2: `client.ts` `handleApiError`: `details` = `detail.details` if present, else the detail's other keys (if any); `config.ts`, `use-config-files.ts`, `types.ts` (Dev Notes "API functions")
   - [x] 2.3: Commit `refactor(story-23.5/task-2): add the web API calls for saving and checking config files`
 
-- [ ] Task 3: The Admin read-only text view + tests (AC: 6, 9)
-  - [ ] 3.1: Red first: `FileViewer.test.tsx` rows (Admin with `text` and no parse error: `file-viewer-code` with the text, comments included, no `file-viewer-content`; Monitor (no `text`): the highlighted content as before; word wrap passes through); mock `LazyCodeView` with a light stub in component tests (Dev Notes "Testing")
-  - [ ] 3.2: `FileViewer.tsx`: when `text` is a string and `parseError` is null, render `LazyCodeView` read-only (`data-testid="file-viewer-code"`); otherwise as today. New optional `actions?: ReactNode` rendered in the header before the word-wrap toggle
-  - [ ] 3.3: Commit `feat(story-23.5/task-3): show config files with their comments to Admin keys`
+- [x] Task 3: The Admin read-only text view + tests (AC: 6, 9)
+  - [x] 3.1: Red first: `FileViewer.test.tsx` rows (Admin with `text` and no parse error: `file-viewer-code` with the text, comments included, no `file-viewer-content`; Monitor (no `text`): the highlighted content as before; word wrap passes through); mock `LazyCodeView` with a light stub in component tests (Dev Notes "Testing")
+  - [x] 3.2: `FileViewer.tsx`: when `text` is a string and `parseError` is null, render `LazyCodeView` read-only (`data-testid="file-viewer-code"`); otherwise as today. New optional `actions?: ReactNode` rendered in the header before the word-wrap toggle
+  - [x] 3.3: Commit `feat(story-23.5/task-3): show config files with their comments to Admin keys`
 
 - [ ] Task 4: The editor, Save and the guards + tests (AC: 1-5, 9)
   - [ ] 4.1: Red first: `ConfigFileEditor.test.tsx` and `FileManagerPanel.test.tsx` rows for every AC 1-5 case (Dev Notes "Testing")
