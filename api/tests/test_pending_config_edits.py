@@ -9,12 +9,14 @@ from pathlib import Path
 import pytest
 from structlog.testing import capture_logs
 
+from vintagestory_api.config import Settings
 from vintagestory_api.services.pending_config_edits import (
     PENDING_CONFIG_EDITS_FILENAME,
     PendingConfigEdit,
     PendingConfigEdits,
     reapply_edits,
 )
+from vintagestory_api.services.server import ServerService
 
 T0 = datetime(2026, 11, 19, 12, 0, 0, tzinfo=UTC)
 T1 = datetime(2026, 11, 19, 12, 5, 0, tzinfo=UTC)
@@ -103,6 +105,24 @@ class TestLoad:
             assert store.edits == {}
             assert store.edits == {}
         assert len(logs) == 1
+
+
+class TestOwner:
+    def test_server_service_construction_reads_no_state_file(self, tmp_path: Path) -> None:
+        """Controller decision: building the owner (dev/ in `just test-api`) reads nothing."""
+        settings = Settings(data_dir=tmp_path / "data")
+        path = write_state(settings.state_dir, "not json")
+        with capture_logs() as logs:
+            service = ServerService(settings)
+        assert not [log for log in logs if str(log["event"]).startswith("pending_config_edit")]
+        with capture_logs() as logs:
+            assert service.pending_config_edits.edits == {}
+        assert [log["event"] for log in logs] == ["pending_config_edits_unreadable"]
+        assert service.pending_config_edits.path == path
+
+    def test_server_service_keeps_one_store(self, tmp_path: Path) -> None:
+        service = ServerService(Settings(data_dir=tmp_path / "data"))
+        assert service.pending_config_edits is service.pending_config_edits
 
 
 class TestRecord:

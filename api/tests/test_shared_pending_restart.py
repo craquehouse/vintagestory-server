@@ -196,3 +196,39 @@ def test_failed_start_keeps_the_flag(client: TestClient) -> None:
 
     assert response.status_code == 500
     assert pending_everywhere(client) == (True, True)
+
+
+# Story 22.7: a restart-required change saved while a game process lives is recorded
+
+
+class _FakeStdin:
+    def write(self, data: bytes) -> None:
+        return None
+
+    async def drain(self) -> None:
+        return None
+
+
+class _LiveProcess:
+    """A game process that stays alive for the test (`returncode` None)."""
+
+    def __init__(self) -> None:
+        self.pid = 4242
+        self.returncode: int | None = None
+        self.stdin = _FakeStdin()
+
+
+def test_port_saved_while_running_is_recorded(
+    client: TestClient,
+    service: ServerService,
+    settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(service, "_process", _LiveProcess())
+    monkeypatch.setattr(service, "_server_state", ServerState.RUNNING)
+
+    save_port(client)
+
+    assert service.pending_config_edits.edits["Port"].value == 42421
+    stored = json.loads((settings.state_dir / "pending-config-edits.json").read_text())
+    assert stored["edits"]["Port"]["value"] == 42421

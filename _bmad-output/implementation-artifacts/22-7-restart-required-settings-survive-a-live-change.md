@@ -79,13 +79,13 @@ so that **a later live setting change cannot quietly undo it while "Restart requ
   - [x] 1.3: `cd api && uv run ruff format <changed files>`; `just test-api tests/test_pending_config_edits.py` green; `just typecheck-api` 0 errors, 0 warnings
   - [x] 1.4: Commit `refactor(story-22.7/task-1): add a store for restart-required game settings saved while the server runs`
 
-- [ ] Task 2: Record and drop edits in `GameConfigService.update_setting` + tests (AC: 4, 5, 8, 11)
-  - [ ] 2.1: Red first: the Task 2 rows of Dev Notes "API tests" in `api/tests/test_game_config.py` (new class `TestPendingConfigEditTracking`) and `api/tests/test_shared_pending_restart.py`; see them fail
-  - [ ] 2.2: `services/server.py`: `ServerService.__init__` builds the one store, `PendingConfigEdits(self._settings.state_dir)`, and exposes it as the read-only property `pending_config_edits` (after `game_server_pid`, `:206-215`). No other change to `server.py` in this task
-  - [ ] 2.3: `services/game_config.py`: the tracking step of Dev Notes "Recording and dropping" at the end of `update_setting` (`:768-822`), after the console or file call has returned without raising; nothing in `_update_config_file`'s write, flag or log lines (`:924-958`) or in `_execute_console_command` (`:838-900`) changes
-  - [ ] 2.4: The guard test of Dev Notes "Secrets": no secret setting in `LIVE_SETTINGS` can be recorded
-  - [ ] 2.5: `cd api && uv run ruff format <changed files>`; `just test-api tests/test_game_config.py tests/test_shared_pending_restart.py tests/test_routers_config.py tests/test_pending_config_edits.py` green; `just typecheck-api` 0/0
-  - [ ] 2.6: Commit `refactor(story-22.7/task-2): record restart-required game settings saved while the server runs` (nothing writes them back yet)
+- [x] Task 2: Record and drop edits in `GameConfigService.update_setting` + tests (AC: 4, 5, 8, 11)
+  - [x] 2.1: Red first: the Task 2 rows of Dev Notes "API tests" in `api/tests/test_game_config.py` (new class `TestPendingConfigEditTracking`) and `api/tests/test_shared_pending_restart.py`; see them fail
+  - [x] 2.2: `services/server.py`: `ServerService.__init__` builds the one store, `PendingConfigEdits(self._settings.state_dir)`, and exposes it as the read-only property `pending_config_edits` (after `game_server_pid`, `:206-215`). No other change to `server.py` in this task
+  - [x] 2.3: `services/game_config.py`: the tracking step of Dev Notes "Recording and dropping" at the end of `update_setting` (`:768-822`), after the console or file call has returned without raising; nothing in `_update_config_file`'s write, flag or log lines (`:924-958`) or in `_execute_console_command` (`:838-900`) changes
+  - [x] 2.4: The guard test of Dev Notes "Secrets": no secret setting in `LIVE_SETTINGS` can be recorded
+  - [x] 2.5: `cd api && uv run ruff format <changed files>`; `just test-api tests/test_game_config.py tests/test_shared_pending_restart.py tests/test_routers_config.py tests/test_pending_config_edits.py` green; `just typecheck-api` 0/0
+  - [x] 2.6: Commit `refactor(story-22.7/task-2): record restart-required game settings saved while the server runs` (nothing writes them back yet)
 
 - [ ] Task 3: Write back after exit, before every spawn and at API start; drop after a successful start; the failure rule + tests (AC: 1, 2, 3, 6, 11)
   - [ ] 3.1: Red first: the Task 3 rows of Dev Notes "API tests" in new `api/tests/server/test_pending_config_edits_lifecycle.py`, `api/tests/test_main.py` and `api/tests/test_shared_pending_restart.py`, including the scheduled restart and auto-start rows; see them fail
@@ -415,11 +415,16 @@ Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive
 - 2026-11-19: Story created (create-story, non-interactive) and checked against the create-story checklist: 6 tasks; every code task carries its tests (Task 4 is a container check, Task 5 documentation, Task 6 validation); every AC is mapped to a task (AC 11 to every code task and Task 6, the maintainer check to Task 6.3). Line references verified at 5c35b7e7. Ultimate context engine analysis completed - comprehensive developer guide created.
 - 2026-11-19, controller decision (judgement call 1 of the validation): the store reads its state file lazily, on first use (`edits`, `record`, `drop`, `drop_if_unchanged`), not when it or the `ServerService` singleton is built, so a test that builds the singleton with default settings (`dev/` under `just test-api`) never reads `dev/vsmanager/state/pending-config-edits.json`. This replaces Dev Notes "The store" ("loaded at construction") and the "Test safety" note that construction reads the file. Tested: `TestLoad.test_construction_reads_nothing` and `test_file_is_read_once` (Task 1), and that building a `ServerService` reads nothing (Task 2).
 - Task 1: `services/pending_config_edits.py` holds `PendingConfigEdit`/`PendingConfigEditsFile` (Pydantic), `PendingConfigEdits` (`edits` copy, `record`, `drop`, `drop_if_unchanged`, lazy load with the WARNING rules, atomic save that logs `pending_config_edits_save_failed` with `error_type`/`errno`/`strerror` and keeps the edit in memory) and `reapply_edits` (narrows parsed JSON with a module-level `TypeAdapter(dict[str, object])`; an absent key is added; no write when every value is equal). 30 tests in `tests/test_pending_config_edits.py`, red first (`ModuleNotFoundError` at collection), then green; Pyright 0/0. Nothing calls the store yet.
+- Task 2: `ServerService.__init__` builds the one store (`PendingConfigEdits(self._settings.state_dir)`, not read until first use) and exposes `pending_config_edits`. `GameConfigService.update_setting` now keeps the console/file call's result and, after it returns, calls `_track_pending_edit`: record on a `file_update` with `pending_restart` while `game_server_pid` is not `None`, otherwise `drop([key], reason="changed_again")`; nothing when `server_service` is `None`. Nothing in `_update_config_file` or `_execute_console_command` changed. Tests (red first: 14 failed with `AttributeError`): `TestPendingConfigEditTracking` (14 tests, including the Secrets guard and the no-value log check) on a real temp-dir `ServerService` with a small typed live-process fake; `test_port_saved_while_running_is_recorded` in `test_shared_pending_restart.py`; `TestOwner` in `test_pending_config_edits.py` (building a `ServerService` reads no state file: the controller decision). Full API suite 3747 passed; Pyright 0/0; no existing test changed.
 
 ### File List
 
 - `api/src/vintagestory_api/services/pending_config_edits.py` (new, Task 1)
-- `api/tests/test_pending_config_edits.py` (new, Task 1)
+- `api/tests/test_pending_config_edits.py` (new, Task 1; owner tests in Task 2)
+- `api/src/vintagestory_api/services/server.py` (modified, Task 2)
+- `api/src/vintagestory_api/services/game_config.py` (modified, Task 2)
+- `api/tests/test_game_config.py` (modified, Task 2)
+- `api/tests/test_shared_pending_restart.py` (modified, Task 2)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (`just sprint set`: in-progress in Task 1)
 - `_bmad-output/implementation-artifacts/22-7-restart-required-settings-survive-a-live-change.md` (this file)
 

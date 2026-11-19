@@ -813,13 +813,38 @@ class GameConfigService:
             # Story 16.8: clear with the setting's own command; without one (Description)
             # write the file and require a restart, like restart-required settings.
             if setting_def.clear_command is not None:
-                return await self._execute_console_command(key, None, setting_def)
-            return await self._update_config_file(key, None, setting_def, requires_restart=True)
-
-        if use_console:
-            return await self._execute_console_command(key, validated_value, setting_def)
+                result = await self._execute_console_command(key, None, setting_def)
+            else:
+                result = await self._update_config_file(
+                    key, None, setting_def, requires_restart=True
+                )
+        elif use_console:
+            result = await self._execute_console_command(key, validated_value, setting_def)
         else:
-            return await self._update_config_file(key, validated_value, setting_def)
+            result = await self._update_config_file(key, validated_value, setting_def)
+
+        # Only after a successful update: a refused or failed one changes no pending edit
+        self._track_pending_edit(key, result)
+        return result
+
+    def _track_pending_edit(self, key: str, result: UpdateResult) -> None:
+        """Record or drop the key's pending edit (Story 22.7, ADR-15 decisions 1 and 4).
+
+        A restart-required file write while a game process lives is recorded, because the
+        game can rewrite serverconfig.json with its own value before the next start. Any
+        other successful update is newer than the key's edit and drops it.
+        """
+        if self._server_service is None:
+            return
+        store = self._server_service.pending_config_edits
+        if (
+            result.method == "file_update"
+            and result.pending_restart
+            and self._server_service.game_server_pid is not None
+        ):
+            store.record(key, result.value)
+        else:
+            store.drop([key], reason="changed_again")
 
     def _format_bool_for_console(self, value: bool, bool_format: BoolFormat) -> str:
         """Format a boolean value for a console command.

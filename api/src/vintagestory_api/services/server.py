@@ -27,6 +27,7 @@ from vintagestory_api.models.server import (
 )
 from vintagestory_api.services.config_init_service import ConfigInitService
 from vintagestory_api.services.console import ConsoleBuffer
+from vintagestory_api.services.pending_config_edits import PendingConfigEdits
 from vintagestory_api.services.players import PlayerTracker
 
 # Lazy import to avoid circular dependency - imported at runtime when needed
@@ -188,6 +189,10 @@ class ServerService:
         # Players online, counted from the game's output (Epic 22 ADR-1)
         self._player_tracker = PlayerTracker()
 
+        # Restart-required settings saved while a game process lives (Story 22.7, ADR-15);
+        # the one store, read from disk on first use
+        self._pending_config_edits = PendingConfigEdits(self._settings.state_dir)
+
     @property
     def settings(self) -> Settings:
         """Get application settings."""
@@ -213,6 +218,11 @@ class ServerService:
         if self._process is not None and self._process.returncode is None:
             return self._process.pid
         return None
+
+    @property
+    def pending_config_edits(self) -> PendingConfigEdits:
+        """Restart-required settings saved while a game process lived (Story 22.7)."""
+        return self._pending_config_edits
 
     @property
     def players_online(self) -> int | None:
