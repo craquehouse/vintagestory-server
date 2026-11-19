@@ -10,6 +10,10 @@ import {
   API_SETTING_DEFAULTS,
   INTERVAL_API_SETTINGS,
   MAX_INTERVAL_SECONDS,
+  SCHEDULED_API_SETTINGS,
+  MAX_RESTART_TIMES,
+  MIN_RESTART_GAP_MINUTES,
+  MAX_BACKUP_KEEP_COUNT,
 } from './config';
 import type {
   ApiResponse,
@@ -259,6 +263,8 @@ describe('api/config', () => {
             serverVersionsRefreshInterval: 3600,
             metricsCollectionInterval: 10,
             modUpdateWebhookConfigured: false,
+            scheduledRestartTimes: [],
+            backupKeepCount: 0,
           },
         },
       };
@@ -283,6 +289,8 @@ describe('api/config', () => {
             serverVersionsRefreshInterval: 7200,
             metricsCollectionInterval: 10,
             modUpdateWebhookConfigured: false,
+            scheduledRestartTimes: [],
+            backupKeepCount: 0,
           },
         },
       };
@@ -632,15 +640,23 @@ describe('updateApiSetting secret keys (Story 14.6)', () => {
 });
 
 describe('API_SETTING_DEFAULTS (Story 22.5)', () => {
-  it('has exactly the six settings the API Settings tab shows', () => {
+  // Story 22.6 adds the restart times and the backup limit (was "exactly the six")
+  it('has exactly the eight settings the API Settings tab shows', () => {
     expect(Object.keys(API_SETTING_DEFAULTS).sort()).toEqual([
       'auto_start_server',
+      'backup_keep_count',
       'block_env_managed_settings',
       'enforce_env_on_restart',
       'metrics_collection_interval',
       'mod_list_refresh_interval',
+      'scheduled_restart_times',
       'server_versions_refresh_interval',
     ]);
+  });
+
+  it('defaults to no restart time and keeping every backup (Story 22.6)', () => {
+    expect(API_SETTING_DEFAULTS.scheduled_restart_times).toEqual([]);
+    expect(API_SETTING_DEFAULTS.backup_keep_count).toBe(0);
   });
 
   it('gives every interval a default above 0 and at most MAX_INTERVAL_SECONDS', () => {
@@ -654,5 +670,37 @@ describe('API_SETTING_DEFAULTS (Story 22.5)', () => {
       expect(seconds).toBeGreaterThan(0);
       expect(seconds).toBeLessThanOrEqual(MAX_INTERVAL_SECONDS);
     }
+  });
+});
+
+describe('restart times and the backup limit (Story 22.6)', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('sends a list of restart times as the value', async () => {
+    vi.mocked(apiClient).mockResolvedValue({
+      status: 'ok',
+      data: { key: 'scheduled_restart_times', value: ['04:00', '16:00'] },
+    });
+
+    await updateApiSetting('scheduled_restart_times', ['04:00', '16:00']);
+
+    expect(apiClient).toHaveBeenCalledWith(
+      '/api/v1alpha1/config/api/settings/scheduled_restart_times',
+      { method: 'POST', body: { value: ['04:00', '16:00'] } }
+    );
+  });
+
+  it('lists the interval settings and the restart times as scheduled settings', () => {
+    expect([...SCHEDULED_API_SETTINGS].sort()).toEqual(
+      [...INTERVAL_API_SETTINGS, 'scheduled_restart_times'].sort()
+    );
+  });
+
+  it("has the API's bounds (pinned by TestWebDefaults)", () => {
+    expect(MAX_RESTART_TIMES).toBe(24);
+    expect(MIN_RESTART_GAP_MINUTES).toBe(16);
+    expect(MAX_BACKUP_KEEP_COUNT).toBe(1000);
   });
 });

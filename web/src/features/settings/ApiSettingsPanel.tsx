@@ -10,11 +10,12 @@
  * Story 17.6: A saved interval that could not be applied shows a warning
  * Story 22.5: bounds and defaults match the API
  * Story 22.5: interval jobs can be turned off; Metrics Collection field
+ * Story 22.6: Scheduled Restarts and Backup Cleanup groups
  */
 
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { API_SETTING_DEFAULTS, MAX_INTERVAL_SECONDS } from '@/api/config';
+import { API_SETTING_DEFAULTS, MAX_BACKUP_KEEP_COUNT, MAX_INTERVAL_SECONDS } from '@/api/config';
 import { ApiError } from '@/api/errors';
 import { DurationSettingField } from '@/components/DurationSettingField';
 import { SettingField } from '@/components/SettingField';
@@ -23,8 +24,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { useApiSettings, useUpdateApiSetting } from '@/hooks/use-api-settings';
 import { useDebugStatus, useToggleDebug } from '@/hooks/use-debug';
+import { validators } from '@/hooks/use-setting-field';
 import { ModUpdateWebhookSetting } from './ModUpdateWebhookSetting';
-import { type SettingValue } from '@/hooks/use-setting-field';
+import { ScheduledRestartsSetting } from './ScheduledRestartsSetting';
+import type { ApiSettingValue } from '@/api/types';
+
+/** The Backups kept field's message for a value outside the API's bounds (Story 22.6). */
+const BACKUP_LIMIT_MESSAGE = `Must be between 0 and ${MAX_BACKUP_KEEP_COUNT}`;
 
 /**
  * Props for the ApiSettingsPanel component.
@@ -48,7 +54,7 @@ export function ApiSettingsPanel({ className }: ApiSettingsPanelProps) {
   const toggleDebug = useToggleDebug();
 
   // Handle save with toast notification
-  const handleSave = async (params: { key: string; value: SettingValue }) => {
+  const handleSave = async (params: { key: string; value: ApiSettingValue }) => {
     try {
       const result = await updateMutation.mutateAsync(params);
       toast.success(`${params.key} updated`);
@@ -125,6 +131,33 @@ export function ApiSettingsPanel({ className }: ApiSettingsPanelProps) {
             value={settings?.autoStartServer ?? API_SETTING_DEFAULTS.auto_start_server}
             type="bool"
             description="Automatically start the game server when the API starts"
+            onSave={handleSave}
+          />
+        </SettingGroup>
+
+        {/* Scheduled Restarts (Story 22.6) */}
+        <SettingGroup
+          title="Scheduled Restarts"
+          description="Restart the game server every day at these times"
+        >
+          <ScheduledRestartsSetting
+            times={settings?.scheduledRestartTimes ?? API_SETTING_DEFAULTS.scheduled_restart_times}
+            onSave={handleSave}
+          />
+        </SettingGroup>
+
+        {/* Backup Cleanup (Story 22.6) */}
+        <SettingGroup title="Backup Cleanup" description="Delete old backup files every day">
+          <SettingField
+            settingKey="backup_keep_count"
+            label="Backups kept"
+            type="int"
+            value={settings?.backupKeepCount ?? API_SETTING_DEFAULTS.backup_keep_count}
+            validate={validators.compose(
+              validators.positiveInt(BACKUP_LIMIT_MESSAGE),
+              validators.range(0, MAX_BACKUP_KEEP_COUNT, BACKUP_LIMIT_MESSAGE)
+            )}
+            description="Newest files kept in serverdata/Backups. 0 keeps all (the default). Every day at 03:00 server time (TZ, UTC unless set) older files are deleted permanently. BackupSaves and the world are never touched."
             onSave={handleSave}
           />
         </SettingGroup>

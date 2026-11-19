@@ -170,7 +170,7 @@ The scope is three open beads the maintainer named: `VSS-bhw` (game server metri
 1. `jobs/__init__.py` gains `apply_setting(scheduler, key, value)`: for an interval key it calls `apply_interval_setting` as today; for `scheduled_restart_times` it calls `apply_restart_schedule(scheduler, times)`, which removes every `scheduled_restart_*` job not in the list and adds or replaces the others. Other keys do nothing.
 2. `INTERVAL_SETTINGS` in `api_settings.py` is replaced by `SCHEDULED_SETTINGS` (the interval keys and `scheduled_restart_times`), and the router passes `partial(apply_setting, scheduler)`. The error path stays: any exception after the save raises `ApiSettingNotAppliedError`, and the web shows "Saved, not applied yet". The test that keeps the service's keys and the jobs module's keys equal is kept for the new name.
 3. `register_default_jobs` applies `scheduled_restart_times` at start-up and always registers `disk_cleanup` (ADR-9).
-4. Cleanup settings (`log_archive_retention_days`, `log_archive_keep_min`, `backup_keep_count`) are not scheduled settings: the job reads them when it runs, so a change applies at the next run.
+4. Cleanup settings (`log_archive_retention_days`, `log_archive_keep_min`, `backup_keep_count`) are not scheduled settings: the job reads them when it runs, so a change applies at the next run. (Amended 2026-11-19, "Backups only + docs": only `backup_keep_count` exists; the two log-archive settings were dropped, ADR-9.)
 
 ## ADR-8: The Stop Timeout Is Measured, Not Changed, and `VSS-zws` Is Checked in the Same Run
 
@@ -240,14 +240,16 @@ The scope is three open beads the maintainer named: `VSS-bhw` (game server metri
 
 ## ADR-13: Restart Times and Cleanup Limits Are Edited in the API Settings Tab
 
+**Amended (2026-11-19), following the maintainer's decision "Backups only + docs" (Matt, 2026-11-19; Story 22.4, ADR-9 and ADR-10):** `log_archive_retention_days` and `log_archive_keep_min` do not exist (saving either answers 400 `API_SETTING_UNKNOWN`), so the tab has no field for them. Decision 2 now shows one field, `backup_keep_count`; decision 4 adds two fields to the web type, not four. The group is named "Backup Cleanup". Decisions 1 and 3 are unchanged.
+
 **Status:** Planner. Implemented by Story 22.6.
 
 **Decision:**
 
 1. **A "Scheduled Restarts" group** below Server Behavior: a list of time inputs (`<input type="time">`, 24-hour value) with Remove buttons and an Add time button, saved as one list when an entry changes and is valid. The help text says the times are in the server's time zone (`TZ`, UTC unless set), that players are warned at 15, 5 and 1 minutes, that a stopped server is not started, and that a time less than 15 minutes ahead first runs the next day. A 400 from the API keeps the edited list and shows the message.
-2. **A "Disk Cleanup" group** with three number fields (Log archive retention in days, Archives always kept, Backups kept), each with "0 keeps all" in its help text, using `SettingField` with the API's bounds.
+2. **A "Backup Cleanup" group** with one number field, Backups kept (`backup_keep_count`, 0 to 1000, the API's bounds; 0 = keep all, the default), using `SettingField`. Its help text says that 0 keeps all, that deletion is permanent, and that the cleanup runs every day at 03:00 server time (`TZ`, UTC unless set) and touches only `serverdata/Backups/`, never `BackupSaves/` or the world. The game keeps its own log archives to 5, so no log-archive field exists.
 3. **The next restart time is not shown** in this group. The Scheduled Jobs tab already lists each `scheduled_restart_HHMM` job with its next run (the warning time); showing a computed restart time here would need either a new API field or a second request for jobs, and is left out.
-4. The web type for API settings gains the four fields; the transform at the client boundary is unchanged (camelCase).
+4. The web type for API settings gains the two fields (`scheduledRestartTimes: string[]`, `backupKeepCount: number`); the transform at the client boundary is unchanged (camelCase).
 
 ## ADR-14: Restarts, Cleanup and Players Are Tested with Stubs and Throwaway Containers, Never on the Dev Stack's Game Server
 

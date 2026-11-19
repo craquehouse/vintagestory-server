@@ -11,7 +11,7 @@ vi.mock('sonner', () => ({
 import { toast } from 'sonner';
 import { useApiSettings, useUpdateApiSetting, useSetModUpdateWebhook } from './use-api-settings';
 import { handleApiError } from '@/api/error-handler';
-import type { ApiResponse, ApiSettingsData } from '@/api/types';
+import type { ApiResponse, ApiSettingValue, ApiSettingsData } from '@/api/types';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -478,7 +478,7 @@ describe('useUpdateApiSetting and Scheduled Jobs (Story 17.6)', () => {
   async function save(
     queryClient: QueryClient,
     key: string,
-    value: number | boolean
+    value: ApiSettingValue
   ): Promise<void> {
     const { result } = renderHook(() => useUpdateApiSetting(), {
       wrapper: createWrapper(queryClient),
@@ -560,6 +560,8 @@ describe('useUpdateApiSetting and Scheduled Jobs (Story 17.6)', () => {
           serverVersionsRefreshInterval: 86400,
           metricsCollectionInterval: 10,
           modUpdateWebhookConfigured: false,
+          scheduledRestartTimes: [],
+          backupKeepCount: 0,
         },
       },
     });
@@ -576,6 +578,118 @@ describe('useUpdateApiSetting and Scheduled Jobs (Story 17.6)', () => {
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
     await save(queryClient, 'auto_start_server', true);
+
+    await waitFor(() => {
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['config', 'api'] });
+    });
+    expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: ['jobs'] });
+  });
+
+  // Story 22.6: restart times are a list, and saving them adds or removes restart jobs
+  function seedSettings(queryClient: QueryClient, scheduledRestartTimes: string[]): void {
+    queryClient.setQueryData<ApiResponse<ApiSettingsData>>(['config', 'api'], {
+      status: 'ok',
+      data: {
+        settings: {
+          autoStartServer: false,
+          blockEnvManagedSettings: true,
+          enforceEnvOnRestart: false,
+          modListRefreshInterval: 3600,
+          serverVersionsRefreshInterval: 86400,
+          metricsCollectionInterval: 10,
+          modUpdateWebhookConfigured: false,
+          scheduledRestartTimes,
+          backupKeepCount: 0,
+        },
+      },
+    });
+  }
+
+  function cachedRestartTimes(queryClient: QueryClient): string[] | undefined {
+    return queryClient.getQueryData<ApiResponse<ApiSettingsData>>(['config', 'api'])?.data.settings
+      .scheduledRestartTimes;
+  }
+
+  it('writes saved restart times into the cache at once and refreshes the jobs', async () => {
+    let answer: (value: unknown) => void = () => {};
+    globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/settings/')) {
+        return new Promise((resolve) => {
+          answer = resolve;
+        });
+      }
+      // The refetch is held, so the cache shows only what the mutation wrote
+      return new Promise(() => {});
+    });
+    const queryClient = createTestQueryClient();
+    seedSettings(queryClient, []);
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+    const { result } = renderHook(() => useUpdateApiSetting(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      result.current.mutate({ key: 'scheduled_restart_times', value: ['04:00'] });
+    });
+
+    await waitFor(() => expect(cachedRestartTimes(queryClient)).toEqual(['04:00']));
+    expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: ['jobs'] });
+
+    await act(async () => {
+      answer({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { key: 'scheduled_restart_times', value: ['04:00'] },
+          }),
+      });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['jobs'] });
+    const body: unknown = JSON.parse(
+      String(vi.mocked(globalThis.fetch).mock.calls[0]?.[1]?.body ?? '')
+    );
+    expect(body).toEqual({ value: ['04:00'] });
+  });
+
+  it('rolls the cached restart times back on a 400 and still refreshes the jobs', async () => {
+    globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/settings/')) {
+        return {
+          ok: false,
+          status: 400,
+          statusText: 'Bad Request',
+          json: () =>
+            Promise.resolve({
+              detail: {
+                code: 'API_SETTING_INVALID',
+                message: "Invalid value for 'scheduled_restart_times': at most 24 times, got 25",
+              },
+            }),
+        };
+      }
+      return new Promise(() => {});
+    });
+    const queryClient = createTestQueryClient();
+    seedSettings(queryClient, ['08:00']);
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+    await save(queryClient, 'scheduled_restart_times', ['04:00', '08:00']);
+
+    expect(cachedRestartTimes(queryClient)).toEqual(['08:00']);
+    await waitFor(() => {
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['jobs'] });
+    });
+  });
+
+  it('does not invalidate the jobs query after saving backup_keep_count', async () => {
+    globalThis.fetch = okFetch('backup_keep_count', 3);
+    const queryClient = createTestQueryClient();
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+    await save(queryClient, 'backup_keep_count', 3);
 
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['config', 'api'] });

@@ -65,6 +65,12 @@ describe('snakeToCamel', () => {
     const input = { name: 'test', active: true };
     expect(snakeToCamel(input)).toEqual({ name: 'test', active: true });
   });
+
+  it('leaves the strings in a list of restart times unchanged (Story 22.6)', () => {
+    expect(snakeToCamel({ scheduled_restart_times: ['04:00', '16:00'] })).toEqual({
+      scheduledRestartTimes: ['04:00', '16:00'],
+    });
+  });
 });
 
 describe('camelToSnake', () => {
@@ -114,6 +120,10 @@ describe('camelToSnake', () => {
   it('handles keys without uppercase letters', () => {
     const input = { name: 'test', active: true };
     expect(camelToSnake(input)).toEqual({ name: 'test', active: true });
+  });
+
+  it('leaves the strings in a list value unchanged (Story 22.6)', () => {
+    expect(camelToSnake({ value: ['04:00'] })).toEqual({ value: ['04:00'] });
   });
 });
 

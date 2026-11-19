@@ -59,6 +59,8 @@ const mockApiSettings = {
       modListRefreshInterval: 300,
       serverVersionsRefreshInterval: 3600,
       metricsCollectionInterval: 10,
+      scheduledRestartTimes: [],
+      backupKeepCount: 0,
     },
   },
 };
@@ -313,6 +315,15 @@ describe('SettingsPage', () => {
       expect(screen.queryByTestId('api-settings-loading')).not.toBeInTheDocument();
       expect(screen.queryByTestId('api-settings-error')).not.toBeInTheDocument();
       expect(screen.queryByText('Failed to load settings')).not.toBeInTheDocument();
+      expect(fetchedUrls().filter((url) => url.includes('/config/api'))).toHaveLength(0);
+    });
+
+    // Story 22.6: the restart and backup groups live in the Admin-only panel
+    it('a Monitor sees neither Scheduled Restarts nor Backup Cleanup', async () => {
+      await renderAsMonitor();
+
+      expect(screen.queryByText('Scheduled Restarts')).not.toBeInTheDocument();
+      expect(screen.queryByText('Backup Cleanup')).not.toBeInTheDocument();
       expect(fetchedUrls().filter((url) => url.includes('/config/api'))).toHaveLength(0);
     });
 

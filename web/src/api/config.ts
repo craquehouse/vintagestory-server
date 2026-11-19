@@ -15,6 +15,7 @@ import type {
   GameSettingUpdateData,
   ApiSettingsData,
   ApiSettingUpdateData,
+  ApiSettingValue,
   ModUpdateWebhookUpdateData,
   ConfigDirectoryListData,
   ConfigFileListData,
@@ -93,10 +94,41 @@ export const INTERVAL_API_SETTINGS: ReadonlySet<string> = new Set([
 export const MAX_INTERVAL_SECONDS = 31_536_000;
 
 /**
+ * API settings whose save changes the scheduled jobs (Story 22.6): the interval keys and
+ * the restart times. Mirrors `SCHEDULED_SETTINGS` in
+ * `api/src/vintagestory_api/services/api_settings.py`.
+ */
+export const SCHEDULED_API_SETTINGS: ReadonlySet<string> = new Set([
+  ...INTERVAL_API_SETTINGS,
+  'scheduled_restart_times',
+]);
+
+/**
+ * The API's maximum number of daily restart times (`MAX_RESTART_TIMES` in
+ * `api/src/vintagestory_api/services/api_settings.py`; pinned by `TestWebDefaults` in
+ * `api/tests/test_api_settings.py`). Story 22.6.
+ */
+export const MAX_RESTART_TIMES = 24;
+
+/**
+ * The API's minimum gap between two restart times, in minutes, across midnight too
+ * (`MIN_RESTART_GAP_MINUTES` in `api/src/vintagestory_api/services/api_settings.py`;
+ * pinned by `TestWebDefaults`). Story 22.6.
+ */
+export const MIN_RESTART_GAP_MINUTES = 16;
+
+/**
+ * The API's maximum for `backup_keep_count` (`MAX_BACKUP_KEEP_COUNT` in
+ * `api/src/vintagestory_api/services/api_settings.py`; pinned by `TestWebDefaults`).
+ * Story 22.6.
+ */
+export const MAX_BACKUP_KEEP_COUNT = 1000;
+
+/**
  * The API's default for each setting the API Settings tab shows (Story 22.5, Epic 22
  * ADR-11 decision 4): the tab's fallback when a value is missing, and the value an
  * interval's On switch saves when the page has seen no earlier value for it. Keys are the
- * API's setting keys. Keep each value a plain
+ * API's setting keys. Story 22.6 adds the restart times and the backup limit. Keep each value a plain
  * literal on its own line: `TestWebDefaults` in `api/tests/test_api_settings.py` reads
  * this block and compares it with `ApiSettings()`.
  */
@@ -107,6 +139,8 @@ export const API_SETTING_DEFAULTS = {
   mod_list_refresh_interval: 14400,
   server_versions_refresh_interval: 86400,
   metrics_collection_interval: 10,
+  scheduled_restart_times: [],
+  backup_keep_count: 0,
 } as const;
 
 /**
@@ -138,7 +172,7 @@ export async function setModUpdateWebhook(
  */
 export async function updateApiSetting(
   key: string,
-  value: string | number | boolean
+  value: ApiSettingValue
 ): Promise<ApiResponse<ApiSettingUpdateData>> {
   if (SECRET_API_SETTINGS.has(key)) {
     throw new Error(`${key} is a secret; use setModUpdateWebhook`);

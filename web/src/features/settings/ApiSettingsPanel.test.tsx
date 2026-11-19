@@ -53,6 +53,8 @@ const mockApiSettingsCamelCase = {
       serverVersionsRefreshInterval: 3600,
       metricsCollectionInterval: 10,
       modUpdateWebhookConfigured: true,
+      scheduledRestartTimes: [],
+      backupKeepCount: 0,
     },
   },
 };
@@ -1717,6 +1719,244 @@ describe('ApiSettingsPanel', () => {
       // Check the status text - should show "Disabled" when debugEnabled is undefined
       const statusText = toggle.nextElementSibling;
       expect(statusText).toHaveTextContent('Disabled');
+    });
+  });
+
+  describe('Scheduled Restarts (Story 22.6)', () => {
+    const loaded = { ...mockApiSettingsCamelCase.data.settings };
+    const refused =
+      "Invalid value for 'scheduled_restart_times': '04:00' and '04:10' are 10 minutes apart; " +
+      'restart times must be at least 16 minutes apart';
+
+    function answerWith(status: number, code: string, message: string) {
+      return {
+        ok: false,
+        status,
+        statusText: status === 400 ? 'Bad Request' : 'Internal Server Error',
+        json: () => Promise.resolve({ detail: { code, message } }),
+      };
+    }
+
+    function titles(): string[] {
+      return screen
+        .getAllByText(/^(Server Behavior|Scheduled Restarts|Environment Variables|Backup Cleanup)$/)
+        .map((el) => el.textContent ?? '');
+    }
+
+    async function addRestartTime(value: string) {
+      fireEvent.click(screen.getByTestId('add-restart-time'));
+      const inputs = screen.getAllByLabelText(/^Restart time \d+$/);
+      const input = inputs[inputs.length - 1];
+      fireEvent.change(input, { target: { value } });
+      fireEvent.blur(input);
+    }
+
+    function restartTimesShown(): string[] {
+      return screen
+        .queryAllByLabelText(/^Restart time \d+$/)
+        .map((el) => (el instanceof HTMLInputElement ? el.value : ''));
+    }
+
+    it('is shown after Server Behavior and before Environment Variables', async () => {
+      serveSettings(loaded);
+      await renderPanel();
+
+      const shown = titles();
+      expect(shown.indexOf('Scheduled Restarts')).toBe(shown.indexOf('Server Behavior') + 1);
+      expect(shown.indexOf('Environment Variables')).toBeGreaterThan(
+        shown.indexOf('Scheduled Restarts')
+      );
+      expect(screen.getByText('Restart the game server every day at these times')).toBeVisible();
+    });
+
+    it('shows loaded times sorted', async () => {
+      serveSettings({ ...loaded, scheduledRestartTimes: ['16:00', '04:00'] });
+      await renderPanel();
+
+      expect(restartTimesShown()).toEqual(['04:00', '16:00']);
+    });
+
+    it('says no restart is scheduled when the setting is missing', async () => {
+      serveSettings({});
+      await renderPanel();
+
+      expect(screen.getByTestId('scheduled-restarts-empty')).toHaveTextContent(
+        'No restart is scheduled.'
+      );
+    });
+
+    it('saves an added time with one POST and one success toast', async () => {
+      const mockFetch = serveSettings(loaded);
+      await renderPanel();
+
+      await addRestartTime('04:00');
+
+      await waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1));
+      expect(toast.success).toHaveBeenCalledWith('scheduled_restart_times updated');
+      expect(toast.error).not.toHaveBeenCalled();
+      const posts = postCalls(mockFetch);
+      expect(posts).toHaveLength(1);
+      expect(posts[0][0]).toMatch(/\/config\/api\/settings\/scheduled_restart_times$/);
+      expect(posts[0][1]?.body).toBe('{"value":["04:00"]}');
+      await waitFor(() => expect(restartTimesShown()).toEqual(['04:00']));
+    });
+
+    it("a 400 shows one error toast and the API's message under the list", async () => {
+      // The client would refuse 04:00 with 04:10; the stub refuses a list it lets through
+      serveSettings({ ...loaded, scheduledRestartTimes: ['08:00'] }, async () => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        return answerWith(400, 'API_SETTING_INVALID', refused);
+      });
+      await renderPanel();
+
+      await addRestartTime('04:00');
+
+      await waitFor(() => expect(toast.error).toHaveBeenCalledTimes(1));
+      expect(toast.error).toHaveBeenCalledWith('Update failed', { description: refused });
+      expect(toast.success).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toHaveTextContent(refused);
+      });
+      // Let the refetch land
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(restartTimesShown()).toEqual(['08:00', '04:00']);
+      expect(toast.error).toHaveBeenCalledTimes(1);
+    });
+
+    it('a 500 not applied shows one warning toast', async () => {
+      const notApplied = 'Saved, but the restart jobs could not be applied';
+      serveSettings(loaded, async (_url, saved) => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        saved.scheduledRestartTimes = ['04:00'];
+        return answerWith(500, 'API_SETTING_NOT_APPLIED', notApplied);
+      });
+      await renderPanel();
+
+      await addRestartTime('04:00');
+
+      await waitFor(() => expect(toast.warning).toHaveBeenCalledTimes(1));
+      expect(toast.warning).toHaveBeenCalledWith('Saved, not applied yet', {
+        description: notApplied,
+      });
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(toast.error).not.toHaveBeenCalled();
+      expect(toast.success).not.toHaveBeenCalled();
+      expect(screen.getByRole('alert')).toHaveTextContent(notApplied);
+      expect(restartTimesShown()).toEqual(['04:00']);
+    });
+  });
+
+  describe('Backup Cleanup (Story 22.6)', () => {
+    const loaded = { ...mockApiSettingsCamelCase.data.settings, backupKeepCount: 7 };
+
+    function titles(): string[] {
+      return screen
+        .getAllByText(/^(Scheduled Restarts|Environment Variables|Backup Cleanup)$/)
+        .map((el) => el.textContent ?? '');
+    }
+
+    it('is shown directly after Scheduled Restarts', async () => {
+      serveSettings(loaded);
+      await renderPanel();
+
+      const shown = titles();
+      expect(shown.indexOf('Backup Cleanup')).toBe(shown.indexOf('Scheduled Restarts') + 1);
+      expect(screen.getByText('Delete old backup files every day')).toBeInTheDocument();
+    });
+
+    it('has one number field, Backups kept, with the loaded value', async () => {
+      serveSettings(loaded);
+      await renderPanel();
+
+      const input = screen.getByLabelText('Backups kept');
+      expect(input).toHaveAttribute('type', 'number');
+      expect(input).toHaveValue(7);
+    });
+
+    it('shows 0 when the setting is missing', async () => {
+      serveSettings({});
+      await renderPanel();
+
+      expect(screen.getByLabelText('Backups kept')).toHaveValue(0);
+    });
+
+    it('has no field for log archives', async () => {
+      serveSettings(loaded);
+      await renderPanel();
+
+      expect(screen.getByTestId('api-settings-panel')).not.toHaveTextContent(/log archive/i);
+    });
+
+    it.each([
+      ['0 keeps all', /0 keeps all/],
+      ['deleted permanently', /deleted permanently/],
+      ['03:00 server time, TZ', /03:00 server time \(TZ, UTC unless set\)/],
+      ['only serverdata/Backups', /serverdata\/Backups/],
+      ['BackupSaves never', /BackupSaves and the world are never touched/],
+    ])('help text: %s', async (_fact, pattern) => {
+      serveSettings(loaded);
+      await renderPanel();
+
+      expect(screen.getByText(pattern)).toBeInTheDocument();
+    });
+
+    it('saves 3 with one POST and one success toast', async () => {
+      const mockFetch = serveSettings(loaded);
+      await renderPanel();
+
+      const input = screen.getByLabelText('Backups kept');
+      fireEvent.change(input, { target: { value: '3' } });
+      fireEvent.blur(input);
+
+      await waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1));
+      expect(toast.success).toHaveBeenCalledWith('backup_keep_count updated');
+      const posts = postCalls(mockFetch);
+      expect(posts).toHaveLength(1);
+      expect(posts[0][0]).toMatch(/\/config\/api\/settings\/backup_keep_count$/);
+      expect(JSON.parse(String(posts[0][1]?.body))).toEqual({ value: 3 });
+    });
+
+    it.each(['-1', '1001'])('refuses %s before sending', async (value) => {
+      const mockFetch = serveSettings(loaded);
+      await renderPanel();
+
+      const input = screen.getByLabelText('Backups kept');
+      fireEvent.change(input, { target: { value } });
+      fireEvent.blur(input);
+
+      await waitFor(() => {
+        expect(screen.getByText('Must be between 0 and 1000')).toBeInTheDocument();
+      });
+      expect(postCalls(mockFetch)).toHaveLength(0);
+      expect(toast.success).not.toHaveBeenCalled();
+      expect(toast.error).not.toHaveBeenCalled();
+    });
+
+    it("a 400 shows one error toast and the API's message under the field", async () => {
+      const refused =
+        "Invalid value for 'backup_keep_count': Input should be less than or equal to 1000";
+      serveSettings(loaded, async () => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        return {
+          ok: false,
+          status: 400,
+          statusText: 'Bad Request',
+          json: () =>
+            Promise.resolve({ detail: { code: 'API_SETTING_INVALID', message: refused } }),
+        };
+      });
+      await renderPanel();
+
+      const input = screen.getByLabelText('Backups kept');
+      fireEvent.change(input, { target: { value: '5' } });
+      fireEvent.blur(input);
+
+      await waitFor(() => expect(toast.error).toHaveBeenCalledTimes(1));
+      expect(toast.error).toHaveBeenCalledWith('Update failed', { description: refused });
+      expect(toast.success).not.toHaveBeenCalled();
+      await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(refused));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(toast.error).toHaveBeenCalledTimes(1);
     });
   });
 

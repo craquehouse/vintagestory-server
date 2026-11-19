@@ -299,6 +299,11 @@ export interface GameSettingUpdateData {
 // ===== API Settings Types =====
 
 /**
+ * The value of an API setting. A list only for `scheduled_restart_times` (Story 22.6).
+ */
+export type ApiSettingValue = string | number | boolean | string[];
+
+/**
  * API operational settings from GET /api/v1alpha1/config/api.
  */
 export interface ApiSettingsData {
@@ -312,6 +317,10 @@ export interface ApiSettingsData {
     metricsCollectionInterval: number;
     /** Story 14.6: whether a mod update webhook is set; the URL is never returned */
     modUpdateWebhookConfigured: boolean;
+    /** Story 22.6: daily `HH:MM` restart times in server time, sorted; `[]`: none */
+    scheduledRestartTimes: string[];
+    /** Story 22.6: newest backup files kept; 0: keep all */
+    backupKeepCount: number;
   };
 }
 
@@ -329,7 +338,7 @@ export interface ModUpdateWebhookUpdateData {
  */
 export interface ApiSettingUpdateData {
   key: string;
-  value: string | number | boolean;
+  value: ApiSettingValue;
 }
 
 // ===== Config File Types (Story 6.6, Story 9.7) =====

@@ -3,6 +3,7 @@
 Story 6.3: API Settings Service
 Story 17.6: Settings behave as saved (interval bound, not-applied error)
 Story 22.4: Backup cleanup limit (Epic 22 ADR-9 decision 1, as amended 2026-11-19)
+Story 22.6: validator messages without the "Value error, " prefix; web defaults and bounds
 """
 
 import json
@@ -1116,6 +1117,40 @@ class TestScheduledRestartTimesService:
         assert service.settings_file.read_bytes() == before
         callback.assert_not_called()
 
+    async def test_validator_message_has_no_pydantic_prefix(
+        self, service: ApiSettingsService
+    ) -> None:
+        """Story 22.6: the message is the validator's own, without "Value error, "."""
+        with pytest.raises(ApiSettingInvalidError) as exc_info:
+            await service.update_setting(RESTART_KEY, ["04:00", "04:10"])
+
+        assert exc_info.value.message == (
+            "Invalid value for 'scheduled_restart_times': '04:00' and '04:10' are 10 minutes "
+            "apart; restart times must be at least 16 minutes apart"
+        )
+        assert not exc_info.value.reason.startswith("Value error")
+
+    async def test_webhook_message_has_no_prefix_and_no_value(
+        self, service: ApiSettingsService
+    ) -> None:
+        """Story 22.6: the webhook validator's message, without the prefix or the value."""
+        with pytest.raises(ApiSettingInvalidError) as exc_info:
+            await service.update_setting("mod_update_webhook_url", "ftp://example.invalid")
+
+        assert exc_info.value.message == (
+            "Invalid value for 'mod_update_webhook_url': must be an http or https URL with a host"
+        )
+        assert "example.invalid" not in exc_info.value.message
+
+    async def test_constraint_message_is_unchanged(self, service: ApiSettingsService) -> None:
+        """Story 22.6: a built-in constraint message never had the prefix and keeps its text."""
+        with pytest.raises(ApiSettingInvalidError) as exc_info:
+            await service.update_setting("backup_keep_count", 1001)
+
+        assert exc_info.value.message == (
+            "Invalid value for 'backup_keep_count': Input should be less than or equal to 1000"
+        )
+
     async def test_logs_the_list(self, service: ApiSettingsService) -> None:
         await service.update_setting(RESTART_KEY, ["08:00"])
         with capture_logs() as logs:
@@ -1263,12 +1298,20 @@ class TestBackupKeepCountService:
 
 # =============================================================================
 # Story 22.5: the web's defaults and interval bound equal the API's
+# Story 22.6: restart times, the backup limit and their bounds
 # =============================================================================
 
 WEB_CONFIG = Path(__file__).resolve().parents[2] / "web" / "src" / "api" / "config.ts"
 WEB_DEFAULTS_START = "export const API_SETTING_DEFAULTS = {"
-WEB_DEFAULT_LINE = re.compile(r"^\s*([a-z_]+): (true|false|\d[\d_]*),$")
+# A default is a boolean, an integer or (Story 22.6) the empty list; nothing else.
+WEB_DEFAULT_LINE = re.compile(r"^\s*([a-z_]+): (true|false|\d[\d_]*|\[\]),$")
 WEB_MAX_INTERVAL = re.compile(r"^export const MAX_INTERVAL_SECONDS = (\d[\d_]*);$", re.MULTILINE)
+WEB_BOUNDS = {
+    "MAX_RESTART_TIMES": MAX_RESTART_TIMES,
+    "MIN_RESTART_GAP_MINUTES": MIN_RESTART_GAP_MINUTES,
+    "MAX_BACKUP_KEEP_COUNT": MAX_BACKUP_KEEP_COUNT,
+}
+"""The web's copies of the API's bounds (Story 22.6), by name, with the API's value."""
 WEB_DEFAULT_KEYS = {
     "auto_start_server",
     "block_env_managed_settings",
@@ -1276,10 +1319,12 @@ WEB_DEFAULT_KEYS = {
     "mod_list_refresh_interval",
     "server_versions_refresh_interval",
     "metrics_collection_interval",
+    "scheduled_restart_times",
+    "backup_keep_count",
 }
 
 
-def _web_defaults() -> dict[str, bool | int]:
+def _web_defaults() -> dict[str, bool | int | list[str]]:
     """Parse `API_SETTING_DEFAULTS` in the web's config.ts; fail on any unexpected line."""
     text = WEB_CONFIG.read_text()
     start = text.find(WEB_DEFAULTS_START)
@@ -1288,7 +1333,7 @@ def _web_defaults() -> dict[str, bool | int]:
     end = text.find("}", body_start)
     assert end != -1, f"API_SETTING_DEFAULTS in {WEB_CONFIG} has no closing brace"
 
-    defaults: dict[str, bool | int] = {}
+    defaults: dict[str, bool | int | list[str]] = {}
     for line in text[body_start:end].splitlines():
         if not line.strip():
             continue
@@ -1300,13 +1345,15 @@ def _web_defaults() -> dict[str, bool | int]:
         key, literal = match.group(1), match.group(2)
         if literal in ("true", "false"):
             defaults[key] = literal == "true"
+        elif literal == "[]":
+            defaults[key] = []
         else:
             defaults[key] = int(literal.replace("_", ""))
     return defaults
 
 
 class TestWebDefaults:
-    """The web's API_SETTING_DEFAULTS and MAX_INTERVAL_SECONDS equal the API's (Story 22.5)."""
+    """The web's API_SETTING_DEFAULTS and bounds equal the API's (Stories 22.5 and 22.6)."""
 
     def test_keys_are_the_settings_the_tab_shows(self) -> None:
         defaults = _web_defaults()
@@ -1325,3 +1372,11 @@ class TestWebDefaults:
         match = WEB_MAX_INTERVAL.search(WEB_CONFIG.read_text())
         assert match is not None, f"MAX_INTERVAL_SECONDS not found in {WEB_CONFIG}"
         assert int(match.group(1).replace("_", "")) == MAX_INTERVAL_SECONDS
+
+    @pytest.mark.parametrize(("name", "api_value"), sorted(WEB_BOUNDS.items()))
+    def test_bound_equals_the_api_bound(self, name: str, api_value: int) -> None:
+        """Story 22.6: the restart-time and backup bounds the web checks before sending."""
+        pattern = re.compile(rf"^export const {name} = (\d[\d_]*);$", re.MULTILINE)
+        match = pattern.search(WEB_CONFIG.read_text())
+        assert match is not None, f"{name} not found in {WEB_CONFIG}"
+        assert int(match.group(1).replace("_", "")) == api_value, f"{name} in {WEB_CONFIG}"

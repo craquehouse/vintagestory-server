@@ -227,6 +227,76 @@ describe('useSettingField', () => {
       expect(result.current.error).toBe('Network error');
     });
 
+    // Story 22.6: an optimistic save shows its value, and a failure rolls the value prop
+    // back after the field has caught the error
+    it('keeps the error of a failed save when the value prop rolls back', async () => {
+      let rejectSave: (err: Error) => void = () => {};
+      const onSave = vi.fn().mockImplementation(
+        () =>
+          new Promise<void>((_resolve, reject) => {
+            rejectSave = reject;
+          })
+      );
+      const { result, rerender } = renderHook(
+        ({ initialValue }: { initialValue: number }) =>
+          useSettingField({
+            initialValue,
+            settingKey: 'backup_keep_count',
+            settingType: 'int',
+            onSave,
+          }),
+        { initialProps: { initialValue: 7 } }
+      );
+
+      act(() => {
+        result.current.setValue(5);
+      });
+      act(() => {
+        void result.current.save();
+      });
+      // The optimistic value arrives while the save is pending
+      rerender({ initialValue: 5 });
+      await act(async () => {
+        rejectSave(new Error('Refused'));
+      });
+      // Then the rollback
+      rerender({ initialValue: 7 });
+
+      expect(result.current.error).toBe('Refused');
+      expect(result.current.value).toBe(7);
+
+      // A later change of the saved value clears it
+      rerender({ initialValue: 9 });
+      expect(result.current.error).toBeNull();
+      expect(result.current.value).toBe(9);
+    });
+
+    it('clears the error of a failed save when the value prop changes to another value', async () => {
+      const onSave = vi.fn().mockRejectedValue(new Error('Refused'));
+      const { result, rerender } = renderHook(
+        ({ initialValue }: { initialValue: number }) =>
+          useSettingField({
+            initialValue,
+            settingKey: 'backup_keep_count',
+            settingType: 'int',
+            onSave,
+          }),
+        { initialProps: { initialValue: 7 } }
+      );
+
+      act(() => {
+        result.current.setValue(5);
+      });
+      await act(async () => {
+        await result.current.save();
+      });
+      expect(result.current.error).toBe('Refused');
+
+      rerender({ initialValue: 8 });
+
+      expect(result.current.error).toBeNull();
+    });
+
     it('does not save when disabled', async () => {
       const onSave = vi.fn();
 

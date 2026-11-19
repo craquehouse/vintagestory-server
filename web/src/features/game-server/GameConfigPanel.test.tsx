@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import { GameConfigPanel } from './GameConfigPanel';
 import { PAGE_CONTENT_WIDTH } from '@/components/layout/content-width';
+import { queryKeys } from '@/api/query-keys';
+import type { ApiResponse, GameConfigData } from '@/api/types';
 
 // Mock sonner toast
 vi.mock('sonner', () => ({
@@ -445,6 +447,49 @@ describe('GameConfigPanel', () => {
           })
         );
       });
+    });
+
+    it("keeps a failed save's message under the field through the rollback (Story 22.6 review)", async () => {
+      const refused = 'Server name is too long';
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/settings/')) {
+          // The optimistic value reaches the field before the save fails
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          return {
+            ok: false,
+            status: 400,
+            statusText: 'Bad Request',
+            json: () => Promise.resolve({ detail: { code: 'CONFIG_INVALID', message: refused } }),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockGameConfig),
+        };
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<GameConfigPanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('game-config-panel')).toBeInTheDocument();
+      });
+
+      const input = screen.getByLabelText('Server Name');
+      fireEvent.change(input, { target: { value: 'New Server Name' } });
+      fireEvent.blur(input);
+
+      await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(refused));
+      // Let the rollback reach the field
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      const cached = queryClient.getQueryData<ApiResponse<GameConfigData>>(queryKeys.config.game);
+      expect(cached?.data.settings.find((s) => s.key === 'ServerName')?.value).toBe(
+        'My Test Server'
+      );
+      expect(screen.getByRole('alert')).toHaveTextContent(refused);
+      expect(input).toHaveValue('My Test Server');
     });
   });
 

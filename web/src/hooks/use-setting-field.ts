@@ -251,9 +251,17 @@ export function useSettingField<T extends string | number | boolean>(
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
 
+  // The saved value before a save that failed: a value prop that then returns to it is the
+  // optimistic update's rollback, which arrives after the error is caught (Story 22.6)
+  const rollbackValueRef = useRef<{ value: T } | null>(null);
+
   // Keep value in sync with initial when it changes externally
   useEffect(() => {
     setValueState(initialValue);
+    const rollback = rollbackValueRef.current;
+    rollbackValueRef.current = null;
+    // Keep the failed save's message through its rollback; any other change clears it
+    if (rollback && rollback.value === initialValue) return;
     setError(null);
   }, [initialValue]);
 
@@ -283,6 +291,8 @@ export function useSettingField<T extends string | number | boolean>(
 
       setError(null);
       setIsPending(true);
+      rollbackValueRef.current = null;
+      const savedBefore = initialRef.current;
 
       try {
         await onSave({ key: settingKey, value: valueToSave });
@@ -292,6 +302,10 @@ export function useSettingField<T extends string | number | boolean>(
         // Extract error message from API error
         const message = err instanceof Error ? err.message : 'Failed to save setting';
         setError(message);
+        if (initialRef.current !== savedBefore) {
+          // The value prop moved to the optimistic value; its rollback keeps the message
+          rollbackValueRef.current = { value: savedBefore };
+        }
         if (revertOnError) {
           setValueState(initialRef.current);
         }
