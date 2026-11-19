@@ -4,7 +4,7 @@
 **Author:** BMAD planner (PM and Architect), for Matt
 **Workflow:** correct-course (scope named by the maintainer; product decisions asked one at a time)
 **Scope classification:** Minor
-**Status:** Scope named by Matt before planning (2026-11-18): `VSS-bhw`, `VSS-29p` and `VSS-9jv`, plus any open bead that shares their files. The same day he answered eleven questions (section 5); `VSS-zws` is pulled in and `VSS-hv60`, `VSS-3tb1` and `VSS-7z3` are not. Six stories, four beads. No question is open. Planner decisions not reviewed yet are listed in section 5.
+**Status:** Scope named by Matt before planning (2026-11-18): `VSS-bhw`, `VSS-29p` and `VSS-9jv`, plus any open bead that shares their files. The same day he answered eleven questions (section 5); `VSS-zws` is pulled in and `VSS-hv60`, `VSS-3tb1` and `VSS-7z3` are not. Six stories, four beads. Revised the same day: after Story 22.3's Task 1 confirmed `VSS-zws`, a twelfth answer added Story 22.7 to fix it (seven stories, still four beads). No question is open. Planner decisions not reviewed yet are listed in section 5.
 
 ## 1. Issue Summary
 
@@ -47,10 +47,11 @@
 | 22.4 Log Archive and Backup Cleanup | `VSS-29p` (closes) | Deletion is the riskiest change; it gets its own review. Log rotation is documentation here (answer 9) |
 | 22.5 Interval Fields Can Turn Jobs Off | `VSS-9jv` | The bead, with the bounds, fallbacks and Monitor tab found in planning in the same two files |
 | 22.6 Restart and Cleanup Settings in the UI | none | The web half of 22.3 and 22.4's settings, after 22.5 because both edit `ApiSettingsPanel.tsx` |
+| 22.7 Restart-Required Settings Survive a Live Change | `VSS-zws` (closes) | Added by answer 12 after 22.3 confirmed the bug: a small API fix, run after 22.4 and before 22.5; 22.5 and 22.6 do not depend on it |
 
 ## 2. Impact Analysis
 
-**Epic impact:** Epics 1 to 21 are done; none is invalidated. One new epic, Epic 22: Server Operations and Metrics, with 6 stories. No resequencing.
+**Epic impact:** Epics 1 to 21 are done; none is invalidated. One new epic, Epic 22: Server Operations and Metrics, with 6 stories (7 after answer 12 added Story 22.7). No resequencing.
 
 **Story impact:** No existing story changes. Story 22.2 builds the Prometheus endpoint that Epic 1's PRD listed as post-MVP. Story 22.3 generalises the scheduler callback of Story 17.6 (Epic 17 ADR-5) beyond interval settings, keeping its saved-but-not-applied error.
 
@@ -58,9 +59,9 @@
 
 | Artifact | Change |
 |---|---|
-| PRD | Add FR287-FR305; frontmatter. Story 22.2 updates the post-MVP line on Prometheus |
-| Epics | Add Epic 22; FR coverage rows; Story Summary row (134 stories); frontmatter |
-| Architecture | New `architecture/epic-22-server-operations-and-metrics.md` (facts, ADR-1 to ADR-14); index entry |
+| PRD | Add FR287-FR305 (FR306 added in Story 22.2's validation, FR307 with Story 22.7); frontmatter. Story 22.2 updates the post-MVP line on Prometheus |
+| Epics | Add Epic 22; FR coverage rows; Story Summary row (134 stories; 135 with Story 22.7); frontmatter |
+| Architecture | New `architecture/epic-22-server-operations-and-metrics.md` (facts, ADR-1 to ADR-14; ADR-15 with Story 22.7); index entry |
 | UX spec | No text change. The two new settings groups (ADR-13) follow the existing `SettingGroup` pattern |
 | CI | No new job. Story 22.2 adds one API E2E test to the existing E2E job |
 | Project rules | None |
@@ -88,13 +89,14 @@
 | 22.4 | API settings `log_archive_retention_days`, `log_archive_keep_min`, `backup_keep_count` | New, defaults 14, 5, 0 | New settings |
 | 22.4 | Job `disk_cleanup` | New, daily at 03:00 container time; deletes old log archives by default | New behaviour |
 | 22.5 | API Settings tab | Shown to Admin only | Web-only |
+| 22.7 | `serverconfig.json`, `vsmanager/state/pending-config-edits.json` | A restart-required game setting saved while the game runs is written again after the game exits and before any start; the new state file keeps it across API restarts | Fix, new state file |
 
 No route is removed, no existing field changes, and nothing is breaking. The cleanup's default deletes log archives older than 14 days (the newest 5 kept); the release note says so, and setting `log_archive_retention_days` to 0 keeps all.
 
 **Draft release-note text** (commit subjects; the story scope is removed by git-cliff):
 
 - Features: `feat(api): count the players online and include them in the metrics`; `feat(web): show the players online on the dashboard`; `feat(api): serve game server metrics for Prometheus at /metrics`; `feat(api): restart the game server at scheduled times, warning players first`; `feat(api): delete old game log archives every day, and old backups when a limit is set`; `feat(web): turn scheduled jobs off and on, and set metrics collection, in API Settings`; `feat(web): set restart times in API Settings`; `feat(web): set disk cleanup limits in API Settings`
-- Fixes: `fix(api): show Restart required when a game setting change needs a restart` (Story 22.2, pulled in during its validation); `fix(web): hide the API Settings tab from read-only keys`; `fix(web): allow refresh intervals up to 365 days, as the API does`; and, only if Story 22.3 changes code for `VSS-zws`, a `fix(api)` subject written for what it fixes
+- Fixes: `fix(api): show Restart required when a game setting change needs a restart` (Story 22.2, pulled in during its validation); `fix(web): hide the API Settings tab from read-only keys`; `fix(web): allow refresh intervals up to 365 days, as the API does`; and, from Story 22.7, `fix(api): keep a Port or Ip change saved while the server runs when a later live setting change rewrites the config` (Story 22.3 made no code change for `VSS-zws`)
 - No note: the dependency (`build`), tests, documentation, the throwaway-container measurements
 
 ## 3. Recommended Approach
@@ -121,6 +123,7 @@ No route is removed, no existing field changes, and nothing is breaking. The cle
 - Story 22.4: whether the game prunes its own archives is not observed; the throwaway run checks it before the job ships.
 - Stories 22.3, 22.4: tests must not restart the dev stack's game server. Stubs, a fake sleep and throwaway `vss-22-*` containers only (ADR-14).
 - Stories 22.5, 22.6: both edit `ApiSettingsPanel.tsx` and run one after the other.
+- Story 22.7: it writes `serverconfig.json` while the game is stopped and keeps a state file; a wrong write-back could put back a value the admin changed later. ADR-15 decision 4 drops an edit whenever the same key is changed again, and each path has a test.
 
 ## 4. Detailed Change Proposals
 
@@ -165,8 +168,8 @@ Facts checked at `e16a7932`, and:
 
 ### 4.5 Other Artifacts
 
-- `sprint-status.yaml` (through `just sprint`): `epic-22` and its retrospective entry, and the six story keys, all `backlog`.
-- Beads: the epic bead with `VSS-bhw`, `VSS-29p`, `VSS-9jv` and `VSS-zws` as children, each with a comment naming its story.
+- `sprint-status.yaml` (through `just sprint`): `epic-22` and its retrospective entry, and the six story keys, all `backlog`; `22-7-restart-required-settings-survive-a-live-change` added with answer 12 (`just sprint add-story 22 ...`).
+- Beads: the epic bead with `VSS-bhw`, `VSS-29p`, `VSS-9jv` and `VSS-zws` as children, each with a comment naming its story; `VSS-zws` has a second comment moving it to Story 22.7 with 22.3's evidence.
 
 ## 5. Implementation Handoff
 
@@ -174,7 +177,7 @@ Facts checked at `e16a7932`, and:
 
 | Role | Responsibility |
 |---|---|
-| Scrum Master (`create-story`) | Create story files 22.1 to 22.6 from `epics.md` and the Epic 22 ADRs |
+| Scrum Master (`create-story`) | Create story files 22.1 to 22.7 from `epics.md` and the Epic 22 ADRs |
 | Developer (`dev-story`) | Implement each story, one task per commit; each change with a release note is its own commit with the subject written for admins; throwaway containers for anything that restarts a game (ADR-14) |
 | Reviewer (`code-review`) | Delegated, read-only review per story, given the commits and this contract |
 | Maintainer (Matt) | Provides one anonymised join line and one leave line (22.1); decides the stop timeout if 22.3's measurement asks; confirms the manual checks; reviews the planner decisions below |
@@ -188,18 +191,19 @@ Facts checked at `e16a7932`, and:
 5. **The restart schedule (ADR-5).** Default: a list of daily `HH:MM` times, empty by default, in the container's time zone. Alternatives: a cron expression; every N hours. *Confirmed (Matt, 2026-11-18): daily times.*
 6. **Warnings before a restart (ADR-6).** Default: `/announce` at 15, 5 and 1 minutes with fixed text, only while the game runs. Alternatives: configurable minutes; configurable minutes and text; no warnings. *Confirmed (Matt, 2026-11-18): 15, 5 and 1 minutes, fixed text.*
 7. **When a restart happens (ADR-6).** Default: whenever the game is running, players or not; a restart already in progress makes it skip. Alternatives: only with no player online; only when a restart is pending; a setting to choose. *Confirmed (Matt, 2026-11-18): always, if running.*
-8. **What cleanup deletes (ADR-9).** Default: log archives older than 14 days with the newest 5 kept; backups kept to the newest N with N = 0 (keep all) by default; `BackupSaves` and the world never. Alternatives: log archives only; archives and backups (newest 10) by default. *Confirmed (Matt, 2026-11-18): log archives, backups opt-in.*
-9. **Who rotates logs (ADR-10).** Default: the game; the manager only prunes archives and documents Docker's log options. Alternatives: the manager also rotates the live game logs; an optional rotating file log for the manager. *Confirmed (Matt, 2026-11-18): the game's; the manager prunes.*
+8. **What cleanup deletes (ADR-9).** Default: log archives older than 14 days with the newest 5 kept; backups kept to the newest N with N = 0 (keep all) by default; `BackupSaves` and the world never. Alternatives: log archives only; archives and backups (newest 10) by default. *Confirmed (Matt, 2026-11-18): log archives, backups opt-in.* *Changed (Matt, 2026-11-19, "Backups only + docs"), after Story 22.4's Task 3 found that the game keeps at most 5 log archives itself: no log-archive cleanup (its two settings dropped); backups opt-in with `backup_keep_count` (default 0 = keep all) and the daily `disk_cleanup` job at 03:00 container time.*
+9. **Who rotates logs (ADR-10).** Default: the game; the manager only prunes archives and documents Docker's log options. Alternatives: the manager also rotates the live game logs; an optional rotating file log for the manager. *Confirmed (Matt, 2026-11-18): the game's; the manager prunes.* *Changed (Matt, 2026-11-19): the game's, including pruning its archives to 5; the manager prunes nothing in `Logs/` and documents who rotates what.*
 10. **Turning an interval off in the UI (ADR-11).** Default: an On switch per interval; refresh fields 60 s to 365 days; Metrics Collection 1 s to 1 h, default 10 s. Alternatives: typing 0 or "off"; a preset dropdown. *Confirmed (Matt, 2026-11-18): an On switch per interval.* The question also said the bounds and fallbacks would be fixed in the same story.
 11. **Pull-ins (table below).** Default: `VSS-zws`. *Answered (Matt, 2026-11-18): `VSS-zws` only.* The question also said the planner would hide the API Settings tab for a Monitor key in the UI story; the maintainer did not object (ADR-12).
+12. **How to handle `VSS-zws` once confirmed (ADR-8 decision 3, ADR-15).** Asked after Story 22.3's Task 1 showed that a live `/serverconfig` command makes the game rewrite `serverconfig.json` and lose a pending `Port` edit, with "Restart required" then cleared by the next start. Options: fix inside Story 22.3; a new story; accept and document. *Answered (Matt, 2026-11-18): "New Story 22.7 fix: a small API story after 22.4: keep the restart-required edits made while the game runs and write them to serverconfig.json again after the process exits, before any start (manual, scheduled, auto). Keeps 22.3 at six tasks; handled inside the epic; closes VSS-zws."*
 
-**Planner decisions not reviewed yet:** the job layout (one cron job per time at T-15, ADR-6 decisions 1 and 7); the 16-minute minimum gap between restart times (ADR-6 decision 6); `apply_setting` (ADR-7); the stop-time measurement and the rule that a slow stop is the maintainer's decision (ADR-8); the 03:00 cleanup time and the safety rules (ADR-9 decisions 3 to 6); the hidden tab (ADR-12); the UI of ADR-13, including leaving the next restart time out of the API Settings tab.
+**Planner decisions not reviewed yet:** the job layout (one cron job per time at T-15, ADR-6 decisions 1 and 7); the 16-minute minimum gap between restart times (ADR-6 decision 6); `apply_setting` (ADR-7); the stop-time measurement and the rule that a slow stop is the maintainer's decision (ADR-8); the 03:00 cleanup time and the safety rules (ADR-9 decisions 3 to 6); the hidden tab (ADR-12); the UI of ADR-13, including leaving the next restart time out of the API Settings tab; ADR-15 decisions 1 to 8 (edits recorded only while a game process lives; kept on disk in `vsmanager/state/pending-config-edits.json`; written back after exit, before every spawn and at API start; dropped after a successful start or when the same key is changed again; a failed write-back does not block a start and re-flags the restart; the write-back never reads `VS_CFG_*`); and four controller decisions during validation of Story 22.4 (2026-11-18), for the maintainer to review (ADR-9, ADR-10; the first two, on archives, are void since the maintainer's 2026-11-19 decision dropped the archive cleanup): the newest log archive is never deleted, whatever `log_archive_keep_min` is (0 included), so a cleanup at a game start can never remove the archive just written; an archive's age is measured from the later of the time in its folder name and the folder's modification time (`lstat`, not following links), because the name is the archived run's start time and a long run would otherwise make a fresh archive look old; 03:00 container time stays; the Docker logging example is in the README only and the shipped `docker-compose.yaml` is not changed.
 
 **Other open beads that share files with this epic** (answered by Matt, 2026-11-18: `VSS-zws` pulled in, the rest not):
 
 | Bead | Shares | Recommendation |
 |---|---|---|
-| `VSS-zws` (API-073) Check whether VintageStory overwrites `serverconfig.json` edits made while it runs | The stop and restart path of `services/server.py` that scheduled restarts use, and the throwaway container of Story 22.3 | Pulled into Story 22.3 (Matt, 2026-11-18): verified in the same run as the stop-time measurement (ADR-8 decision 3) |
+| `VSS-zws` (API-073) Check whether VintageStory overwrites `serverconfig.json` edits made while it runs | The stop and restart path of `services/server.py` that scheduled restarts use, and the throwaway container of Story 22.3 | Pulled into Story 22.3 (Matt, 2026-11-18): verified in the same run as the stop-time measurement (ADR-8 decision 3). Confirmed there; fixed and closed by Story 22.7 (answer 12, ADR-15) |
 | `VSS-hv60` (UI-103) Leftover `.tmp` and `.bak` files in the mods directory, with a cleanup | The idea of disk cleanup, not its code: the mods directory, the mod service and its own UI decisions (size-m) | Not pulled in. It belongs with the mod files epic it was grouped into |
 | `VSS-3tb1` (API-095) Mod file follow-ups from Epic 19 | Only item 3 (cache eviction counts `*.zip` and `*.cs`) is near disk cleanup, and the chosen cleanup does not touch `cache_eviction.py` | Not pulled in |
 | `VSS-7z3` (UI-084) Monitor key sees editable game setting fields | The same kind of fault as the hidden API Settings tab, but in `GameConfigPanel.tsx` and `SettingField.tsx`, which this epic does not edit | Not pulled in; it belongs with the game settings epic |
@@ -218,6 +222,7 @@ Seen and not proposed, because they share no file with a story: `VSS-2n2` (white
 8. The scheduler callback handles only interval settings; Story 22.3 generalises it with its error path (ADR-7).
 9. A restart time saved less than 15 minutes ahead cannot warn on time; ADR-6 decision 6 documents that it first runs the next day.
 10. Two `PendingRestartState` singletons: a game setting that needs a restart (`Port`, `Ip`) flags `routers/config.py`'s own, which nothing reads or clears, so `/healthz`, the web's Restart required banner and the new `vintagestory_server_pending_restart` never show it and a restart never clears it. Pulled in by the controller during Story 22.2's validation (backlog drawdown): Story 22.2 makes them one state (its Task 2, a `fix` commit, FR306).
+11. `VSS-zws` confirmed by Story 22.3's Task 1: a live `/serverconfig` command makes the game write its in-memory config to `serverconfig.json`, which reverts a pending `Port` edit; the next start uses the old port and clears "Restart required". Answer 12: Story 22.7 fixes it (FR307, ADR-15).
 
 **Seen and left alone, with the reason (no bead filed):**
 
@@ -228,7 +233,7 @@ Seen and not proposed, because they share no file with a story: `VSS-2n2` (white
 5. uvicorn's own access lines are not part of the cleanup or of `/metrics`.
 6. The next restart time is not shown in the API Settings tab (ADR-13 decision 3); the Scheduled Jobs tab lists the jobs.
 
-**Planned net bead change:** closed 4 (`VSS-bhw`, `VSS-29p`, `VSS-9jv`, `VSS-zws`). Opened 1 (the epic bead, which closes with the epic). Filed from planning: none. Net: 4 fewer open beads, from 17 open before the epic to 13 after it.
+**Planned net bead change** (unchanged by Story 22.7, which closes `VSS-zws` in place of 22.3)**:** closed 4 (`VSS-bhw`, `VSS-29p`, `VSS-9jv`, `VSS-zws`). Opened 1 (the epic bead, which closes with the epic). Filed from planning: none. Net: 4 fewer open beads, from 17 open before the epic to 13 after it.
 
 **Success criteria:**
 
@@ -236,6 +241,7 @@ Seen and not proposed, because they share no file with a story: `VSS-2n2` (white
 - `curl http://localhost:9080/metrics` answers without a key with the ADR-4 series; the game process series are absent with the game stopped; it works with metrics collection off
 - A restart time saved through the API registers its job at once; the sequence sends three warnings and restarts a running game and never starts a stopped one (tests with a fake sleep)
 - The stop time and `VSS-zws` are recorded from a throwaway container
+- A `Port` change saved while the game runs survives a live setting change, a stop, a crash and an API restart, and the next start uses it (Story 22.7)
 - The cleanup deletes only old named archives (and backups when asked), refuses links and every other directory, and logs what it deleted
 - Each interval job can be turned off and on in the UI; Metrics Collection has a field; bounds and fallbacks match the API; a Monitor key does not see the tab
 - Restart times and cleanup limits are edited in the UI
@@ -251,4 +257,4 @@ Seen and not proposed, because they share no file with a story: `VSS-2n2` (white
 | 3. Artifact conflicts | [x] 3.1 PRD: FR287-FR305 added, MVP unaffected. [x] 3.2 architecture: new Epic 22 ADRs. [x] 3.3 UX spec: no text change. [!] 3.4 one new runtime dependency, one new open route, and a default that deletes old log archives |
 | 4. Path forward | [x] 4.1 Direct Adjustment: viable. [x] 4.2 Rollback: not viable. [x] 4.3 MVP Review: not needed. [x] 4.4 selected Option 1 |
 | 5. Proposal components | [x] 5.1 to 5.5: sections 1 to 5 |
-| 6. Review and handoff | [x] 6.1 scope named by the maintainer (2026-11-18). [x] 6.2, 6.3 the eleven questions were answered one at a time on 2026-11-18 and are written in; the planner decisions listed in section 5 are not reviewed yet. [x] 6.4 handoff in section 5 |
+| 6. Review and handoff | [x] 6.1 scope named by the maintainer (2026-11-18). [x] 6.2, 6.3 the eleven questions were answered one at a time on 2026-11-18 and are written in, and a twelfth (Story 22.7) after Story 22.3's finding; the planner decisions listed in section 5 are not reviewed yet. [x] 6.4 handoff in section 5 |

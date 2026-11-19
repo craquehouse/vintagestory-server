@@ -4,6 +4,7 @@ Story 8.0: Epic 8 Preparation
 Story 8.2: Server Versions Check Job
 Story 17.6: Settings behave as saved (apply_interval_setting)
 Story 22.3: Scheduled restarts (apply_restart_schedule, apply_setting)
+Story 22.4: Daily backup cleanup (register_disk_cleanup)
 
 Tests cover:
 - Task 1: register_default_jobs() functionality and job patterns
@@ -35,6 +36,7 @@ from vintagestory_api.jobs import (
     apply_restart_schedule,
     apply_setting,
     register_default_jobs,
+    register_disk_cleanup,
 )
 from vintagestory_api.jobs.base import safe_job
 from vintagestory_api.jobs.scheduled_restart import (
@@ -305,7 +307,11 @@ class TestJobIntervalZeroNotRegistered:
     async def test_jobs_not_registered_when_interval_zero(
         self, scheduler: SchedulerService
     ) -> None:
-        """Jobs are NOT registered when their interval is 0."""
+        """Jobs are NOT registered when their interval is 0.
+
+        Only the daily disk cleanup remains: it is registered whatever the settings
+        (Story 22.4, Epic 22 ADR-7 decision 3).
+        """
         from vintagestory_api.services.api_settings import ApiSettings
 
         # Create settings with all intervals set to 0
@@ -322,9 +328,9 @@ class TestJobIntervalZeroNotRegistered:
 
             register_default_jobs(scheduler)
 
-            # No jobs should be registered when intervals are 0
-            jobs = scheduler.get_jobs()
-            assert len(jobs) == 0
+            # No interval job is registered when intervals are 0
+            job_ids = [job_to_info(job).id for job in scheduler.get_jobs()]
+            assert job_ids == ["disk_cleanup"]
 
     @pytest.mark.asyncio
     async def test_settings_interval_values_checked(self, scheduler: SchedulerService) -> None:
@@ -1248,3 +1254,112 @@ class TestRegisteredRestartJob:
         ]
         assert server.sent == []
         assert server.restarts == 0
+
+
+# ==============================================================================
+# Story 22.4: the daily disk cleanup job (Epic 22 ADR-7 decisions 3 and 4, ADR-9)
+# ==============================================================================
+
+_CRON_0300 = "cron[month='*', day='*', day_of_week='*', hour='3', minute='0']"
+
+
+def _register_with(scheduler: SchedulerService, settings: ApiSettings) -> None:
+    with patch("vintagestory_api.jobs.ApiSettingsService") as mock_settings_class:
+        mock_instance = MagicMock()
+        mock_instance.get_settings.return_value = settings
+        mock_settings_class.return_value = mock_instance
+        register_default_jobs(scheduler)
+
+
+class TestDiskCleanupRegistration:
+    """disk_cleanup is registered at 03:00 whatever the settings (Story 22.4, AC 9)."""
+
+    @pytest.mark.parametrize(
+        "settings",
+        [
+            ApiSettings(),
+            ApiSettings(
+                mod_list_refresh_interval=0,
+                server_versions_refresh_interval=0,
+                metrics_collection_interval=0,
+            ),
+            ApiSettings(scheduled_restart_times=["04:00"]),
+            ApiSettings(backup_keep_count=5),
+        ],
+        ids=["defaults", "intervals_zero", "restart_times", "backups_limited"],
+    )
+    async def test_always_registered(
+        self, started_scheduler: SchedulerService, settings: ApiSettings
+    ) -> None:
+        _register_with(started_scheduler, settings)
+
+        info = _job_info(started_scheduler, "disk_cleanup")
+        assert info is not None
+        assert info.trigger_type == "cron"
+        assert info.trigger_details == _CRON_0300
+        assert info.next_run_time is not None
+        local = info.next_run_time.astimezone()
+        assert (local.hour, local.minute) == (3, 0)
+        assert info.next_run_time - datetime.now(UTC) <= timedelta(hours=24)
+
+    async def test_default_jobs_count_is_unchanged(
+        self, started_scheduler: SchedulerService
+    ) -> None:
+        with capture_logs() as logs:
+            _register_with(started_scheduler, ApiSettings())
+
+        registered = [log for log in logs if log["event"] == "default_jobs_registered"]
+        assert len(registered) == 1
+        assert registered[0]["count"] == 3
+        assert registered[0]["restart_jobs"] == 0
+
+    async def test_runs_at_three_in_the_container_zone(
+        self, started_scheduler: SchedulerService, local_tz: Callable[[str], None]
+    ) -> None:
+        local_tz("Europe/Berlin")
+
+        register_disk_cleanup(started_scheduler)
+
+        info = _job_info(started_scheduler, "disk_cleanup")
+        assert info is not None
+        assert info.next_run_time is not None
+        berlin = info.next_run_time.astimezone(ZoneInfo("Europe/Berlin"))
+        assert (berlin.hour, berlin.minute) == (3, 0)
+
+    async def test_registering_twice_keeps_one_job(
+        self, started_scheduler: SchedulerService
+    ) -> None:
+        register_disk_cleanup(started_scheduler)
+        register_disk_cleanup(started_scheduler)
+
+        ids = [job_to_info(job).id for job in started_scheduler.get_jobs()]
+        assert ids == ["disk_cleanup"]
+
+    async def test_logs_the_registration(self, started_scheduler: SchedulerService) -> None:
+        with capture_logs() as logs:
+            register_disk_cleanup(started_scheduler)
+
+        registered = [log for log in logs if log["event"] == "job_registered"]
+        assert registered == [
+            {
+                "event": "job_registered",
+                "log_level": "info",
+                "job_id": "disk_cleanup",
+                "cron": "0 3 * * *",
+            }
+        ]
+
+    async def test_the_backup_setting_changes_no_job(
+        self, started_scheduler: SchedulerService
+    ) -> None:
+        _register_with(started_scheduler, ApiSettings())
+        before = sorted(
+            (job_to_info(job) for job in started_scheduler.get_jobs()), key=lambda i: i.id
+        )
+
+        apply_setting(started_scheduler, "backup_keep_count", 30)
+
+        after = sorted(
+            (job_to_info(job) for job in started_scheduler.get_jobs()), key=lambda i: i.id
+        )
+        assert after == before

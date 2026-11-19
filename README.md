@@ -14,7 +14,7 @@ This project is developed with the assistance of AI coding tools (such as Claude
 - **Update alerts:** scheduled update checks with a count in the navigation and Dashboard, and optional webhook alerts (Discord or any HTTP receiver)
 - **Configuration:** edit the game's JSON configuration files and server settings, and manage server files
 - **Dashboard:** server status, player and resource metrics, disk space warnings
-- **Scheduled jobs:** background tasks such as mod cache refreshes, and daily scheduled restarts that warn players first, with their status in the UI
+- **Scheduled jobs:** background tasks such as mod cache refreshes, daily scheduled restarts that warn players first, and a daily cleanup of old backups when you ask, with their status in the UI
 - **API:** a versioned REST API (`/api/v1alpha1`) with Admin and Monitor (read-only) keys, health endpoints (`/healthz`, `/readyz`), Prometheus metrics (`/metrics`) and an OpenAPI document
 
 ## Installation
@@ -108,6 +108,43 @@ curl -X POST http://<host>:8080/api/v1alpha1/config/api/settings/scheduled_resta
 - A time less than 15 minutes ahead when it is saved first runs the next day. The same holds when the API (or the container) starts less than 15 minutes before a time: that day's restart does not happen.
 - Each time is a `scheduled_restart_HHMM` job in **Settings → Scheduled Jobs**; its next run is the first warning, 15 minutes before the restart, shown in your browser's time zone.
 - With a time zone that has daylight saving, a restart whose first warning falls in the hour the clocks change runs late or not at all when they go forward and twice when they go back; choose times outside that hour.
+
+### Logs and disk use
+
+Who rotates what:
+
+| What | Who | How |
+|---|---|---|
+| The game's logs, `serverdata/Logs/server-*.log` | The game | At every start it moves the previous run's logs into `serverdata/Logs/Archive/<start time of that run>/` and begins new files. It keeps at most 5 archives, deleting the oldest itself. It also splits a file after `LogFileSplitAfterLine` lines (a game setting in `serverconfig.json`, 500000 by default). The manager does not touch `Logs/` |
+| `/genbackup` files, `serverdata/Backups/` | The manager, only when `backup_keep_count` is above 0 | Daily cleanup (below) |
+| The world, `serverdata/BackupSaves/`, mods, player data | Nobody | Never deleted by the manager |
+| The manager's own log (standard output) | Docker or Kubernetes | Docker's `json-file` log driver options, or your Kubernetes log rotation |
+
+Every day at 03:00 in the container's time zone (`TZ`), the `disk_cleanup` job keeps only the newest `backup_keep_count` files in `serverdata/Backups/` and deletes the older ones, newest by modification time. The default, 0, keeps all, so nothing is deleted until you set a limit. It runs whether or not the game server is running, logs each deletion (`disk_cleanup_deleted`) and a summary (`disk_cleanup_finished`), and is listed in **Settings → Scheduled Jobs**. If the API is not running at 03:00, that day's cleanup is skipped.
+
+`backup_keep_count` is an API setting from 0 to 1000. Example with an Admin key:
+
+```bash
+curl -X POST http://<host>:8080/api/v1alpha1/config/api/settings/backup_keep_count \
+  -H "X-API-Key: <admin key>" -H "Content-Type: application/json" \
+  -d '{"value": 10}'
+```
+
+A change applies at the next run. `{"value": 0}` keeps every backup again.
+
+The cleanup never touches `BackupSaves/` (the game's own world backups), the world in `Saves/`, mods, player data, anything in `Logs/`, directories inside `Backups/`, anything reached through a symbolic link, or anything outside `Backups/`.
+
+To rotate the manager's own log, set Docker's log options on its service, for example in your compose file:
+
+```yaml
+services:
+  manager:
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+```
 
 ### Metrics
 

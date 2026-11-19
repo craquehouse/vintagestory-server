@@ -14,7 +14,7 @@ documentCounts:
 lastUpdated: '2026-11-18'
 updates:
   - date: '2026-11-18'
-    description: 'Added FR287-FR305 for Epic 22 (Server Operations and Metrics), with the maintainer''s answers of the same day; revised the same day: FR306 added for the pending-restart fix pulled into Story 22.2 during its validation'
+    description: 'Added FR287-FR305 for Epic 22 (Server Operations and Metrics), with the maintainer''s answers of the same day; revised the same day: FR306 added for the pending-restart fix pulled into Story 22.2 during its validation, and FR307 for Story 22.7 (VSS-zws, after Story 22.3 confirmed it)'
   - date: '2026-11-17'
     description: 'Added FR260-FR285 for Epic 21 (Maintainer Decisions and Web Polish); revised the same day: FR286 added for the pulled-in VSS-q38r'
   - date: '2026-11-17'
@@ -909,9 +909,9 @@ If trivial to implement:
 
 #### Disk Cleanup and Logs (Matt, 2026-11-18)
 
-- FR297: A daily cleanup at 03:00 container time deletes the game's log archive directories older than `log_archive_retention_days` (default 14; 0 keeps all), always keeping the newest `log_archive_keep_min` (default 5)
+- FR297: A daily cleanup job runs at 03:00 container time, always registered, and reads its limit when it runs; it does not delete the game's log archives, which the game keeps to at most 5 itself (amended by the maintainer, 2026-11-19, after Story 22.4 found the game's own limit; was: delete log archives older than `log_archive_retention_days`, keeping the newest `log_archive_keep_min`)
 - FR298: With `backup_keep_count` above 0 the cleanup keeps only that many newest files in the game's `Backups` directory; the default 0 keeps all. It never deletes from `BackupSaves`, the world save, mods or player data, never deletes the live log files, and never follows a symbolic link
-- FR299: The cleanup logs each deletion and a summary; the README says who rotates which logs (the game archives and splits its own; the manager deletes old archives; the manager's stdout is rotated by Docker or Kubernetes)
+- FR299: The cleanup logs each deletion and a summary; the README says who rotates which logs (the game archives and splits its own and keeps at most 5 archives; the manager deletes old backups only when asked; the manager's stdout is rotated by Docker or Kubernetes)
 
 #### API Settings Tab (Matt, 2026-11-18)
 
@@ -925,3 +925,7 @@ If trivial to implement:
 #### Pulled In (Story 22.2 validation, 2026-11-18)
 
 - FR306: A game setting change that needs a restart is a pending restart like a mod change: `/healthz`, the web's Restart required banner and `/metrics` show it, and a restart clears it
+
+#### Fixed Inside the Epic (Matt, 2026-11-18, after Story 22.3)
+
+- FR307: A game setting change that needs a restart, saved while the game server runs, is not lost when the game writes its own config (after a live setting change): the manager keeps it across API restarts and writes it to `serverconfig.json` again after the game exits and before any start (Start button, restart, scheduled restart, auto-start), and drops it once a start has loaded it or the same setting is changed again

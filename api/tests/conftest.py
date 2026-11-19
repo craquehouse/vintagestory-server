@@ -87,6 +87,24 @@ def prepare_mod_files_recorder(monkeypatch: pytest.MonkeyPatch) -> PrepareModFil
     return recorder
 
 
+async def _no_op_disk_cleanup() -> None:
+    """Stands in for the daily disk cleanup job (Story 22.4)."""
+
+
+@pytest.fixture(autouse=True)
+def no_real_disk_cleanup(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep every registered disk cleanup job away from the real serverdata (Story 22.4).
+
+    `just test-api` sets VS_DATA_DIR to the dev stack's data (`dev/`); a registered
+    `disk_cleanup` job that fired at 03:00 during a test run would delete backups in
+    `dev/serverdata`. `register_disk_cleanup` imports the job function lazily,
+    so every registration in every test (lifespan clients, `register_default_jobs`,
+    `reschedule_client`) gets this no-op. The job's own tests import the real function
+    before this fixture runs and give it a temporary data directory.
+    """
+    monkeypatch.setattr("vintagestory_api.jobs.disk_cleanup.disk_cleanup", _no_op_disk_cleanup)
+
+
 @pytest.fixture
 def client() -> TestClient:
     """Create a test client for FastAPI app."""

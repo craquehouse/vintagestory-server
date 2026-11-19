@@ -6,6 +6,7 @@ Story 8.2: Server Versions Check Job
 Story 12.2: Metrics Collection Job
 Story 17.6: Settings behave as saved (Epic 17 ADR-5)
 Story 22.3: Scheduled restarts (Epic 22 ADR-6, ADR-7)
+Story 22.4: Daily disk cleanup (Epic 22 ADR-7 decisions 3 and 4, ADR-9)
 
 This module provides the infrastructure for registering and managing periodic
 background jobs.
@@ -18,6 +19,10 @@ once at startup. An interval of 0 means the job is not registered.
 Restart times drive one cron job each, `scheduled_restart_HHMM`, that fires 15 minutes
 before the time: `apply_restart_schedule()` makes the restart jobs match the saved times,
 at startup and on save. `apply_setting()` is the one callback for every scheduled setting.
+
+The daily `disk_cleanup` job is registered at startup whatever the settings
+(`register_disk_cleanup()`); it reads `backup_keep_count` when it runs, so saving it
+touches no job.
 
 Example:
     >>> from vintagestory_api.jobs import register_default_jobs
@@ -183,6 +188,25 @@ def apply_setting(scheduler: SchedulerService, key: str, value: ScheduledSetting
         apply_restart_schedule(scheduler, value)
 
 
+def register_disk_cleanup(scheduler: SchedulerService) -> None:
+    """Register the daily disk cleanup job at 03:00 local time (Story 22.4).
+
+    Registered whatever the settings (Epic 22 ADR-7 decision 3): the job reads its limits
+    when it runs (decision 4). Replaces an existing `disk_cleanup` job.
+
+    Args:
+        scheduler: The SchedulerService to register the job with.
+    """
+    from vintagestory_api.jobs.disk_cleanup import (
+        DISK_CLEANUP_CRON,
+        DISK_CLEANUP_JOB_ID,
+        disk_cleanup,
+    )
+
+    scheduler.add_cron_job(disk_cleanup, DISK_CLEANUP_CRON, job_id=DISK_CLEANUP_JOB_ID)
+    logger.info("job_registered", job_id=DISK_CLEANUP_JOB_ID, cron=DISK_CLEANUP_CRON)
+
+
 def register_default_jobs(scheduler: SchedulerService) -> None:
     """Register all default periodic jobs with the scheduler.
 
@@ -203,6 +227,8 @@ def register_default_jobs(scheduler: SchedulerService) -> None:
         - metrics_collection (Story 12.2): Collects server metrics periodically
         - scheduled_restart_HHMM (Story 22.3): One per saved restart time, through
           `apply_restart_schedule`
+        - disk_cleanup (Story 22.4): Daily at 03:00 (old backups, when a limit is
+          set), whatever the settings, through `register_disk_cleanup`
     """
     settings = ApiSettingsService().get_settings()
     jobs_registered = 0
@@ -214,6 +240,7 @@ def register_default_jobs(scheduler: SchedulerService) -> None:
             jobs_registered += 1
 
     apply_restart_schedule(scheduler, settings.scheduled_restart_times)
+    register_disk_cleanup(scheduler)
 
     logger.info(
         "default_jobs_registered",

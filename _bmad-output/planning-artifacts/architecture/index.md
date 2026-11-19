@@ -212,3 +212,4 @@
     - [ADR-12: A Monitor Key Does Not See the API Settings Tab](./epic-22-server-operations-and-metrics.md#adr-12-a-monitor-key-does-not-see-the-api-settings-tab)
     - [ADR-13: Restart Times and Cleanup Limits Are Edited in the API Settings Tab](./epic-22-server-operations-and-metrics.md#adr-13-restart-times-and-cleanup-limits-are-edited-in-the-api-settings-tab)
     - [ADR-14: Restarts, Cleanup and Players Are Tested with Stubs and Throwaway Containers, Never on the Dev Stack's Game Server](./epic-22-server-operations-and-metrics.md#adr-14-restarts-cleanup-and-players-are-tested-with-stubs-and-throwaway-containers-never-on-the-dev-stacks-game-server)
+    - [ADR-15: Restart-Required Edits Made While the Game Runs Are Kept and Written Again After It Exits](./epic-22-server-operations-and-metrics.md#adr-15-restart-required-edits-made-while-the-game-runs-are-kept-and-written-again-after-it-exits)

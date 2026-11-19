@@ -46,7 +46,7 @@ from fastapi.testclient import TestClient
 from structlog.testing import capture_logs
 
 from vintagestory_api.config import Settings
-from vintagestory_api.jobs import INTERVAL_JOBS
+from vintagestory_api.jobs import INTERVAL_JOBS, register_disk_cleanup
 from vintagestory_api.main import app
 from vintagestory_api.middleware.auth import get_settings
 from vintagestory_api.models.errors import ErrorCode
@@ -2543,3 +2543,82 @@ class TestScheduledRestartTimesReschedule:
         assert len(not_applied) == 1
         assert not_applied[0]["log_level"] == "error"
         assert not_applied[0]["value"] == ["04:00"]
+
+
+# ==============================================================================
+# Story 22.4: the backup cleanup limit (Epic 22 ADR-9 decision 1, as amended 2026-11-19)
+# ==============================================================================
+
+
+async def _api_settings(client: httpx.AsyncClient) -> dict[str, Any]:
+    response = await client.get("/api/v1alpha1/config/api", headers=ADMIN)
+    assert response.status_code == 200
+    settings: dict[str, Any] = response.json()["data"]["settings"]
+    return settings
+
+
+class TestBackupKeepCount:
+    """The backup limit is saved and bounded; saving it touches no job (Story 22.4, AC 10)."""
+
+    async def test_save_and_refuse(self, reschedule_client: httpx.AsyncClient) -> None:
+        await _save(reschedule_client, "mod_list_refresh_interval", 600)
+        job_ids = set(await _jobs(reschedule_client))
+
+        response = await _save(reschedule_client, "backup_keep_count", 3)
+        assert response.status_code == 200
+        assert response.json()["data"] == {"key": "backup_keep_count", "value": 3}
+        assert (await _api_settings(reschedule_client))["backup_keep_count"] == 3
+
+        response = await _save(reschedule_client, "backup_keep_count", 1001)
+        assert response.status_code == 400
+        assert response.json()["detail"]["code"] == ErrorCode.API_SETTING_INVALID
+        assert (await _api_settings(reschedule_client))["backup_keep_count"] == 3
+
+        assert set(await _jobs(reschedule_client)) == job_ids
+
+    async def test_default_is_returned(self, reschedule_client: httpx.AsyncClient) -> None:
+        settings = await _api_settings(reschedule_client)
+
+        assert settings["backup_keep_count"] == 0
+        assert "log_archive_retention_days" not in settings
+        assert "log_archive_keep_min" not in settings
+
+    @pytest.mark.parametrize("key", ["log_archive_retention_days", "log_archive_keep_min"])
+    async def test_log_archive_limits_are_unknown(
+        self, reschedule_client: httpx.AsyncClient, temp_settings: Settings, key: str
+    ) -> None:
+        """Dropped by the maintainer's decision (2026-11-19): the game keeps 5 archives."""
+        response = await _save(reschedule_client, key, 30)
+
+        assert response.status_code == 400
+        assert response.json()["detail"]["code"] == ErrorCode.API_SETTING_UNKNOWN
+        assert key not in await _api_settings(reschedule_client)
+        assert not (temp_settings.state_dir / "api-settings.json").exists()
+
+    async def test_monitor_cannot_set_the_limit(self, reschedule_client: httpx.AsyncClient) -> None:
+        response = await reschedule_client.post(
+            "/api/v1alpha1/config/api/settings/backup_keep_count",
+            json={"value": 1},
+            headers={"X-API-Key": TEST_MONITOR_KEY},
+        )
+
+        assert response.status_code == 403
+
+
+class TestBackupKeepCountLeavesTheJobsAlone:
+    """Saving the backup limit touches no job; the job reads it when it runs (Story 22.4, AC 9)."""
+
+    async def test_save_keeps_the_jobs(
+        self,
+        reschedule_client: httpx.AsyncClient,
+        reschedule_scheduler: SchedulerService,
+    ) -> None:
+        await _save(reschedule_client, "mod_list_refresh_interval", 600)
+        register_disk_cleanup(reschedule_scheduler)
+        before = await _jobs(reschedule_client)
+        assert "disk_cleanup" in before
+
+        response = await _save(reschedule_client, "backup_keep_count", 7)
+
+        assert response.status_code == 200
+        assert await _jobs(reschedule_client) == before
