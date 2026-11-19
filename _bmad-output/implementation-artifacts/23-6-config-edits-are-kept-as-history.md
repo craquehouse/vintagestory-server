@@ -1,6 +1,6 @@
 # Story 23.6: Config Edits Are Kept as History
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR321, FR322, FR323, FR326 (history part), Epic 23 ADR-7, ADR-9. Bead: VSS-hb4d (API-098), first half (Story 23.7 closes it). Branch story/23-6-config-edits-are-kept-as-history, stacked on story/23-5-config-files-are-edited-in-the-file-browser at f55b09c6 (23.5 in review); the PR targets main and merges after 23.5's. API and README only. Line references verified at f55b09c6. -->
 
@@ -72,11 +72,11 @@ so that **I can see what changed and undo a bad edit**.
   - [x] 5.1: README Config files: the history paragraph (Dev Notes "Documentation")
   - [x] 5.2: Commit `docs(story-23.6/task-5): explain config file history`
 
-- [ ] Task 6: Validate and move the story to review (AC: all)
-  - [ ] 6.1: `just check` green; `git diff f55b09c6 -- web` empty
-  - [ ] 6.2: `just changelog` lists exactly one entry from this story (Task 4)
-  - [ ] 6.3: Status `review`; `just sprint set 23-6-config-edits-are-kept-as-history review`; Dev Agent Record and File List
-  - [ ] 6.4: Commit `chore(story-23.6/task-6): validate and move story 23.6 to review`
+- [x] Task 6: Validate and move the story to review (AC: all)
+  - [x] 6.1: `just check` green; `git diff f55b09c6 -- web` empty
+  - [x] 6.2: `just changelog` lists exactly one entry from this story (Task 4)
+  - [x] 6.3: Status `review`; `just sprint set 23-6-config-edits-are-kept-as-history review`; Dev Agent Record and File List
+  - [x] 6.4: Commit `chore(story-23.6/task-6): validate and move story 23.6 to review`
 
 ## Dev Notes
 
@@ -141,8 +141,31 @@ README Config files, after the editing paragraph: Each save through the file bro
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5), as the epic's controller.
+
 ### Debug Log References
+
+- `just check` (2026-11-19): API 3991 passed, web 3818 passed, 0 skipped; Pyright 0/0; lints green.
 
 ### Completion Notes List
 
+- 2026-11-19 (create-story, dev-story): Tasks 1 to 6 done.
+- **What changed.** `services/config_history.py` (new): `ConfigHistory` (`record`, `list`, `read`, `remove`, `prune`), `Revision`, `RevisionIndex`, the three errors; ids checked by form and against the index before any path is built; the relative path refused when a part is empty, `.` or `..`, and checked inside the store's resolved root. `services/api_settings.py`: `config_history_keep_count`, `config_history_max_age_days` and their bounds. `services/config_files.py`: the constructor takes `history` and `history_limits` (defaults: `state_dir/config-history`, the API settings); `save_file` records before writing, removes the revision when the write fails, prunes afterwards (failures logged); `restore_revision`; `relative_path`, `target_for_history`. `models/errors.py`: three codes. `routers/config.py`: `_save_error` maps every refusal of a save or restore (the PUT now uses it too), `GET /history/{filename:path}`, `POST /history/{filename:path}/restore`. README history paragraph.
+- **Tests.** 22 store tests (`tests/test_config_history.py`), 8 history rows in `tests/test_config_files_save.py`, 10 settings rows, 14 router tests (`tests/test_routers_config_history.py`). Changed: the two write-failure tests (service and router) now fail only the config file's own `os.replace`/`os.open` (the history's writes go through), and the config route sweep in `tests/test_routers_config.py` names the history route as Admin only.
+- **Deviations.** (1) A revision's text is read with `errors="replace"` so an earlier version that is not UTF-8 can still be viewed; restoring it is refused (`ConfigFileInvalidError`). (2) `ConfigHistory.list` shadows the builtin name inside the class; Pyright accepts it and the module uses `from __future__ import annotations`.
+- `git diff f55b09c6 -- web` empty. No suppression added. `just changelog`: one entry from this story, 0f0addf (Task 4).
+
 ### File List
+
+- `api/src/vintagestory_api/services/config_history.py` (new)
+- `api/src/vintagestory_api/services/config_files.py`, `services/api_settings.py`, `models/errors.py`, `routers/config.py` (modified)
+- `api/tests/test_config_history.py`, `api/tests/test_routers_config_history.py` (new)
+- `api/tests/test_config_files_save.py`, `api/tests/test_routers_config_save.py`, `api/tests/test_api_settings.py`, `api/tests/test_routers_config.py` (modified)
+- `README.md` (modified)
+- `_bmad-output/implementation-artifacts/23-6-config-edits-are-kept-as-history.md` (this file)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
+
+## Change Log
+
+- 2026-11-19: Story 23.6 created (ready-for-dev).
+- 2026-11-19: Implemented (dev-story): Tasks 1 to 6; status review.
