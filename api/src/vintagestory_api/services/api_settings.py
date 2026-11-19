@@ -4,6 +4,7 @@ Story 6.3: API Settings Service
 Story 17.6: Settings behave as saved (interval bound, ApiSettingNotAppliedError)
 Story 22.3: Scheduled restarts (scheduled_restart_times, Epic 22 ADR-5)
 Story 22.4: Backup cleanup limit (Epic 22 ADR-9 decision 1, as amended 2026-11-19)
+Story 22.6: validator messages without Pydantic's "Value error, " prefix
 
 This service provides read and update operations for API operational settings
 stored in api-settings.json. Unlike game settings, these are direct file
@@ -394,8 +395,10 @@ class ApiSettingsService:
             updated = ApiSettings(**current_dict)
 
         except ValidationError as e:
-            # Extract the first error message for user-friendly output
-            error_msg = str(e.errors()[0].get("msg", str(e)))
+            # Extract the first error message for user-friendly output. Pydantic prefixes a
+            # ValueError raised in a validator with "Value error, "; the client shows the
+            # validator's own words (Story 22.6).
+            error_msg = str(e.errors()[0].get("msg", str(e))).removeprefix("Value error, ")
             raise ApiSettingInvalidError(key, error_msg)
 
         # Persist with atomic write

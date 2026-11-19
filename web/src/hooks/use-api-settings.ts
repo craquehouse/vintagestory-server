@@ -7,19 +7,20 @@
  * Story 6.4: Settings UI
  * Story 17.6: Saving a refresh interval refreshes the Scheduled Jobs tab
  * Story 22.5: A save that was not applied keeps its value in the cache
+ * Story 22.6: a list-valued setting (restart times) and its jobs
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ApiError } from '@/api/errors';
 import { queryKeys } from '@/api/query-keys';
 import {
-  INTERVAL_API_SETTINGS,
+  SCHEDULED_API_SETTINGS,
   SECRET_API_SETTINGS,
   fetchApiSettings,
   setModUpdateWebhook,
   updateApiSetting,
 } from '@/api/config';
-import type { ApiResponse, ApiSettingsData } from '@/api/types';
+import type { ApiResponse, ApiSettingValue, ApiSettingsData } from '@/api/types';
 
 /**
  * Default polling interval for API settings (60 seconds).
@@ -60,8 +61,9 @@ export function useApiSettings() {
  * Hook to update an API setting.
  *
  * Includes optimistic updates and proper rollback on error.
- * Invalidates the API settings query when it settles, and for a refresh interval
- * also the jobs query, since the API reschedules the job (Story 17.6).
+ * Invalidates the API settings query when it settles, and for a refresh interval or the
+ * restart times also the jobs query, since the API reschedules the jobs (Stories 17.6
+ * and 22.6).
  *
  * @example
  * function AutoStartToggle() {
@@ -86,7 +88,7 @@ export function useUpdateApiSetting() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ key, value }: { key: string; value: string | number | boolean }) =>
+    mutationFn: ({ key, value }: { key: string; value: ApiSettingValue }) =>
       updateApiSetting(key, value),
     onMutate: async ({ key, value }) => {
       // Cancel any outgoing refetches
@@ -125,9 +127,10 @@ export function useUpdateApiSetting() {
     onSettled: (_data, _error, { key }) => {
       // Always refetch after error or success to ensure server state
       queryClient.invalidateQueries({ queryKey: queryKeys.config.api });
-      // A saved interval reschedules its job (Story 17.6). On error too: a save that
-      // was not applied (API_SETTING_NOT_APPLIED) still changed the saved value.
-      if (INTERVAL_API_SETTINGS.has(key)) {
+      // A saved interval reschedules its job (Story 17.6), and saved restart times add or
+      // remove scheduled_restart_* jobs (Story 22.6). On error too: a save that was not
+      // applied (API_SETTING_NOT_APPLIED) still changed the saved value.
+      if (SCHEDULED_API_SETTINGS.has(key)) {
         queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
       }
     },

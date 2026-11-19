@@ -2461,6 +2461,11 @@ class TestScheduledRestartTimesSetting:
         detail = response.json()["detail"]
         assert detail["code"] == ErrorCode.API_SETTING_INVALID
         assert "10 minutes apart" in detail["message"]
+        # Story 22.6: the API's message as the web shows it, without "Value error, ".
+        assert detail["message"] == (
+            "Invalid value for 'scheduled_restart_times': '04:00' and '04:10' are 10 minutes "
+            "apart; restart times must be at least 16 minutes apart"
+        )
         assert await _restart_times(reschedule_client) == ["08:00"]
 
     async def test_not_a_list_is_refused(self, reschedule_client: httpx.AsyncClient) -> None:
