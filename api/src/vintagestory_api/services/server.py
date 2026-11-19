@@ -1020,6 +1020,9 @@ class ServerService:
 
         self._server_state = ServerState.STARTING
         self._last_exit_code = None
+        # A run that exited by itself can leave its readers draining buffered lines; cancel
+        # them first, so none adds a name or console line after the reset below
+        await self._cancel_background_tasks()
         # No name from an earlier run survives a start, and a failed spawn leaves 0
         self._player_tracker.reset()
 
@@ -1127,13 +1130,7 @@ class ServerService:
             self._server_start_time = None
 
             # Cancel monitor and stream reader tasks if still running
-            for task in [self._monitor_task, self._stdout_task, self._stderr_task]:
-                if task and not task.done():
-                    task.cancel()
-                    try:
-                        await task
-                    except asyncio.CancelledError:
-                        pass
+            await self._cancel_background_tasks()
 
             # After the readers are cancelled, so no reader adds a name after the reset
             self._player_tracker.reset()
@@ -1152,6 +1149,16 @@ class ServerService:
             logger.error("server_stop_failed", error=str(e))
             self._settle_state_after_failed_stop(self._process)
             raise RuntimeError(ErrorCode.SERVER_STOP_FAILED) from e
+
+    async def _cancel_background_tasks(self) -> None:
+        """Cancel and await the monitor and console reader tasks that are still running."""
+        for task in [self._monitor_task, self._stdout_task, self._stderr_task]:
+            if task and not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
 
     def _settle_state_after_failed_stop(self, process: asyncio.subprocess.Process) -> None:
         """Report the process's real state after a stop fails partway through.
