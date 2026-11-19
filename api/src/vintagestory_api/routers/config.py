@@ -69,6 +69,7 @@ from vintagestory_api.services.game_config import (
     SettingUpdateFailedError,
     SettingValueInvalidError,
 )
+from vintagestory_api.services.mods import get_restart_state
 from vintagestory_api.services.pending_restart import PendingRestartState
 from vintagestory_api.services.scheduler import SchedulerService
 from vintagestory_api.services.server import get_server_service
@@ -89,20 +90,17 @@ class SettingUpdateRequest(BaseModel):
     value: Any = Field(..., description="New value for the setting")
 
 
-# Singleton instance for pending restart state (shared with mod service)
-_pending_restart_state: PendingRestartState | None = None
-
-
 def get_pending_restart_state() -> PendingRestartState:
-    """Get the shared pending restart state singleton.
+    """Get the one pending restart state (Story 22.2, FR306).
+
+    The dependency of get_game_config_service. It is the state of the mods service,
+    the same object /healthz and the mods list report and ServerService clears, so a
+    game setting that needs a restart shows and clears like a mod change.
 
     Returns:
-        PendingRestartState instance shared across services.
+        The shared PendingRestartState from services.mods.get_restart_state().
     """
-    global _pending_restart_state
-    if _pending_restart_state is None:
-        _pending_restart_state = PendingRestartState()
-    return _pending_restart_state
+    return get_restart_state()
 
 
 def get_game_config_service(
