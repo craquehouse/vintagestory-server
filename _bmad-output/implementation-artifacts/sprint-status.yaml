@@ -241,7 +241,7 @@ development_status:
   epic-22-retrospective: optional
   22-1-players-online-are-counted: done
   22-2-prometheus-metrics-endpoint: done
-  22-3-scheduled-restarts: review
+  22-3-scheduled-restarts: done
   22-4-log-archive-and-backup-cleanup: review
   22-5-interval-fields-can-turn-jobs-off: backlog
   22-6-restart-and-cleanup-settings-in-the-ui: backlog

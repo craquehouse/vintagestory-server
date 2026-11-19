@@ -178,7 +178,8 @@ def apply_setting(scheduler: SchedulerService, key: str, value: ScheduledSetting
         TypeError: If the value does not fit the key (a programming error).
     """
     if key in INTERVAL_JOBS:
-        if not isinstance(value, int):
+        # bool is an int subclass: True would register a 1-second interval.
+        if not isinstance(value, int) or isinstance(value, bool):
             raise TypeError(f"{key} takes an int, got {type(value).__name__}")
         apply_interval_setting(scheduler, key, value)
     elif key == RESTART_TIMES_SETTING:

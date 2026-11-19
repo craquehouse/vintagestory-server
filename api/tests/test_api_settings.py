@@ -1016,7 +1016,7 @@ class TestScheduledRestartTimesModel:
         with pytest.raises(ValidationError) as exc_info:
             ApiSettings.model_validate({RESTART_KEY: ["00:00", "23:59"]})
 
-        assert "'23:59' and '00:00' are 1 minutes apart" in exc_info.value.errors()[0]["msg"]
+        assert "'23:59' and '00:00' are 1 minute apart;" in exc_info.value.errors()[0]["msg"]
 
     @pytest.mark.parametrize(
         ("value", "expected"),
@@ -1123,8 +1123,17 @@ class TestScheduledRestartTimesService:
         updated = [log for log in logs if log["event"] == "api_setting_updated"]
         assert len(updated) == 1
         assert updated[0]["key"] == RESTART_KEY
-        assert sorted(updated[0]["value"]) == ["04:00", "16:00"]
+        assert updated[0]["value"] == ["04:00", "16:00"]
         assert updated[0]["old_value"] == ["08:00"]
+
+    async def test_logs_the_stored_list(self, service: ApiSettingsService) -> None:
+        """The log holds the list as saved: sorted, without duplicates."""
+        with capture_logs() as logs:
+            await service.update_setting(RESTART_KEY, ["16:00", "04:00", "16:00"])
+
+        updated = [log for log in logs if log["event"] == "api_setting_updated"]
+        assert len(updated) == 1
+        assert updated[0]["value"] == ["04:00", "16:00"]
 
     async def test_callback_gets_the_stored_value(self, settings: Settings) -> None:
         callback = MagicMock()
