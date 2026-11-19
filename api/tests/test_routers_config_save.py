@@ -265,8 +265,13 @@ class TestSave:
     ) -> None:
         """AC 7."""
 
-        def fail(*args: object, **kwargs: object) -> None:
-            raise PermissionError(13, "Permission denied", str(mod_config))
+        real_replace = os.replace
+
+        def fail(src: object, dst: object) -> None:
+            # Only the config file's own replace fails; the history's writes go through
+            if Path(str(dst)).parent == mod_config.parent:
+                raise PermissionError(13, "Permission denied", str(mod_config))
+            real_replace(str(src), str(dst))
 
         monkeypatch.setattr(os, "replace", fail)
 

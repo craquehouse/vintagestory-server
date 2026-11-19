@@ -24,6 +24,7 @@ from vintagestory_api.services.config_files import (
     ConfigPathInvalidError,
     content_version,
 )
+from vintagestory_api.services.config_history import ConfigHistory, ConfigHistoryWriteError
 
 BOM = b"\xef\xbb\xbf"
 NEW_TEXT = '{\n    // keep this comment\n  "a" :  2,   "b": [1,2,],\n}\n'
@@ -37,10 +38,27 @@ def serverdata(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def service(serverdata: Path) -> ConfigFilesService:
+def history_root(tmp_path: Path) -> Path:
+    return tmp_path / "state" / "config-history"
+
+
+@pytest.fixture
+def limits() -> list[tuple[int, int]]:
+    """The history limits the service reads at each save; a test may replace the value."""
+    return [(20, 0)]
+
+
+@pytest.fixture
+def service(
+    serverdata: Path, history_root: Path, limits: list[tuple[int, int]]
+) -> ConfigFilesService:
     settings = MagicMock()
     settings.serverdata_dir = serverdata
-    return ConfigFilesService(settings=settings)
+    return ConfigFilesService(
+        settings=settings,
+        history=ConfigHistory(history_root),
+        history_limits=lambda: limits[0],
+    )
 
 
 def _write(path: Path, data: bytes) -> str:
@@ -203,8 +221,14 @@ class TestSave:
         path = serverdata / "ModConfig" / "x.json"
         version = _write(path, b'{"a": 1}')
 
-        def fail(*args: object, **kwargs: object) -> None:
-            raise PermissionError(13, "Permission denied", str(path))
+        real = getattr(os, failing)
+
+        def fail(*args: object, **kwargs: object) -> object:
+            # Only the config file's own write fails; the history's writes go through
+            target = args[1] if failing == "replace" else args[0]
+            if Path(str(target)).parent == path.parent:
+                raise PermissionError(13, "Permission denied", str(path))
+            return real(*args, **kwargs)
 
         monkeypatch.setattr(os, failing, fail)
 
@@ -247,3 +271,131 @@ class TestCheckText:
     def test_too_large(self, service: ConfigFilesService) -> None:
         with pytest.raises(ConfigFileTooLargeError):
             service.check_text("ModConfig/x.json", " " * (CONFIG_FILE_MAX_BYTES + 1))
+
+
+class TestHistory:
+    """Story 23.6 (FR321, FR322, Epic 23 ADR-7 decisions 3 to 5)."""
+
+    def test_a_save_keeps_the_text_it_replaced(
+        self, service: ConfigFilesService, serverdata: Path, history_root: Path
+    ) -> None:
+        version = _write(serverdata / "ModConfig" / "x.json", BOM + b'{"a": 1}')
+
+        service.save_file("ModConfig/x.json", '{"a": 2}', version)
+
+        history = ConfigHistory(history_root)
+        revisions = history.list("ModConfig/x.json")
+        assert [r.saved_by for r in revisions] == ["admin"]
+        assert history.read("ModConfig/x.json", revisions[0].id)[1] == BOM + b'{"a": 1}'
+
+    def test_a_history_failure_refuses_the_save(
+        self, service: ConfigFilesService, serverdata: Path, history_root: Path
+    ) -> None:
+        path = serverdata / "ModConfig" / "x.json"
+        version = _write(path, b'{"a": 1}')
+        history_root.parent.mkdir(parents=True)
+        history_root.write_text("not a directory")
+
+        with pytest.raises(ConfigHistoryWriteError):
+            service.save_file("ModConfig/x.json", '{"a": 2}', version)
+
+        assert path.read_bytes() == b'{"a": 1}'
+
+    def test_a_failed_replace_removes_the_revision(
+        self,
+        service: ConfigFilesService,
+        serverdata: Path,
+        history_root: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        path = serverdata / "ModConfig" / "x.json"
+        version = _write(path, b'{"a": 1}')
+        real_replace = os.replace
+
+        def fail_for_the_config(src: object, dst: object) -> None:
+            if Path(str(dst)) == path.resolve():
+                raise PermissionError(13, "Permission denied")
+            real_replace(str(src), str(dst))
+
+        monkeypatch.setattr(os, "replace", fail_for_the_config)
+
+        with pytest.raises(ConfigFileWriteError):
+            service.save_file("ModConfig/x.json", '{"a": 2}', version)
+
+        monkeypatch.undo()
+        assert ConfigHistory(history_root).list("ModConfig/x.json") == []
+        assert path.read_bytes() == b'{"a": 1}'
+
+    def test_a_save_prunes_with_the_limits(
+        self,
+        service: ConfigFilesService,
+        serverdata: Path,
+        history_root: Path,
+        limits: list[tuple[int, int]],
+    ) -> None:
+        path = serverdata / "ModConfig" / "x.json"
+        limits[0] = (2, 0)
+        for value in range(4):
+            version = content_version(path.read_bytes()) if path.exists() else _write(path, b"{}")
+            service.save_file("ModConfig/x.json", f'{{"a": {value}}}', version)
+
+        assert len(ConfigHistory(history_root).list("ModConfig/x.json")) == 2
+
+    def test_a_prune_failure_does_not_fail_the_save(
+        self, serverdata: Path, history_root: Path
+    ) -> None:
+        settings = MagicMock()
+        settings.serverdata_dir = serverdata
+
+        def broken() -> tuple[int, int]:
+            raise RuntimeError("settings unreadable")
+
+        service = ConfigFilesService(
+            settings=settings, history=ConfigHistory(history_root), history_limits=broken
+        )
+        path = serverdata / "ModConfig" / "x.json"
+        version = _write(path, b"{}")
+
+        service.save_file("ModConfig/x.json", '{"a": 1}', version)
+
+        assert path.read_text() == '{"a": 1}'
+
+    def test_restore_saves_the_revision_and_keeps_the_current_text(
+        self, service: ConfigFilesService, serverdata: Path, history_root: Path
+    ) -> None:
+        path = serverdata / "ModConfig" / "x.json"
+        version = _write(path, b'{"a": 1}')
+        saved = service.save_file("ModConfig/x.json", '{"a": 2}', version)
+        old = ConfigHistory(history_root).list("ModConfig/x.json")[0]
+
+        restored = service.restore_revision("ModConfig/x.json", old.id, saved.version)
+
+        assert path.read_bytes() == b'{"a": 1}'
+        assert restored.version == content_version(b'{"a": 1}')
+        revisions = ConfigHistory(history_root).list("ModConfig/x.json")
+        assert len(revisions) == 2
+        assert ConfigHistory(history_root).read("ModConfig/x.json", revisions[0].id)[1] == (
+            b'{"a": 2}'
+        )
+
+    def test_restore_follows_the_version_check(
+        self, service: ConfigFilesService, serverdata: Path, history_root: Path
+    ) -> None:
+        path = serverdata / "ModConfig" / "x.json"
+        version = _write(path, b'{"a": 1}')
+        service.save_file("ModConfig/x.json", '{"a": 2}', version)
+        old = ConfigHistory(history_root).list("ModConfig/x.json")[0]
+
+        with pytest.raises(ConfigFileChangedError):
+            service.restore_revision("ModConfig/x.json", old.id, version)
+
+    def test_a_revision_that_does_not_parse_cannot_be_restored(
+        self, service: ConfigFilesService, serverdata: Path, history_root: Path
+    ) -> None:
+        path = serverdata / "ModConfig" / "x.json"
+        version = _write(path, b"{ broken")
+        saved = service.save_file("ModConfig/x.json", "{}", version)
+        old = ConfigHistory(history_root).list("ModConfig/x.json")[0]
+
+        with pytest.raises(ConfigFileInvalidError):
+            service.restore_revision("ModConfig/x.json", old.id, saved.version)
