@@ -94,13 +94,13 @@ so that **I can graph players, CPU, memory and uptime, and alert when the server
   - [x] 2.5: Controller decision during validation (added at implementation): `ServerService.start_server` calls `_clear_pending_restart()` after a successful `_start_server_locked()` (the Start button and auto-start, `main.py:199`, go through it); `_restart_server_locked` keeps its own clear, so a restart behaves as before (one clear, and none after a failed start). Tests in `api/tests/test_shared_pending_restart.py`: `Port` while stopped -> Start -> clear; mod disabled while running -> Stop (still set) -> Start -> clear; a failed spawn on Start leaves the flag (AC 13)
   - [x] 2.4: Commit `fix(story-22.2/task-2): show Restart required when a game setting change needs a restart` (body: Story 22.2 / task 2; a change to the port or IP address set a restart flag that nothing read, so the header's Restart required banner, `/healthz` and a restart ignored it; game settings and mods now share one flag, which a restart clears)
 
-- [ ] Task 3: The game server collector and the project registry + tests (AC: 2, 3, 4, 5, 6, 8, 13)
-  - [ ] 3.1: Red first: the Task 3 rows of Dev Notes "API tests" in `api/tests/test_prometheus_metrics.py` and `api/tests/test_game_config.py`; see them fail
-  - [ ] 3.2: `services/game_config.py`: a public `GameConfigService.get_max_clients() -> int | None` after `get_settings` (`:604-662`), as Dev Notes "MaxClients" says. No other change in that file
-  - [ ] 3.3: New `api/src/vintagestory_api/services/prometheus_metrics.py` (Dev Notes "The collector"): `GameServerCollector` with injectable providers, the five guarded sources, `build_registry(collector)` with `ProcessCollector`, `PlatformCollector`, `GCCollector` on a new `CollectorRegistry`, and the lazy `get_metrics_registry()` singleton. Nothing imports it yet
-  - [ ] 3.4: Logging exactly as Dev Notes "What is logged"
-  - [ ] 3.5: `cd api && uv run ruff format <changed files>`; `just test-api tests/test_prometheus_metrics.py tests/test_game_config.py` green; `just typecheck-api` 0/0
-  - [ ] 3.6: Commit `refactor(story-22.2/task-3): collect the game server's Prometheus metrics at scrape time` (not served yet; precedent `refactor(story-22.1/task-1)`)
+- [x] Task 3: The game server collector and the project registry + tests (AC: 2, 3, 4, 5, 6, 8, 13)
+  - [x] 3.1: Red first: the Task 3 rows of Dev Notes "API tests" in `api/tests/test_prometheus_metrics.py` and `api/tests/test_game_config.py`; see them fail
+  - [x] 3.2: `services/game_config.py`: a public `GameConfigService.get_max_clients() -> int | None` after `get_settings` (`:604-662`), as Dev Notes "MaxClients" says. No other change in that file
+  - [x] 3.3: New `api/src/vintagestory_api/services/prometheus_metrics.py` (Dev Notes "The collector"): `GameServerCollector` with injectable providers, the five guarded sources, `build_registry(collector)` with `ProcessCollector`, `PlatformCollector`, `GCCollector` on a new `CollectorRegistry`, and the lazy `get_metrics_registry()` singleton. Nothing imports it yet
+  - [x] 3.4: Logging exactly as Dev Notes "What is logged"
+  - [x] 3.5: `cd api && uv run ruff format <changed files>`; `just test-api tests/test_prometheus_metrics.py tests/test_game_config.py` green; `just typecheck-api` 0/0
+  - [x] 3.6: Commit `refactor(story-22.2/task-3): collect the game server's Prometheus metrics at scrape time` (not served yet; precedent `refactor(story-22.1/task-1)`)
 
 - [ ] Task 4: The root `GET /metrics` route without authentication, scraped in the API E2E tests + tests (AC: 1, 7, 8, 10)
   - [ ] 4.1: Red first: new `api/tests/test_prometheus_router.py` with the Task 4 rows of Dev Notes "API tests"; see them fail (404 or the SPA page)
@@ -450,6 +450,10 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive
 - `api/src/vintagestory_api/services/server.py` (modified: `start_server` clears the pending restart after a successful start; `_clear_pending_restart` docstring)
 - `api/tests/test_shared_pending_restart.py` (new)
 - `api/tests/test_routers_config.py` (modified: `test_get_pending_restart_state_singleton_initialization` rewritten for the shared state)
+- `api/src/vintagestory_api/services/game_config.py` (modified: `GameConfigService.get_max_clients()`)
+- `api/src/vintagestory_api/services/prometheus_metrics.py` (new: `GameServerCollector`, `build_registry`, `get_metrics_registry`)
+- `api/tests/test_game_config.py` (modified: `TestGetMaxClients`)
+- `api/tests/test_prometheus_metrics.py` (modified in Task 3: the collector and registry tests)
 
 ## Change Log
 
