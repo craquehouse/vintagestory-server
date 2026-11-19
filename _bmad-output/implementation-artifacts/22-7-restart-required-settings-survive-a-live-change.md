@@ -1,6 +1,6 @@
 # Story 22.7: Restart-Required Settings Survive a Live Change
 
-Status: review
+Status: done
 
 <!-- Implements FR307, Epic 22 ADR-15 and ADR-14. Bead: VSS-zws (API-073), closes here (Story 22.3 confirmed it in its Task 1; maintainer answer 12, Matt, 2026-11-18). ADR-15 decisions 1 to 8 are the planner's and not reviewed yet. Order: 22.1, 22.2, 22.3, 22.4, 22.7, 22.5, 22.6. This branch, story/22-7-restart-required-settings-survive-a-live-change, is stacked on story/22-4-log-archive-and-backup-cleanup (22.4 in review) at 5c35b7e7 (22.3's review merged in). The PR targets main and merges after 22.4's. Line references were verified at 5c35b7e7; services/game_config.py, services/server.py, main.py, routers/config.py, config.py and services/pending_restart.py are unchanged since 36dd18cf, where ADR-15's facts were checked. Re-check them at implementation time. API and documentation only: one new service module, no new route, no response change, no web change, no new dependency. -->
 
@@ -111,7 +111,7 @@ so that **a later live setting change cannot quietly undo it while "Restart requ
 - [ ] Task 6: Validate and move the story to review (AC: all)
   - [x] 6.1: `just check` green: API tests, pyright 0 errors and 0 warnings, ruff; web tests with 0 skipped, tsc, Prettier. The added lines in `api/src` and `api/tests` hold no `type: ignore`, `pyright:`, `noqa`, `cast(`, skip, `xfail` or `.only`. `git diff 5c35b7e7 -- web/ api/src/vintagestory_api/routers/ api/src/vintagestory_api/models/ api/src/vintagestory_api/services/pending_restart.py api/src/vintagestory_api/services/config_init_service.py api/src/vintagestory_api/services/scheduler.py api/src/vintagestory_api/jobs/` is empty. `git status --short dev/ data/` is empty after the runs
   - [x] 6.2: `just changelog` lists exactly one new entry from this story (Task 3's fix subject); check by this branch's hashes, as Stories 22.2 to 22.4 did
-  - [ ] 6.3: Manual check (maintainer only; leave unticked until he confirms, AC 11): on a non-production server he runs, change `Port` in Game Settings while the server runs, then change the server name, then press Restart; the game says it is running on the new port and a client can connect to it; then set the old port back the same way. No agent runs this, and never on the dev stack's game server
+  - [ ] 6.3: Manual check (maintainer only; leave unticked until he confirms, AC 11): on a non-production server he runs, change `Port` in Game Settings while the server runs, then change the server name, then press Restart; the game says it is running on the new port and a client can connect to it; then set the old port back the same way. Also, while the server runs, clear the server description in Game Settings and press Restart: after the start `serverconfig.json` holds `"ServerDescription": null` and the game starts normally (review LOW 3: this write-back of `null` is checked by unit tests and the schema only). No agent runs this, and never on the dev stack's game server
   - [x] 6.4: Story status `review` in this file; `just sprint set 22-7-restart-required-settings-survive-a-live-change review`; Dev Agent Record and File List filled in, every statement true of the code
   - [x] 6.5: Commit `chore(story-22.7/task-6): validate and move story 22.7 to review`
   - [ ] 6.6: After merge, with the maintainer's go-ahead only: `VSS-zws` (size-s) gets an abbreviated AAR comment with this story's commits and Task 4's evidence, then `bd close VSS-zws --reason "..."` and `bd sync` (CLAUDE.md "Completing Issues"). Pushing, the PR and the bead wait for that go-ahead
@@ -520,7 +520,8 @@ docker ps -a --filter name=vss-22-7; docker image ls vss-22-7-zws   # both empty
 
 - `api/src/vintagestory_api/services/pending_config_edits.py` (new, Task 1)
 - `api/tests/test_pending_config_edits.py` (new, Task 1; owner tests in Task 2)
-- `api/src/vintagestory_api/services/server.py` (modified, Tasks 2 and 3)
+- `api/src/vintagestory_api/services/server.py` (modified, Tasks 2 and 3; review: `pending_restart_reflag_skipped` logs `error_type`)
+- `api/tests/server/test_internal_methods.py` (modified, review)
 - `api/src/vintagestory_api/services/game_config.py` (modified, Task 2)
 - `api/tests/test_game_config.py` (modified, Task 2)
 - `api/tests/test_shared_pending_restart.py` (modified, Tasks 2 and 3)
@@ -533,8 +534,19 @@ docker ps -a --filter name=vss-22-7; docker image ls vss-22-7-zws   # both empty
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (`just sprint set`: in-progress in Task 1, review in Task 6)
 - `_bmad-output/implementation-artifacts/22-7-restart-required-settings-survive-a-live-change.md` (this file)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode. Verdict: approve. 0 HIGH, 0 MEDIUM, three LOW findings: one fixed, two recorded without a code change.
+
+1. **LOW: `pending_restart_reflag_skipped` logged `reason=str(e)`.** An exception's text can carry a path or a value. Fixed: the line logs `error_type=type(e).__name__` instead; `TestReflagUnappliedEdits` in `tests/server/test_internal_methods.py` raises an `OSError` whose text holds a path and asserts one DEBUG line with `error_type="OSError"`, no `reason` and no part of the text (it failed before the change). Seen and left alone, out of this story's scope: the two older sibling lines in `server.py`, `mod_service_update_skipped` and `pending_restart_clear_skipped`, still log `reason=str(e)`.
+2. **LOW: the write-back rewrites the whole `serverconfig.json`, which normalises its formatting.** Recorded, no change: `reapply_edits` writes exactly as `GameConfigService._update_config_file` already did for every file write of a game setting (`json.dumps(config, indent=2)` to `serverconfig.tmp`, then rename), so the formatting is the one those writes already produced; the game reads the JSON, not its layout.
+3. **LOW: the write-back of a cleared `ServerDescription` (`null`) is verified by unit tests and the schema only.** No throwaway-container run cleared it. Recorded, no code: the maintainer's manual check (Task 6.3) now includes clearing the description while the server runs, restarting, and seeing `"ServerDescription": null` in `serverconfig.json` with the game starting normally.
+
+Fix commit: `refactor(story-22.7/review): log the error type when re-flagging a restart fails`. `just check` green after it, with Story 22.4's review merged in (API 3774 passed, web 3567 passed, pyright 0 errors and 0 warnings). Task 6.3 (the maintainer's manual check) and 6.6 (bead `VSS-zws` after merge, with his go-ahead) stay open.
+
 ## Change Log
 
 - 2026-11-19: Story 22.7 created (ready-for-dev).
 - 2026-11-19: Validated against the create-story checklist (6 tasks, every code task with its tests, every AC mapped; every file:line reference re-checked at 5c35b7e7). Open questions 1 to 3 settled by controller decisions for the maintainer to review (also in the change proposal's planner-decisions list). Corrected: the start write-back sits inside the spawn's `try` so an unexpected error cannot leave the state `STARTING`; a missing `serverconfig.json` gives an empty `written`, so a start never drops an edit the file does not hold; `_last_start_reapply_failed_keys` initialised in `__init__`; Task 2's fake sets `_server_state` too; the scheduled-restart fake needs `stdin`; an auto-start row added (Task 3.1 named it); lifespan tests of the real write-back put it back over the autouse recorder; `test_shared_pending_restart.py` has five existing tests; `services/scheduler.py` added to Task 6.1's no-diff list. Added: why the monitor needs no lock, how to narrow parsed JSON without `cast`, and that the singleton's construction reads (never writes) the state file in existing tests.
 - 2026-11-19: Implemented (dev-story, non-interactive): Tasks 1 to 5 and Task 6.1, 6.2, 6.4, 6.5; the store reads its file lazily (controller decision); throwaway-container runs A, B and C passed; status review. 6.3 (maintainer) and 6.6 (bead after merge) open.
+- 2026-11-19: Code review (GLM-5.3-Flash via opencode): approve; 0 HIGH, 0 MEDIUM, three LOW: `pending_restart_reflag_skipped` logs the error type (fixed); the whole-file rewrite and the `ServerDescription` `null` write-back recorded, the latter added to the manual check 6.3 (see "Review"). Status done; 6.3 and 6.6 stay open.

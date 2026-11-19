@@ -65,9 +65,20 @@ def _assert_no_absolute_path(logs: Logs, tmp_path: Path) -> None:
             assert str(tmp_path.resolve()) not in str(value)
 
 
-def _real_scan(directory: Path) -> list[os.DirEntry[str]]:
-    with os.scandir(directory) as entries:
+def _real_scan(directory_fd: int) -> list[os.DirEntry[str]]:
+    with os.scandir(directory_fd) as entries:
         return list(entries)
+
+
+def _identity(directory_fd: int) -> tuple[int, int]:
+    """The device and inode of an open directory, to compare with a path's."""
+    info = os.fstat(directory_fd)
+    return info.st_dev, info.st_ino
+
+
+def _path_identity(path: Path) -> tuple[int, int]:
+    info = path.stat()
+    return info.st_dev, info.st_ino
 
 
 def _snapshot(root: Path) -> dict[str, bytes | None]:
@@ -179,11 +190,11 @@ class TestBackups:
         logs: Logs,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        scanned: list[Path] = []
+        scanned: list[tuple[int, int]] = []
 
-        def recording_scan(directory: Path) -> list[os.DirEntry[str]]:
-            scanned.append(directory)
-            return _real_scan(directory)
+        def recording_scan(directory_fd: int) -> list[os.DirEntry[str]]:
+            scanned.append(_identity(directory_fd))
+            return _real_scan(directory_fd)
 
         monkeypatch.setattr(disk_cleanup_module, "_scan", recording_scan)
 
@@ -261,17 +272,17 @@ class TestNeverDeleted:
         )
         make_backup(serverdata, "new.vcdbs", NOW - timedelta(days=1))
         make_backup(serverdata, "old.vcdbs", NOW - timedelta(days=2))
-        scanned: list[Path] = []
+        scanned: list[tuple[int, int]] = []
 
-        def recording_scan(directory: Path) -> list[os.DirEntry[str]]:
-            scanned.append(directory)
-            return _real_scan(directory)
+        def recording_scan(directory_fd: int) -> list[os.DirEntry[str]]:
+            scanned.append(_identity(directory_fd))
+            return _real_scan(directory_fd)
 
         monkeypatch.setattr(disk_cleanup_module, "_scan", recording_scan)
 
         result = service.run(CleanupLimits(backup_keep_count=1))
 
-        assert scanned == [serverdata / BACKUP_DIR]
+        assert scanned == [_path_identity(serverdata / BACKUP_DIR)]
         assert result.backups_deleted == 1
         assert len(list((serverdata / "Logs" / "Archive").iterdir())) == 4
         assert _events(logs, "disk_cleanup_skipped") == []
@@ -320,11 +331,11 @@ class TestNeverDeleted:
         ]
 
 
-def _failing_for(name: str) -> Callable[[Path], None]:
-    def delete(path: Path) -> None:
-        if path.name == name:
-            raise PermissionError(13, "Permission denied", str(path))
-        path.unlink()
+def _failing_for(failing: str) -> Callable[[str, int], None]:
+    def delete(name: str, directory_fd: int) -> None:
+        if name == failing:
+            raise PermissionError(13, "Permission denied", name)
+        os.unlink(name, dir_fd=directory_fd)
 
     return delete
 
@@ -370,8 +381,8 @@ class TestErrors:
         for day in (1, 2):
             make_backup(serverdata, f"backup-{day}.vcdbs", NOW - timedelta(days=day))
 
-        def failing_scan(directory: Path) -> list[os.DirEntry[str]]:
-            raise PermissionError(13, "Permission denied", str(directory))
+        def failing_scan(directory_fd: int) -> list[os.DirEntry[str]]:
+            raise PermissionError(13, "Permission denied", str(serverdata / BACKUP_DIR))
 
         monkeypatch.setattr(disk_cleanup_module, "_scan", failing_scan)
 
@@ -396,10 +407,10 @@ class TestErrors:
         for day in (1, 2, 3):
             make_backup(serverdata, f"backup-{day}.vcdbs", NOW - timedelta(days=day))
 
-        def scan_then_remove(directory: Path) -> list[os.DirEntry[str]]:
-            entries = _real_scan(directory)
-            # Gone before its modification time is read: lstat raises FileNotFoundError.
-            (directory / "backup-3.vcdbs").unlink()
+        def scan_then_remove(directory_fd: int) -> list[os.DirEntry[str]]:
+            entries = _real_scan(directory_fd)
+            # Gone before its modification time is read: the stat raises FileNotFoundError.
+            (serverdata / BACKUP_DIR / "backup-3.vcdbs").unlink()
             return entries
 
         monkeypatch.setattr(disk_cleanup_module, "_scan", scan_then_remove)
@@ -442,12 +453,13 @@ class TestPathCheck:
         for day in range(1, 4):
             make_backup(serverdata, f"backup-{day}.vcdbs", NOW - timedelta(days=day))
 
-        def scan_then_swap(directory: Path) -> list[os.DirEntry[str]]:
-            entries = _real_scan(directory)
-            swapped = directory / "backup-2.vcdbs"
+        def scan_then_swap(directory_fd: int) -> list[os.DirEntry[str]]:
+            entries = _real_scan(directory_fd)
+            swapped = serverdata / BACKUP_DIR / "backup-2.vcdbs"
             swapped.unlink()
             swapped.symlink_to(outside / "keep-me.txt")
-            # The order is read with lstat after the scan: the link's own time is set old.
+            # The order is read without following links after the scan: the link's own
+            # time is set old.
             _set_mtime(swapped, NOW - timedelta(days=2))
             return entries
 
@@ -466,3 +478,73 @@ class TestPathCheck:
             ("Backups/backup-2.vcdbs", "warning")
         ]
         _assert_no_absolute_path(logs, tmp_path)
+
+    def test_backup_dir_replaced_by_a_link_after_it_is_opened(
+        self,
+        serverdata: Path,
+        outside: Path,
+        service: DiskCleanupService,
+        logs: Logs,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Deletions go through the directory opened at the start of the run: a `Backups`
+        swapped for a link to another directory afterwards leaves that directory alone."""
+        for day in range(1, 4):
+            make_backup(serverdata, f"backup-{day}.vcdbs", NOW - timedelta(days=day))
+            # Same names, older times, outside serverdata: a path-based delete through the
+            # new link would remove these.
+            twin = outside / f"backup-{day}.vcdbs"
+            twin.write_bytes(b"outside backup")
+            _set_mtime(twin, NOW - timedelta(days=10 + day))
+        moved = serverdata / "Backups-moved"
+        before_outside = _snapshot(outside)
+
+        def scan_then_swap_dir(directory_fd: int) -> list[os.DirEntry[str]]:
+            entries = _real_scan(directory_fd)
+            (serverdata / BACKUP_DIR).rename(moved)
+            (serverdata / BACKUP_DIR).symlink_to(outside, target_is_directory=True)
+            return entries
+
+        monkeypatch.setattr(disk_cleanup_module, "_scan", scan_then_swap_dir)
+
+        result = service.run(CleanupLimits(backup_keep_count=1))
+
+        assert _snapshot(outside) == before_outside
+        assert sorted(entry.name for entry in moved.iterdir()) == ["backup-1.vcdbs"]
+        assert result.backups_deleted == 2
+        assert result.errors == 0
+        lines = _events(logs, "disk_cleanup_deleted")
+        assert [line["path"] for line in lines] == [
+            "Backups/backup-2.vcdbs",
+            "Backups/backup-3.vcdbs",
+        ]
+        _assert_no_absolute_path(logs, tmp_path)
+
+    def test_backup_dir_replaced_by_a_link_before_it_is_opened(
+        self,
+        tmp_path: Path,
+        serverdata: Path,
+        outside: Path,
+        service: DiskCleanupService,
+        logs: Logs,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A link put in place after the first look is refused by the open itself."""
+        for day in range(1, 4):
+            twin = outside / f"backup-{day}.vcdbs"
+            twin.write_bytes(b"outside backup")
+            _set_mtime(twin, NOW - timedelta(days=day))
+        (serverdata / BACKUP_DIR).symlink_to(outside, target_is_directory=True)
+        # The first look sees a plain directory: the swap happened just after it.
+        monkeypatch.setattr(service, "_target", lambda: serverdata / BACKUP_DIR)
+        before = _snapshot(tmp_path)
+
+        result = service.run(CleanupLimits(backup_keep_count=1))
+
+        assert _snapshot(tmp_path) == before
+        assert result == CleanupResult()
+        skipped = _events(logs, "disk_cleanup_skipped")
+        assert [(line["path"], line["reason"], line["log_level"]) for line in skipped] == [
+            ("Backups", "symlink", "warning")
+        ]

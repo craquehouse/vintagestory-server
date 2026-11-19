@@ -1,6 +1,6 @@
 # Story 22.8: Stopping the Container Saves the World
 
-Status: review
+Status: done
 
 <!-- Implements FR308, Epic 22 ADR-16 and ADR-14. No bead: found inside the epic by Story 22.7's throwaway Run C (its Completion Notes, drawdown item 1) and drawn down there on the maintainer's answer 13 (Matt, 2026-11-19). ADR-16 decisions 1 to 9 are the planner's and not reviewed yet. Order: 22.1, 22.2, 22.3, 22.4, 22.7, 22.8, 22.5, 22.6. This branch, story/22-8-container-stop-saves-the-world, is stacked on story/22-7-restart-required-settings-survive-a-live-change (22.7 in review) at da55999b; Story 22.8 was planned in 4dd719f1 (planning files only). The PR targets main and merges after 22.7's. Line references were verified at da55999b (the code is unchanged in 4dd719f1); re-check them at implementation time. API, one image `CMD` flag and documentation: no new route, no response change, no new setting, no web change, no new dependency, no compose change. The `CMD` flag (`--timeout-graceful-shutdown 1`, Task 3) was added at validation (2026-11-19); see "ADR against the code" 6. -->
 
@@ -443,8 +443,19 @@ No `Waiting for connections to close` and no `Cancel N running task(s), timeout 
 - `_bmad-output/implementation-artifacts/22-8-container-stop-saves-the-world.md` (this file)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode. Verdict: approve. 0 HIGH, 0 MEDIUM, three LOW findings, all accepted without a code change:
+
+1. **LOW: an in-flight Stop or Restart can push the shutdown's stop past Docker's 10 s grace.** A Stop or Restart that holds the lifecycle lock when SIGTERM arrives finishes its own stop (10 s timeout) before `stop_for_api_shutdown` gets the lock; with a game that ignores SIGTERM, that stop plus the shutdown's 8 s can run past 10 s and Docker's SIGKILL wins. Accepted: ADR-16 decision 3 keeps the stop inside the lock uncancelled, and "ADR against the code" 2 records the unbounded lock wait. The measured stop is under 1 s (Task 4), so the window needs both an in-flight lifecycle request and a game that does not stop.
+2. **LOW: a clean stop exits with code 143, not 0.** uvicorn 0.54 re-raises the SIGTERM it caught once its shutdown, including the lifespan shutdown, has finished, so `uv` exits with 128 + 15 (Dev Agent Record, "Exit code 143"; Completion Notes deviation 1). Accepted: the shipped compose file's `restart: unless-stopped` honours a manual stop, so a 143 does not start a restart loop. Drawdown item 1 (exit 0 after a completed shutdown) stays for the maintainer.
+3. **LOW: Task 3's `build` commit has a side effect a user could notice.** `build(story-22.8/task-3): limit uvicorn's wait for open requests at shutdown to 1 second` (e22886d9) means a request still running 1 s after SIGTERM is cancelled ("ADR against the code" 6). `build` is not a release-note type, so the release notes will not mention it. Accepted: the README's "Stopping and restarting the container" says the manager "gives open requests up to 1 second to finish", and no history is rewritten.
+
+No fix commits. `just check` green with Stories 22.4 and 22.7's reviews merged in (API 3790 passed, web 3567 passed, pyright 0 errors and 0 warnings). Task 6.3 (the maintainer's check) stays open.
+
 ## Change Log
 
 - 2026-11-19: Story 22.8 created (ready-for-dev).
 - 2026-11-19: Validated against the create-story checklist, ADR-16, FR308 and the code at dd781b5c. Added Task 3 (`--timeout-graceful-shutdown 1` in the image `CMD`, a `build` commit; uvicorn otherwise waits without limit for in-flight requests and background tasks before the lifespan shutdown) and renumbered the later tasks (now 6); recorded that `uv run` forwards SIGTERM to uvicorn (uv docs); the new test file defines its own `config_path`/`spawner` fixtures; the refused-start test now proves the refusal comes before the 22.7 write-back; the module-function test checks the 8 s default.
 - 2026-11-19: Implemented (dev-story): Tasks 1 to 6; throwaway-container run recorded (exit code 143, not 0; stop rule not fired); status review. Task 6.3 waits for the maintainer.
+- 2026-11-19: Code review (GLM-5.3-Flash via opencode): approve; 0 HIGH, 0 MEDIUM, three LOW accepted without a code change (an in-flight Stop/Restart can push the stop past the grace; clean stops exit 143; Task 3's `build` commit's 1 s request cut-off is in the README, not the release notes) (see "Review"). Status done.

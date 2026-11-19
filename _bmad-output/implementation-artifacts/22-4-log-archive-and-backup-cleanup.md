@@ -1,6 +1,6 @@
 # Story 22.4: Log Archive and Backup Cleanup
 
-Status: review
+Status: done
 
 <!-- Implements FR297, FR298, FR299, Epic 22 ADR-7 (decisions 3 and 4), ADR-9, ADR-10 and ADR-14. Bead: VSS-29p (API-011), closes here (Story 22.3 carried its first half). Maintainer answers 8 and 9 (Matt, 2026-11-18); four controller decisions during validation (2026-11-18, Dev Notes), for the maintainer to review. Order: 22.1, 22.2, 22.3, 22.4, 22.7, 22.5, 22.6. This branch, story/22-4-log-archive-and-backup-cleanup, is stacked on story/22-3-scheduled-restarts (22.3 in review) at 6fd76056 (the Story 22.7 planning commit; the code is that of 36dd18cf). The PR targets main and merges after 22.3's. Line references were verified at 6fd76056 and must be re-checked at implementation time. API and documentation only; no web source change (the UI for the three settings is Story 22.6). No new dependency, no new route, one new service, one new job module, no change to services/scheduler.py, models/jobs.py, routers/jobs.py, main.py or services/cache_eviction.py. -->
 
@@ -650,8 +650,8 @@ Cleanup done: the container and the image were removed; both listings and `git s
 - `api/src/vintagestory_api/services/api_settings.py` (Task 1: three constants and fields; Task 3a: two of them removed, `backup_keep_count` and `MAX_BACKUP_KEEP_COUNT` remain)
 - `api/tests/test_api_settings.py` (Tasks 1 and 3a)
 - `api/tests/test_routers_config.py` (Tasks 1, 3a and 4)
-- `api/src/vintagestory_api/services/disk_cleanup.py` (Task 2, new; Task 3a: backups only)
-- `api/tests/test_disk_cleanup.py` (Task 2, new; Task 3a: rewritten for backups only)
+- `api/src/vintagestory_api/services/disk_cleanup.py` (Task 2, new; Task 3a: backups only; review: deletes relative to the opened `Backups/`)
+- `api/tests/test_disk_cleanup.py` (Task 2, new; Task 3a: rewritten for backups only; review: seams take the open directory, two swap tests)
 - `_bmad-output/planning-artifacts/architecture/epic-22-server-operations-and-metrics.md` (Task 3: ADR-9 "Results (Story 22.4)"; Task 3a: ADR-9 and ADR-10 amended)
 - `_bmad-output/planning-artifacts/prd.md` (Task 3a: FR297, FR299)
 - `_bmad-output/planning-artifacts/epics.md` (Task 3a: Story 22.4 entry, FR297 coverage row)
@@ -665,6 +665,15 @@ Cleanup done: the container and the image were removed; both listings and `git s
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint` only: in-progress, then review)
 - `_bmad-output/implementation-artifacts/22-4-log-archive-and-backup-cleanup.md` (this file)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode. Verdict: approve. 0 HIGH, 0 MEDIUM, one LOW finding, fixed; two notes, accepted without a change.
+
+1. **LOW: a `Backups/` swapped for a link between the path check and the deletion could send the deletion elsewhere.** `_delete` resolved and re-checked each path, then called `path.unlink()`, which walks the path again: a `Backups/` replaced by a symbolic link in that window would have the file of the same name deleted in the link's target. Fixed: `Backups/` is opened once per run with `os.open(target, O_RDONLY | O_DIRECTORY | O_NOFOLLOW)`; the entries are listed with `os.scandir(fd)`, each modification time and the check before each deletion use `os.stat(name, dir_fd=fd, follow_symlinks=False)`, and the deletion is `os.unlink(name, dir_fd=fd)`; the descriptor is closed in a `finally`. The check before each deletion is now "still a regular file" (`stat.S_ISREG`); a link or a directory found there is skipped with the same WARNING `disk_cleanup_skipped reason=outside` (the old resolve check is gone: the Dev Notes paragraph "The path check before every deletion" describes the code as first built). A link put in place between `_target`'s look and the open is refused by the open (`ELOOP` on macOS, `ENOTDIR` on Linux) and logged as `reason=symlink` like a link found by `_target`; any other open error is `disk_cleanup_delete_failed path=Backups`, as a failed listing was. Every log line and field is unchanged. The seams changed with it: `_scan(directory_fd)` and `_delete_file(name, directory_fd)`; the tests that replace them were adapted (the "logs are never read" test compares the scanned directory's device and inode with `Backups/`'s). New tests: `test_backup_dir_replaced_by_a_link_after_it_is_opened` (the real `Backups/` renamed and a link to a directory holding older files of the same names put in its place right after the listing: the two old backups are deleted from the renamed directory, the link's target is unchanged; on the old code it failed) and `test_backup_dir_replaced_by_a_link_before_it_is_opened` (nothing deleted, one `reason=symlink` WARNING).
+2. **Notes (two):** recorded by the reviewer for information and accepted as they stand; no change.
+
+Fix commit: `refactor(story-22.4/review): delete backups relative to the opened Backups directory`. `just check` green after it (API 3703 passed, web 3567 passed, pyright 0 errors and 0 warnings).
+
 ## Change Log
 
 - 2026-11-18: Story 22.4 created (ready-for-dev).
@@ -672,3 +681,4 @@ Cleanup done: the container and the image were removed; both listings and `git s
 - 2026-11-19: Tasks 1 to 3 done; Task 3.7 stop rule fired (the game keeps at most 5 log archives itself; `/genbackup` wrote no file). Waiting for the maintainer's answer before Task 4.
 - 2026-11-19: Maintainer decision "Backups only + docs": log-archive cleanup and its two settings dropped; backups opt-in and the daily job kept. ACs and tasks amended (history kept); Task 3a added.
 - 2026-11-19: Tasks 3a to 6 done; `just check` green; status review.
+- 2026-11-19: Code review (GLM-5.3-Flash via opencode): approve; 0 HIGH, 0 MEDIUM, one LOW fixed (backups are listed, checked and deleted relative to `Backups/` opened once without following a link), two notes accepted (see "Review"). Status done.

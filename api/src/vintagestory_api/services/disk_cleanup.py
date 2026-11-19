@@ -8,13 +8,17 @@ the directory is not even read.
 
 The game's log archives (`Logs/Archive/`) are not touched: the game keeps at most 5 itself,
 and the maintainer dropped the manager's archive cleanup (2026-11-19). Nothing reached
-through a symbolic link is deleted, directories are left alone, and each path is checked
-again right before it is deleted.
+through a symbolic link is deleted and directories are left alone. `Backups/` is opened
+once per run without following a link, and every entry is listed, checked and deleted
+relative to that open directory: a `Backups/` swapped for a link during the run cannot
+send a deletion anywhere else. Each entry is checked again right before it is deleted.
 """
 
 from __future__ import annotations
 
+import errno
 import os
+import stat
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -43,27 +47,28 @@ class CleanupResult:
     errors: int = 0
 
 
-def _scan(directory: Path) -> list[os.DirEntry[str]]:
-    """The entries of a directory (a seam for tests)."""
-    with os.scandir(directory) as entries:
+_OPEN_FLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+
+
+def _scan(directory_fd: int) -> list[os.DirEntry[str]]:
+    """The entries of an open directory (a seam for tests)."""
+    with os.scandir(directory_fd) as entries:
         return list(entries)
 
 
-def _delete_file(path: Path) -> None:
-    """Delete a backup file (a seam for tests)."""
-    path.unlink()
+def _delete_file(name: str, directory_fd: int) -> None:
+    """Delete a backup file relative to the open directory (a seam for tests)."""
+    os.unlink(name, dir_fd=directory_fd)
+
+
+def _lstat(name: str, directory_fd: int) -> os.stat_result:
+    """Stat an entry of the open directory without following a link."""
+    return os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
 
 
 def _error_fields(error: OSError) -> dict[str, object]:
     """The error's text without its file name: str(error) holds the absolute path."""
     return {"error": error.strerror or type(error).__name__, "errno": error.errno}
-
-
-def _file_size(path: Path) -> int:
-    try:
-        return path.lstat().st_size
-    except OSError:
-        return 0
 
 
 class DiskCleanupService:
@@ -111,25 +116,33 @@ class DiskCleanupService:
             **_error_fields(error),
         )
 
-    def _is_inside(self, path: Path, target: Path) -> bool:
-        """The path check before every deletion: a direct child of the target, under
-        serverdata, and not a link."""
+    def _open(self, target: Path, result: CleanupResult) -> int | None:
+        """Open `Backups/` without following a link; None when it cannot be opened."""
         try:
-            target_resolved = target.resolve()
-            inside = target_resolved.is_relative_to(self._serverdata_dir.resolve())
-            return inside and path.resolve().parent == target_resolved and not path.is_symlink()
-        except OSError:
-            return False
+            return os.open(target, _OPEN_FLAGS)
+        except OSError as e:
+            # Replaced by a link since `_target` looked: ELOOP on macOS, ENOTDIR on Linux.
+            if e.errno in (errno.ELOOP, errno.ENOTDIR) and target.is_symlink():
+                logger.warning("disk_cleanup_skipped", path=BACKUP_DIR.as_posix(), reason="symlink")
+            else:
+                self._failed(BACKUP_DIR, e, result)
+            return None
 
-    def _delete(self, path: Path, target: Path, result: CleanupResult) -> bool:
-        """Check and delete one file; True when it was deleted."""
-        relative = BACKUP_DIR / path.name
-        if not self._is_inside(path, target):
+    def _delete(self, name: str, directory_fd: int, result: CleanupResult) -> bool:
+        """Check and delete one file of the open directory; True when it was deleted."""
+        relative = BACKUP_DIR / name
+        try:
+            info = _lstat(name, directory_fd)
+        except OSError as e:
+            self._failed(relative, e, result)
+            return False
+        if not stat.S_ISREG(info.st_mode):
+            # Replaced by a link or a directory since the listing.
             logger.warning("disk_cleanup_skipped", path=relative.as_posix(), reason="outside")
             return False
-        size = _file_size(path)
+        size = info.st_size
         try:
-            _delete_file(path)
+            _delete_file(name, directory_fd)
         except OSError as e:
             self._failed(relative, e, result)
             return False
@@ -143,8 +156,20 @@ class DiskCleanupService:
         target = self._target()
         if target is None:
             return 0
+        directory_fd = self._open(target, result)
+        if directory_fd is None:
+            return 0
         try:
-            entries = _scan(target)
+            return self._clean_open_backups(directory_fd, limits, result)
+        finally:
+            os.close(directory_fd)
+
+    def _clean_open_backups(
+        self, directory_fd: int, limits: CleanupLimits, result: CleanupResult
+    ) -> int:
+        """Keep only the newest files of the open `Backups/`; returns the number left."""
+        try:
+            entries = _scan(directory_fd)
         except OSError as e:
             self._failed(BACKUP_DIR, e, result)
             return 0
@@ -160,7 +185,7 @@ class DiskCleanupService:
                 logger.debug("disk_cleanup_skipped", path=relative.as_posix(), reason="not_a_file")
                 continue
             try:
-                mtime = entry.stat(follow_symlinks=False).st_mtime
+                mtime = _lstat(entry.name, directory_fd).st_mtime
             except OSError as e:
                 # Not deleted: without its time it cannot be ordered.
                 self._failed(relative, e, result)
@@ -172,6 +197,6 @@ class DiskCleanupService:
         candidates.sort(reverse=True)
         kept += min(limits.backup_keep_count, len(candidates))
         for _mtime, name in candidates[limits.backup_keep_count :]:
-            if not self._delete(target / name, target, result):
+            if not self._delete(name, directory_fd, result):
                 kept += 1
         return kept
