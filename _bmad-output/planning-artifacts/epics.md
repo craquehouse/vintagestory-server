@@ -7,7 +7,7 @@ inputDocuments:
 lastUpdated: '2026-11-18'
 updates:
   - date: '2026-11-18'
-    description: 'Added Epic 22 (6 stories) for Server Operations and Metrics; FR287-FR305, with the maintainer''s eleven answers of the same day (VSS-zws pulled in)'
+    description: 'Added Epic 22 (6 stories) for Server Operations and Metrics; FR287-FR305, with the maintainer''s eleven answers of the same day (VSS-zws pulled in); revised the same day: FR306 (one pending-restart state) pulled into Story 22.2 during its validation'
   - date: '2026-11-17'
     description: 'Added Epic 21 (8 stories) for Maintainer Decisions and Web Polish; FR260-FR286 (revised the same day with the maintainer''s answers: every default confirmed, VSS-q38r pulled into Story 21.4 with FR286)'
   - date: '2026-11-17'
@@ -521,6 +521,7 @@ This document provides the complete epic and story breakdown for vintagestory-se
 | FR303 | Epic 22 | No API Settings tab for a Monitor key |
 | FR304 | Epic 22 | Restart times edited in the API Settings tab |
 | FR305 | Epic 22 | Cleanup limits edited in the API Settings tab |
+| FR306 | Epic 22 | A restart-required game setting is a pending restart, cleared by a restart |
 
 ## Epic List
 
@@ -7340,7 +7341,7 @@ So that **I know whether anyone is playing before I restart or change something,
 
 **Sprint key:** `22-2-prometheus-metrics-endpoint`
 **Beads:** `VSS-bhw` (API-023), closes here
-**FRs:** FR289, FR290, FR291
+**FRs:** FR289, FR290, FR291, FR306
 
 As an **operator who runs Prometheus and Grafana**,
 I want **the manager to serve the game server's metrics in the Prometheus format**,
@@ -7396,6 +7397,12 @@ So that **I can graph players, CPU, memory and uptime, and alert when the server
 
 *(Covers FR289)*
 
+**Given** an admin saves a game setting that needs a restart (the port or IP address)
+**When** `/healthz`, the mods list and `/metrics` are read, and then the server is restarted
+**Then** all three show a pending restart until the restart, which clears it (game settings and mods share one pending-restart state)
+
+*(Covers FR306; pulled in during the story's validation, backlog drawdown)*
+
 **Tasks:**
 
 - [ ] Add `prometheus-client` with a minimum version and the next major excluded (`uv add`, lock updated), with a `build(api)` commit (Epic 22 ADR-3 decision 1)
@@ -7403,6 +7410,7 @@ So that **I can graph players, CPU, memory and uptime, and alert when the server
 - [ ] The root `GET /metrics` route without authentication; API tests for the content type, no key, and the web UI not answering it; a `feat(api)` commit with the release note (ADR-3 decision 2)
 - [ ] An API E2E test that scrapes `/metrics` on the E2E stack (`api/tests/e2e`, base URL default `http://localhost:9080`) (FR289)
 - [ ] The README's metrics section with the scrape example; the PRD's post-MVP line updated to say where it is built (ADR-3 decision 6)
+- [ ] One pending-restart state for game settings and mods, with tests through `/healthz`, the mods list and `/metrics`; a `fix` commit (FR306)
 
 ---
 

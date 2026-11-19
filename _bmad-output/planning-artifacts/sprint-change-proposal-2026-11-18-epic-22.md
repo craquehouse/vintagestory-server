@@ -94,7 +94,7 @@ No route is removed, no existing field changes, and nothing is breaking. The cle
 **Draft release-note text** (commit subjects; the story scope is removed by git-cliff):
 
 - Features: `feat(api): count the players online and include them in the metrics`; `feat(web): show the players online on the dashboard`; `feat(api): serve game server metrics for Prometheus at /metrics`; `feat(api): restart the game server at scheduled times, warning players first`; `feat(api): delete old game log archives every day, and old backups when a limit is set`; `feat(web): turn scheduled jobs off and on, and set metrics collection, in API Settings`; `feat(web): set restart times in API Settings`; `feat(web): set disk cleanup limits in API Settings`
-- Fixes: `fix(web): hide the API Settings tab from read-only keys`; `fix(web): allow refresh intervals up to 365 days, as the API does`; and, only if Story 22.3 changes code for `VSS-zws`, a `fix(api)` subject written for what it fixes
+- Fixes: `fix(api): show Restart required when a game setting change needs a restart` (Story 22.2, pulled in during its validation); `fix(web): hide the API Settings tab from read-only keys`; `fix(web): allow refresh intervals up to 365 days, as the API does`; and, only if Story 22.3 changes code for `VSS-zws`, a `fix(api)` subject written for what it fixes
 - No note: the dependency (`build`), tests, documentation, the throwaway-container measurements
 
 ## 3. Recommended Approach
@@ -217,6 +217,7 @@ Seen and not proposed, because they share no file with a story: `VSS-2n2` (white
 7. Whether the game prunes its own log archives is not observed; Story 22.4 checks it (ADR-9 decision 7).
 8. The scheduler callback handles only interval settings; Story 22.3 generalises it with its error path (ADR-7).
 9. A restart time saved less than 15 minutes ahead cannot warn on time; ADR-6 decision 6 documents that it first runs the next day.
+10. Two `PendingRestartState` singletons: a game setting that needs a restart (`Port`, `Ip`) flags `routers/config.py`'s own, which nothing reads or clears, so `/healthz`, the web's Restart required banner and the new `vintagestory_server_pending_restart` never show it and a restart never clears it. Pulled in by the controller during Story 22.2's validation (backlog drawdown): Story 22.2 makes them one state (its Task 2, a `fix` commit, FR306).
 
 **Seen and left alone, with the reason (no bead filed):**
 
