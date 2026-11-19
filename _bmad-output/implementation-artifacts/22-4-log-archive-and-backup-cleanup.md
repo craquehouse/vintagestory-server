@@ -149,10 +149,10 @@ so that **the disk does not fill up over months of restarts, and my world and it
   - [x] 4.5: `cd api && uv run ruff format <changed files>`; `just test-api tests/jobs tests/test_jobs_registration.py tests/test_routers_config.py tests/test_jobs_router.py tests/test_main.py tests/test_disk_cleanup.py tests/test_scheduler.py` green; `just typecheck-api` 0/0
   - [x] 4.6: Commit `feat(story-22.4/task-4): delete old backups every day when a limit is set` (body: Story 22.4 / task 4; a daily `disk_cleanup` job at 03:00 in the container's time zone keeps only the newest `backup_keep_count` files in `Backups` when it is above 0 (default 0 keeps all, so nothing is deleted by default); log archives are left to the game, which keeps 5; `BackupSaves`, the world, mods and the logs are never touched). **Amended (2026-11-19); the original subject and body were:** `feat(story-22.4/task-4): delete old game log archives every day, and old backups when a limit is set` (body: Story 22.4 / task 4; a daily `disk_cleanup` job at 03:00 in the container's time zone deletes the game's log archives older than `log_archive_retention_days` (default 14, 0 keeps all), always keeping the newest `log_archive_keep_min` (default 5), and keeps only the newest `backup_keep_count` files in `Backups` when it is above 0 (default 0 keeps all); **archives older than 14 days are now deleted by default**; `BackupSaves`, the world, mods and the live logs are never touched)
 
-- [ ] Task 5: Document who rotates which logs and the cleanup (AC: 12; text as amended in Dev Notes "Maintainer decision after Task 3")
-  - [ ] 5.1: `README.md`: a new `### Logs and disk use` section between "Scheduled restarts" and "Metrics" (`:93-112`), and the Features "Scheduled jobs" bullet (`:17`), with the text of Dev Notes "Documentation". The compose files are not changed
-  - [ ] 5.2: `just lint` green (nothing else moved)
-  - [ ] 5.3: Commit `docs(story-22.4/task-5): document who rotates which logs and the disk cleanup`
+- [x] Task 5: Document who rotates which logs and the cleanup (AC: 12; text as amended in Dev Notes "Maintainer decision after Task 3")
+  - [x] 5.1: `README.md`: a new `### Logs and disk use` section between "Scheduled restarts" and "Metrics" (`:93-112`), and the Features "Scheduled jobs" bullet (`:17`), with the text of Dev Notes "Documentation". The compose files are not changed
+  - [x] 5.2: `just lint` green (nothing else moved)
+  - [x] 5.3: Commit `docs(story-22.4/task-5): document who rotates which logs and the disk cleanup`
 
 - [ ] Task 6: Validate and move the story to review (AC: all)
   - [ ] 6.1: `just check` green: API tests, pyright 0 errors and 0 warnings, ruff; web tests with 0 skipped, tsc, Prettier. The added lines in `api/src` and `api/tests` hold no `type: ignore`, `pyright:`, `noqa`, `cast(`, skip, `xfail` or `.only`; `services/scheduler.py`, `models/jobs.py`, `routers/jobs.py`, `main.py` and `services/cache_eviction.py` are unchanged (`git diff 6fd76056 -- <those files>` is empty). `git status --short dev/ data/` is empty after the runs
@@ -653,6 +653,7 @@ Cleanup done: the container and the image were removed; both listings and `git s
 - `_bmad-output/planning-artifacts/prd.md` (Task 3a: FR297, FR299)
 - `_bmad-output/planning-artifacts/epics.md` (Task 3a: Story 22.4 entry, FR297 coverage row)
 - `_bmad-output/planning-artifacts/sprint-change-proposal-2026-11-18-epic-22.md` (Task 3a: answers 8 and 9, the controller decisions)
+- `README.md` (Task 5: Features bullet, "Logs and disk use")
 - `api/src/vintagestory_api/jobs/disk_cleanup.py` (Task 4, new)
 - `api/src/vintagestory_api/jobs/__init__.py` (Task 4: `register_disk_cleanup`, called from `register_default_jobs`)
 - `api/tests/conftest.py` (Task 4: autouse no-op for the job)
