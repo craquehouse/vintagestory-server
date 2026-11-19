@@ -74,10 +74,10 @@ so that **I can change mod and server configs without a shell on the host**.
   - [x] 3.2: `FileViewer.tsx`: when `text` is a string and `parseError` is null, render `LazyCodeView` read-only (`data-testid="file-viewer-code"`); otherwise as today. New optional `actions?: ReactNode` rendered in the header before the word-wrap toggle
   - [x] 3.3: Commit `feat(story-23.5/task-3): show config files with their comments to Admin keys`
 
-- [ ] Task 4: The editor, Save and the guards + tests (AC: 1-5, 9)
-  - [ ] 4.1: Red first: `ConfigFileEditor.test.tsx` and `FileManagerPanel.test.tsx` rows for every AC 1-5 case (Dev Notes "Testing")
-  - [ ] 4.2: `web/src/features/settings/config-drafts.ts`, `ConfigFileEditor.tsx`, `EditFileButton` (in the editor's module or its own), `FileManagerPanel.tsx` changes, `SettingsPage.tsx` (`forceMount` on the File Manager tab content, hidden when inactive), the discard `AlertDialog` (Dev Notes "Editor", "Unsaved changes", "Server state")
-  - [ ] 4.3: Commit `feat(story-23.5/task-4): edit config files in the file browser while the game server is stopped`
+- [x] Task 4: The editor, Save and the guards + tests (AC: 1-5, 9)
+  - [x] 4.1: Red first: `ConfigFileEditor.test.tsx` and `FileManagerPanel.test.tsx` rows for every AC 1-5 case (Dev Notes "Testing")
+  - [x] 4.2: `web/src/features/settings/config-drafts.ts`, `ConfigFileEditor.tsx`, `EditFileButton` (in the editor's module or its own), `FileManagerPanel.tsx` changes, `SettingsPage.tsx` (`forceMount` on the File Manager tab content, hidden when inactive), the discard `AlertDialog` (Dev Notes "Editor", "Unsaved changes", "Server state")
+  - [x] 4.3: Commit `feat(story-23.5/task-4): edit config files in the file browser while the game server is stopped`
 
 - [ ] Task 5: README + E2E (AC: 7, 8)
   - [ ] 5.1: README `### Config files`: the editing paragraph (Dev Notes "Documentation")

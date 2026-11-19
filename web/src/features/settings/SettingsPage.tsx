@@ -76,7 +76,14 @@ export function SettingsPage() {
           </TabsContent>
         )}
 
-        <TabsContent value="file-manager" className="flex-1 mt-4">
+        {/* Story 23.5: kept mounted (hidden when inactive), so an edit in progress survives
+            switching tabs */}
+        <TabsContent
+          value="file-manager"
+          forceMount
+          className="flex-1 mt-4 data-[state=inactive]:hidden"
+          data-testid="file-manager-tab-content"
+        >
           <FileManagerPanel />
         </TabsContent>
 
