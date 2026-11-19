@@ -256,7 +256,8 @@ export async function fetchConfigFileContent(
     `${API_PREFIX}/files/${encodeURIComponent(filename)}`,
     { transformResponse: false }
   );
-  const source = raw.data;
+  // A 200 without a data object is mapped to an empty read, not a TypeError (Story 23.1 review)
+  const source: RawConfigFileContentData = isRecord(raw.data) ? raw.data : {};
   const data: ConfigFileContentData = {
     filename: typeof source.filename === 'string' ? source.filename : filename,
     content: source.content,
