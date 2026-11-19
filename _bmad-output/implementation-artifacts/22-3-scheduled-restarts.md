@@ -1,6 +1,6 @@
 # Story 22.3: Scheduled Restarts
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Implements FR292-FR296, Epic 22 ADR-5, ADR-6, ADR-7, ADR-8 and ADR-14. Beads: VSS-29p (API-011), first half (Story 22.4 closes it); VSS-zws (API-073), checked and closed here. Maintainer answers 5, 6, 7 and 11 (Matt, 2026-11-18). Stories run in order 22.1 to 22.6; this branch, story/22-3-scheduled-restarts, is stacked on story/22-2-prometheus-metrics-endpoint at 0067a09b (22.2 in review: it made game settings and mods share one PendingRestartState and makes every successful start clear it). The PR targets main and merges after 22.2's. Line references were verified at 0067a09b and must be re-checked at implementation time. API and documentation only; no web source change (the UI for the setting is Story 22.6). No new dependency, no new route, one new job module, no change to services/scheduler.py. The stop timeout and game_config.py change only on the maintainer's answer (ADR-8 decision 2). -->
 
@@ -85,15 +85,15 @@ so that **it runs fresh every day without me being there, and nobody is surprise
 
 <!-- Each functional task includes its tests in the same commit, red first (run the new tests, see them fail, then implement). Subjects: type(story-22.3/task-N): ..., the type chosen by what an admin notices. One commit is user-visible: Task 4 (feat), the commit that makes restarts happen; its subject is written for admins and its body names Story 22.3 and the task. -->
 
-- [ ] Task 1: Measure the stop and check `VSS-zws` in a throwaway container (AC: 10, 11)
-  - [ ] 1.1: Run Dev Notes "The throwaway-container run" exactly: image `vss-22-3-measure:local` built from this branch, container `vss-22-3-measure` on `127.0.0.1:18090`, no game port published, placeholder keys, no volume or bind mount, no compose, not `just test-e2e-ci` (it blocks the game download hosts). Never the dev stack (`vintagestory-manager-dev`, port 9080), whose game server is not started or stopped, and never `./data` or `dev/`
-  - [ ] 1.2: Install the current stable game through the API, then three start/stop rounds; for each stop record: the time from `stopping_server` to `server_stopped_gracefully` or `server_stop_timeout` (from the API's JSON log timestamps), the HTTP time of `POST /server/stop`, the exit code, and the lines `server-main.log` (and `server-debug.log` if the main log has none) shows between the stop and the exit, verbatim apart from addresses
-  - [ ] 1.3: `VSS-zws` in the same container (steps in Dev Notes): `Port` 42420 -> 42421 while running, a live `ServerName` change (the API sends `/serverconfig name ...`), then read `serverconfig.json` after the live command, after the stop and after the next start
-  - [ ] 1.4: The time zone check (Dev Notes): `get_localzone()` in the image is `UTC` without `TZ` and `Europe/Berlin` with `TZ=Europe/Berlin`
-  - [ ] 1.5: Remove the container and the image (`docker rm -f vss-22-3-measure vss-22-3-tz`, `docker image rm vss-22-3-measure:local`); `docker ps -a --filter name=vss-22-3` is empty
-  - [ ] 1.6: Record the results in Dev Agent Record "Throwaway-container results" (host architecture, game version, a table of the three stops, the `serverconfig.json` values at each point, the TZ output, the commands) and append a "Results (Story 22.3)" paragraph to ADR-8's section in `_bmad-output/planning-artifacts/architecture/epic-22-server-operations-and-metrics.md`. No instance data, no real key, no address
-  - [ ] 1.7: **Stop rule:** if any stop took more than 10 s, was killed, or the log does not show the save finished before the exit, or if `serverconfig.json` lost the `Port` edit at any point: commit the record (1.8), then stop and report it to the controller as a maintainer question with the measured numbers and the options of ADR-8 decision 2 (raise the timeout, `/autosavenow` before the stop, `/stop` instead of SIGTERM) or, for `VSS-zws`, the small fix (re-apply pending file edits after the stop). Change neither the 10 s timeout (`services/server.py:1076`, `:1177`) nor `services/game_config.py`. Tasks 2 to 5 go on only if the controller says so; the story does not go to review before the answer
-  - [ ] 1.8: Commit `docs(story-22.3/task-1): record the game server's stop time and the serverconfig.json check`
+- [x] Task 1: Measure the stop and check `VSS-zws` in a throwaway container (AC: 10, 11)
+  - [x] 1.1: Run Dev Notes "The throwaway-container run" exactly: image `vss-22-3-measure:local` built from this branch, container `vss-22-3-measure` on `127.0.0.1:18090`, no game port published, placeholder keys, no volume or bind mount, no compose, not `just test-e2e-ci` (it blocks the game download hosts). Never the dev stack (`vintagestory-manager-dev`, port 9080), whose game server is not started or stopped, and never `./data` or `dev/`
+  - [x] 1.2: Install the current stable game through the API, then three start/stop rounds; for each stop record: the time from `stopping_server` to `server_stopped_gracefully` or `server_stop_timeout` (from the API's JSON log timestamps), the HTTP time of `POST /server/stop`, the exit code, and the lines `server-main.log` (and `server-debug.log` if the main log has none) shows between the stop and the exit, verbatim apart from addresses
+  - [x] 1.3: `VSS-zws` in the same container (steps in Dev Notes): `Port` 42420 -> 42421 while running, a live `ServerName` change (the API sends `/serverconfig name ...`), then read `serverconfig.json` after the live command, after the stop and after the next start
+  - [x] 1.4: The time zone check (Dev Notes): `get_localzone()` in the image is `UTC` without `TZ` and `Europe/Berlin` with `TZ=Europe/Berlin`
+  - [x] 1.5: Remove the container and the image (`docker rm -f vss-22-3-measure vss-22-3-tz`, `docker image rm vss-22-3-measure:local`); `docker ps -a --filter name=vss-22-3` is empty
+  - [x] 1.6: Record the results in Dev Agent Record "Throwaway-container results" (host architecture, game version, a table of the three stops, the `serverconfig.json` values at each point, the TZ output, the commands) and append a "Results (Story 22.3)" paragraph to ADR-8's section in `_bmad-output/planning-artifacts/architecture/epic-22-server-operations-and-metrics.md`. No instance data, no real key, no address
+  - [x] 1.7: **Stop rule:** if any stop took more than 10 s, was killed, or the log does not show the save finished before the exit, or if `serverconfig.json` lost the `Port` edit at any point: commit the record (1.8), then stop and report it to the controller as a maintainer question with the measured numbers and the options of ADR-8 decision 2 (raise the timeout, `/autosavenow` before the stop, `/stop` instead of SIGTERM) or, for `VSS-zws`, the small fix (re-apply pending file edits after the stop). Change neither the 10 s timeout (`services/server.py:1076`, `:1177`) nor `services/game_config.py`. Tasks 2 to 5 go on only if the controller says so; the story does not go to review before the answer
+  - [x] 1.8: Commit `docs(story-22.3/task-1): record the game server's stop time and the serverconfig.json check`
 
 - [ ] Task 2: The `scheduled_restart_times` setting, its validator and list handling in `update_setting` + tests (AC: 1, 2, 13)
   - [ ] 2.1: Red first: the Task 2 rows of Dev Notes "API tests" in `api/tests/test_api_settings.py` and `api/tests/test_routers_config.py`; see the new tests fail
@@ -482,19 +482,130 @@ Every other test stays as it is. Tests that patch `ApiSettingsService` in `regis
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive.
+
 ### Throwaway-container results
 
 <!-- Task 1.6: host architecture, game version, the three stops, the serverconfig.json reads, the TZ output, the commands. -->
 
+Run on 2026-11-19 (UTC) from this branch at bed96d68.
+
+- **Host:** `uname -m` = `arm64` (Apple silicon, Docker 29.9.2). The image is `linux/amd64`, so the game ran emulated; a real amd64 host would be faster, not slower.
+- **Game version:** `stable` resolved to **1.22.7** (installed through `POST /api/v1alpha1/server/install`). Fresh world created by the first start.
+- **Isolation:** image `vss-22-3-measure:local`, container `vss-22-3-measure`, only `127.0.0.1:18090 -> 8080` published (game port not published), placeholder admin key, no `-v`/`--mount`/`--env-file`, no compose; `docker inspect` showed `Mounts: []`. The dev stack was not running and was not touched.
+
+**The stops** (stop time = `server_stopped_gracefully.timestamp - stopping_server.timestamp` from the API's JSON log; HTTP = curl `time_total` of `POST /api/v1alpha1/server/stop`):
+
+| Stop | Game ready (`now running`) | Ran before stop | `stopping_server` | `server_stopped_gracefully` | Stop time | HTTP | Exit code | Within 10 s | World saved before exit |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | 02:13:15 | 69 s | 02:14:24.899 | 02:14:25.731 | 0.83 s | 0.836 s | 0 | yes | yes (`World saved! Saved 8 chunks, 1 mapchunks, 16 mapregions.`) |
+| 2 | 02:14:46 | 300 s | 02:19:46.322 | 02:19:47.049 | 0.73 s | 0.730 s | 0 | yes | yes (`World saved! Saved 0 chunks, 0 mapchunks, 4 mapregions.`) |
+| 3 | 02:20:15 | 125 s | 02:22:20.755 | 02:22:21.564 | 0.81 s | 0.813 s | 0 | yes | yes (`World saved! Saved 0 chunks, 0 mapchunks, 16 mapregions.`) |
+| extra (VSS-zws second start) | 02:22:40 | 6 s | 02:22:46.092 | 02:22:46.938 | 0.85 s | 0.851 s | 0 | yes | yes (`World saved! Saved 0 chunks, 0 mapchunks, 16 mapregions.`) |
+
+No `server_stop_timeout` and no `server_killed` in any round. `server-main.log` between the stop and the exit, round 1 verbatim (rounds 2 and 3 print the same lines in the same order, only the timestamps and the save counts differ; no addresses appear):
+
+```
+19.11.2026 02:14:24 [Notification] Server termination event SIGTERM received. Shutting down server
+19.11.2026 02:14:24 [Notification] Server: Exit() called
+19.11.2026 02:14:24 [Notification] Server stop requested, begin shutdown sequence. Stop reason: External close event SIGTERM received
+19.11.2026 02:14:24 [Notification] Server ticking has been suspended
+19.11.2026 02:14:25 [Notification] Entering runphase Shutdown
+19.11.2026 02:14:25 [Event] Mods and systems notified, now saving everything...
+19.11.2026 02:14:25 [Event] It pauses.
+19.11.2026 02:14:25 [Event] One last gaze...
+19.11.2026 02:14:25 [Event] Saved player world data...
+19.11.2026 02:14:25 [Event] Saved map regions...
+19.11.2026 02:14:25 [Event] Then all goes quiet...
+19.11.2026 02:14:25 [Event] Saved map chunks...
+19.11.2026 02:14:25 [Event] The waters recede...
+19.11.2026 02:14:25 [Event] Saved loaded chunks...
+19.11.2026 02:14:25 [Event] The mountains fade...
+19.11.2026 02:14:25 [Event] The dark settles in.
+19.11.2026 02:14:25 [Event] Saved generating chunks...
+19.11.2026 02:14:25 [Event] Saved savegamedata...2
+19.11.2026 02:14:25 [Event] World saved! Saved 8 chunks, 1 mapchunks, 16 mapregions.
+19.11.2026 02:14:25 [Event] It sighs...
+19.11.2026 02:14:25 [Event] Shutting down 10 server threads... 
+19.11.2026 02:14:25 [Event] Killed console thread
+19.11.2026 02:14:25 [Event] Alone again...
+19.11.2026 02:14:25 [Event] All threads gracefully shut down
+19.11.2026 02:14:25 [Event] Time to rest.
+19.11.2026 02:14:25 [Event] Doing last tick...
+19.11.2026 02:14:25 [Event] Stopped the server!
+```
+
+**Stop verdict (AC 10):** every stop ended in under 1 s with exit code 0, and the world save completed (`World saved!`) before `Stopped the server!`. The 10 s timeout is not a risk on this world; no stop-timeout question for the maintainer.
+
+**`VSS-zws` (AC 11)**, after round 3's start (ready 02:20:15, edits at 02:21:11):
+
+| Read | When | `Port` | `ServerName` |
+|---|---|---|---|
+| 1 | before the edit, game running | 42420 | `Vintage Story Server` |
+| 2 | after `POST /config/game/settings/Port {"value": 42421}` (answer `method: file_update`, `pending_restart: true`; API logged `restart_required`) | **42421** | `Vintage Story Server` |
+| 3 | after `POST /config/game/settings/ServerName {"value": "vss-22-3 zws check"}` (answer `method: console_command`; console `[CMD] /serverconfig name vss-22-3 zws check`, game answered `Handling Console Command /serverconfig name vss-22-3 zws check` and `Server name set to vss-22-3 zws check`) | **42420** | `vss-22-3 zws check` |
+| 4 | after the stop (round 3) | 42420 | `vss-22-3 zws check` |
+| 5 | after the next start (game: `Dedicated Server now running on Port 42420 and all ips!`) | 42420 | `vss-22-3 zws check` |
+| 6 | after the final stop | 42420 | `vss-22-3 zws check` |
+
+**`VSS-zws` verdict:** the game **does** overwrite `serverconfig.json` edits made while it runs. A live `/serverconfig` command makes it write its in-memory config back to the file at once (read 3, within about 3 s of the command), which put `Port` back to 42420; the next start then listened on 42420, so the restart-required `Port` change was lost silently, although the API had flagged a pending restart (and the start then cleared the flag, Story 22.2). Story 1.7's stop rule applies: see Completion Notes.
+
+**Time zone (1.4):**
+
+```
+$ docker run --rm --name vss-22-3-tz --platform linux/amd64 vss-22-3-measure:local uv run --no-sync python -c "from tzlocal import get_localzone; print(get_localzone())"
+Etc/UTC
+$ docker run --rm --name vss-22-3-tz --platform linux/amd64 -e TZ=Europe/Berlin vss-22-3-measure:local uv run --no-sync python -c "from tzlocal import get_localzone; print(get_localzone())"
+Europe/Berlin
+```
+
+Without `TZ` the zone is `Etc/UTC` (the story expected the text `UTC`; same zone: the image's `/etc/localtime` links to `/usr/share/zoneinfo/Etc/UTC` and `TZ` is empty). With `TZ=Europe/Berlin` it is `Europe/Berlin`.
+
+**Commands** (repo root; `api.sh METHOD PATH [json]` is a scratch wrapper around `curl -s -H "X-API-Key: vss-22-3-placeholder-admin-key" -H "Content-Type: application/json" -X METHOD http://127.0.0.1:18090PATH -d json`):
+
+```bash
+docker rm -f vss-22-3-measure vss-22-3-tz >/dev/null 2>&1 || true
+docker build --platform linux/amd64 -t vss-22-3-measure:local .
+docker run -d --name vss-22-3-measure --platform linux/amd64 -p 127.0.0.1:18090:8080 \
+  -e VS_API_KEY_ADMIN=vss-22-3-placeholder-admin-key -e VS_DATA_DIR=/data vss-22-3-measure:local
+api.sh POST /api/v1alpha1/server/install '{"version":"stable"}'      # poll GET .../server/install/status
+# each round: start, wait for "now running" in server-main.log, sleep 60, then:
+api.sh POST /api/v1alpha1/server/start
+docker exec vss-22-3-measure grep 'now running' /data/serverdata/Logs/server-main.log
+curl -s -o /dev/null -w '%{time_total}' -H "X-API-Key: ..." -X POST http://127.0.0.1:18090/api/v1alpha1/server/stop
+docker logs vss-22-3-measure 2>&1 | grep -E 'stopping_server|server_stopped_gracefully|server_stop_timeout|server_killed'
+docker exec vss-22-3-measure sh -c 'tail -n +<lines before the stop + 1> /data/serverdata/Logs/server-main.log'
+# VSS-zws (after round 3's start), reading Port and ServerName with docker exec ... python3 json.load:
+api.sh POST /api/v1alpha1/config/game/settings/Port '{"value": 42421}'
+api.sh POST /api/v1alpha1/config/game/settings/ServerName '{"value": "vss-22-3 zws check"}'
+api.sh GET /api/v1alpha1/console/history
+# cleanup
+docker rm -f vss-22-3-measure vss-22-3-tz; docker image rm vss-22-3-measure:local
+docker ps -a --filter name=vss-22-3    # empty
+docker image ls vss-22-3-measure       # empty
+```
+
+Cleanup done: the container and the image were removed; both listings were empty; `git status --short dev/` was empty.
+
 ### Debug Log References
+
+- Round 2 ran 300 s instead of about 60 s before its stop: the wait for the ready line compared line counts of `server-main.log`, but the game moves its logs to `Logs/Archive/<start time>/` at each start, so the count was stale and the wait ran its full 240 s. The game was ready at 02:14:46 (14 s after the start). Round 3 used a plain `grep` after a short pause. A longer run makes the stop's save larger, not smaller, so the round stands.
 
 ### Completion Notes List
 
 - 2026-11-18: Story created (create-story, non-interactive) and checked against the create-story checklist: 6 tasks; every code task carries its tests (Task 1 is a measurement, Task 5 documentation, Task 6 validation); every AC is mapped to a task (AC 13 to Task 6 and every task's test run, AC 14 to Task 6.3). Ultimate context engine analysis completed - comprehensive developer guide created.
+- 2026-11-19: Task 1 done (dev-story). Stops: 0.83 s, 0.73 s, 0.81 s (and 0.85 s for an extra stop), exit code 0, world saved before exit every time: no stop-timeout question.
+- 2026-11-19: **Task 1.7 stop rule triggered by `VSS-zws`.** A live `/serverconfig` command (here `ServerName` through the API) makes the game write its in-memory config to `serverconfig.json` at once, which reverted the API's pending `Port` edit (42421 back to 42420); the next start listened on 42420 and the pending-restart flag was cleared by that start, so the change was lost silently. Neither the 10 s timeout nor `services/game_config.py` was changed. Question for the maintainer: fix `VSS-zws` in this story (the small fix ADR-8 decision 3 names: keep the restart-required edits made while the game runs and re-apply them to `serverconfig.json` after the stop, before the next start; note the overwrite already happens at the live command, not only at shutdown, so a fix must survive both), fix it in its own story, or accept and document it. Tasks 2 to 6 wait for the controller's answer; the story stays `in-progress`.
+- 2026-11-19: Deviation (Task 1): `get_localzone()` printed `Etc/UTC` without `TZ` where the story expected `UTC`; the same zone (`/etc/localtime` links to `Etc/UTC`).
 
 ### File List
+
+- `_bmad-output/implementation-artifacts/22-3-scheduled-restarts.md` (Task 1 record, status)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint` only: in-progress)
+- `_bmad-output/planning-artifacts/architecture/epic-22-server-operations-and-metrics.md` (ADR-8 "Results (Story 22.3)")
 
 ## Change Log
 
 - 2026-11-18: Story 22.3 created (ready-for-dev).
 - 2026-11-18: Validated against the create-story checklist, the epic, ADR-5 to ADR-8 and ADR-14, and the code at 1e44ab00 (APScheduler 3.11.3 behaviour re-run in a scratch venv): busy checked before running at the restart (AC 7), `DELETE /jobs/{id}` and an API start inside the window documented as they behave, `send_command` exceptions and `safe_job`'s `_completed` line stated, the throwaway container's isolation and why `just test-e2e-ci` cannot be reused, the web's camelCase name for Story 22.6.
+- 2026-11-19: Task 1 done: the stop measured (under 1 s, world saved, three rounds) and `VSS-zws` confirmed (a live `/serverconfig` command reverts a pending `Port` edit). Stopped at Task 1.7 for the maintainer.
