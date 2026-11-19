@@ -27,7 +27,9 @@ from vintagestory_api.models.server import (
     ServerStatus,
     VersionInfo,
 )
+from vintagestory_api.services.config_files import changed_top_level_keys
 from vintagestory_api.services.config_init_service import ConfigInitService
+from vintagestory_api.services.config_parse import ConfigParseError, parse_config_text
 from vintagestory_api.services.console import ConsoleBuffer
 from vintagestory_api.services.pending_config_edits import (
     PendingConfigEdit,
@@ -325,6 +327,21 @@ class ServerService:
             ):
                 raise GameServerNotStoppedError("running")
             yield
+
+    def drop_pending_edits_changed_by_save(self, previous_bytes: bytes, new_value: object) -> None:
+        """Drop the pending config edits a serverconfig.json save changed (Story 23.4, FR318).
+
+        Epic 23 ADR-4 decision 7: a key whose value the saved text changes was changed on
+        purpose, so the Story 22.7 write-back must not undo it at the next start. The old
+        text is parsed leniently; if it does not parse, every key of the new text counts as
+        changed. Keys the save left alone stay pending.
+        """
+        try:
+            previous: object = parse_config_text(previous_bytes.decode("utf-8-sig"))
+        except ConfigParseError, UnicodeDecodeError:
+            previous = None
+        keys = changed_top_level_keys(previous, new_value)
+        self._pending_config_edits.drop(sorted(keys), reason="file_edited")
 
     @property
     def lifecycle_busy(self) -> bool:

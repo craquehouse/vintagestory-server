@@ -42,6 +42,7 @@ import secrets
 import stat
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TypeGuard
 
 import structlog
 
@@ -161,6 +162,25 @@ class SavedConfigFile:
     previous_bytes: bytes
     value: object
     is_root_serverconfig: bool
+
+
+def _is_object(value: object) -> TypeGuard[dict[str, object]]:
+    """Whether parsed content is an object (the parsers build dicts with string keys)."""
+    return isinstance(value, dict)
+
+
+def changed_top_level_keys(old: object, new: object) -> set[str]:
+    """The keys of `new` whose presence or value differs from `old` (Story 23.4, ADR-4 d7).
+
+    When `old` is not an object (the old text did not parse, or is not an object), every
+    key of `new` counts as changed; when `new` is not an object, none does.
+    """
+    if not _is_object(new):
+        return set()
+    if not _is_object(old):
+        return set(new)
+    keys = set(old) | set(new)
+    return {key for key in keys if (key in old) != (key in new) or old.get(key) != new.get(key)}
 
 
 _UTF8_BOM = b"\xef\xbb\xbf"

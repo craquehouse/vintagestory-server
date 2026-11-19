@@ -27,7 +27,8 @@ logger = structlog.get_logger()
 PENDING_CONFIG_EDITS_FILENAME = "pending-config-edits.json"
 """The store's file in the state directory (ADR-15 decision 2)."""
 
-DropReason = Literal["started", "changed_again"]
+# "file_edited": a serverconfig.json save through the API changed the key (Story 23.4)
+DropReason = Literal["started", "changed_again", "file_edited"]
 
 EditValue = str | int | float | bool | None
 

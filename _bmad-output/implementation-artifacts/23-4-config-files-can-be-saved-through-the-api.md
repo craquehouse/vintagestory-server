@@ -73,10 +73,10 @@ so that **the web editor can change configs safely, keeping comments and formatt
   - [x] 2.2: `services/config_files.py`: exceptions `ConfigFileInvalidError(info: ParseErrorInfo)`, `ConfigFileChangedError`, `ConfigFileWriteError`; `is_root_serverconfig(resolved: Path) -> bool`; `check_text(filename, text) -> ParseErrorInfo | None`; `save_file(filename, text, version) -> SavedConfigFile` (Dev Notes "The save"); `_write_atomically(path, data)`
   - [x] 2.3: Commit `refactor(story-23.4/task-2): save a config file's text atomically, with checks`
 
-- [ ] Task 3: Dropping Story 22.7's pending edits a `serverconfig.json` save changes + tests (AC: 8, 10)
-  - [ ] 3.1: Red first: `changed_keys(old, new)` unit rows; the drop through `ServerService.drop_pending_edits_changed_by_save(old_bytes, new_value)` with a real `PendingConfigEdits` in `tmp_path`
-  - [ ] 3.2: `services/pending_config_edits.py`: `DropReason` gains `"file_edited"`; `services/config_files.py` (or the new helper's module): `changed_top_level_keys`; `services/server.py`: the method (Dev Notes "Pending edits")
-  - [ ] 3.3: Commit `refactor(story-23.4/task-3): drop the pending config edits a serverconfig.json save changes`
+- [x] Task 3: Dropping Story 22.7's pending edits a `serverconfig.json` save changes + tests (AC: 8, 10)
+  - [x] 3.1: Red first: `changed_keys(old, new)` unit rows; the drop through `ServerService.drop_pending_edits_changed_by_save(old_bytes, new_value)` with a real `PendingConfigEdits` in `tmp_path`
+  - [x] 3.2: `services/pending_config_edits.py`: `DropReason` gains `"file_edited"`; `services/config_files.py` (or the new helper's module): `changed_top_level_keys`; `services/server.py`: the method (Dev Notes "Pending edits")
+  - [x] 3.3: Commit `refactor(story-23.4/task-3): drop the pending config edits a serverconfig.json save changes`
 
 - [ ] Task 4: The routes + tests (AC: 1-9, 10)
   - [ ] 4.1: Red first: `api/tests/test_routers_config_save.py` over HTTP with a real `ServerService` on `tmp_path` (Dev Notes "Router tests")
