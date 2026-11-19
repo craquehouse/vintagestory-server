@@ -65,12 +65,12 @@ so that **I know whether anyone is playing before I restart or change something,
 
 <!-- Each functional task includes its tests in the same commit, red first (run the new tests, see them fail, then implement). Commit subjects: type(story-22.1/task-N): ... for every commit with no user-visible change; the two user-visible commits use the release-note subjects of the change proposal (section 2) with the component scope (feat(api), feat(web)), which RELEASING.md shows in the notes, and their bodies name Story 22.1 and the task. -->
 
-- [ ] Task 1: `PlayerTracker` with the prefix and the three patterns, the name set and the reset + tests (AC: 1, 2, 4, 5)
-  - [ ] 1.1: Red first: new `api/tests/test_players.py` with the Task 1 rows of Dev Notes "API tests"; run `just test-api tests/test_players.py` and see it fail (module missing)
-  - [ ] 1.2: New `api/src/vintagestory_api/services/players.py` with `PlayerTracker` (Dev Notes "The tracker"): the provisional `_EVENT_PREFIX`, `_JOIN`, `_LEAVE`, `_REJOIN` compiled patterns, `observe(line: str) -> None`, `reset() -> None`, `count` property. No module singleton: `ServerService` owns the instance (Task 2)
-  - [ ] 1.3: Logging exactly as Dev Notes "What is logged": DEBUG events with counts only; nothing with a name, an address or the line
-  - [ ] 1.4: `ruff format` the two files; `just test-api tests/test_players.py` green
-  - [ ] 1.5: Commit `refactor(story-22.1/task-1): add a player tracker for the game's join and leave lines` (nothing reads it yet; precedent `refactor(story-21.8/task-1): add the sidebar preference rules`)
+- [x] Task 1: `PlayerTracker` with the prefix and the three patterns, the name set and the reset + tests (AC: 1, 2, 4, 5)
+  - [x] 1.1: Red first: new `api/tests/test_players.py` with the Task 1 rows of Dev Notes "API tests"; run `just test-api tests/test_players.py` and see it fail (module missing)
+  - [x] 1.2: New `api/src/vintagestory_api/services/players.py` with `PlayerTracker` (Dev Notes "The tracker"): the provisional `_EVENT_PREFIX`, `_JOIN`, `_LEAVE`, `_REJOIN` compiled patterns, `observe(line: str) -> None`, `reset() -> None`, `count` property. No module singleton: `ServerService` owns the instance (Task 2)
+  - [x] 1.3: Logging exactly as Dev Notes "What is logged": DEBUG events with counts only; nothing with a name, an address or the line
+  - [x] 1.4: `ruff format` the two files; `just test-api tests/test_players.py` green
+  - [x] 1.5: Commit `refactor(story-22.1/task-1): add a player tracker for the game's join and leave lines` (nothing reads it yet; precedent `refactor(story-21.8/task-1): add the sidebar preference rules`)
 
 - [ ] Task 2: Wire the tracker into `ServerService`: every output line after the console append, resets on start, stop and exit + tests (AC: 1, 3, 5, 7)
   - [ ] 2.1: Red first: the Task 2 rows of Dev Notes "API tests" in `api/tests/server/test_internal_methods.py` (`TestReadStream`) and `api/tests/server/test_lifecycle.py`; see them fail
@@ -386,13 +386,21 @@ All addresses are documentation ranges (RFC 5737 `203.0.113.0/24`, `198.51.100.0
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive
+
 ### Debug Log References
+
+- Task 1 red: `just test-api tests/test_players.py` failed at collection (`cannot import name 'players'`).
 
 ### Completion Notes List
 
 - 2026-11-18: Story created (create-story, non-interactive) and checked against the create-story checklist: 6 tasks; every code task carries its tests; every AC is mapped to a task (AC 9 to Task 6 and every task's test run, AC 10 to Task 6.4). Ultimate context engine analysis completed - comprehensive developer guide created.
+- Task 1: `PlayerTracker` in `services/players.py` with the provisional `_EVENT_PREFIX` and the three DLL literals; `observe` checks prefix, then rejoin, join, leave. Logging is DEBUG only, with counts and the `reason` field, never a name, address or line. 26 tests in `tests/test_players.py` (literal patterns, counting, chat and other lines, reset, logging with `capture_logs`). Decision: a rejoin line for a name not in the set adds it (the line says the player is on the server; the story names only the already-online case, which changes nothing); pinned by `test_rejoin_of_a_name_not_online_counts_it`. Formatted with `cd api && uv run ruff format <files>` (as Dev Notes "Development Commands" says; `just format-api` takes no file arguments and formats the whole tree).
 
 ### File List
+
+- `api/src/vintagestory_api/services/players.py` (new)
+- `api/tests/test_players.py` (new)
 
 ## Change Log
 
