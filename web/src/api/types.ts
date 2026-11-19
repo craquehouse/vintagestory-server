@@ -554,7 +554,8 @@ export interface VersionDetailResponse {
  * Story 12.4: Dashboard Stats Cards
  *
  * Note: API returns snake_case with serialization aliases, apiClient transforms to camelCase.
- * Game metrics are null if the game server is not running.
+ * Game metrics and the players online are null if the game server is not running
+ * (playersOnline: Story 22.1).
  */
 export interface MetricsSnapshot {
   timestamp: string; // ISO 8601
@@ -562,6 +563,8 @@ export interface MetricsSnapshot {
   apiCpuPercent: number;
   gameMemoryMb: number | null;
   gameCpuPercent: number | null;
+  /** Players online while the game server runs; null otherwise (Story 22.1) */
+  playersOnline: number | null;
 }
 
 /**

@@ -24,13 +24,16 @@ class MetricsSnapshot:
     # Game server metrics (None if game server is not running)
     game_memory_mb: float | None
     game_cpu_percent: float | None
+    # The tracker's count while the game runs, None otherwise (Epic 22 ADR-2)
+    players_online: int | None = None
 
 
 class MetricsSnapshotResponse(BaseModel):
     """Single metrics snapshot for API response.
 
     Converts internal MetricsSnapshot dataclass to camelCase JSON format
-    for frontend consumption.
+    for frontend consumption. ``playersOnline`` is the number of players online
+    while the game server runs, null otherwise (Story 22.1).
     """
 
     timestamp: datetime
@@ -38,6 +41,7 @@ class MetricsSnapshotResponse(BaseModel):
     api_cpu_percent: float = Field(serialization_alias="apiCpuPercent")
     game_memory_mb: float | None = Field(serialization_alias="gameMemoryMb")
     game_cpu_percent: float | None = Field(serialization_alias="gameCpuPercent")
+    players_online: int | None = Field(serialization_alias="playersOnline")
 
     model_config = {"populate_by_name": True}
 
@@ -57,6 +61,7 @@ class MetricsSnapshotResponse(BaseModel):
             api_cpu_percent=snapshot.api_cpu_percent,
             game_memory_mb=snapshot.game_memory_mb,
             game_cpu_percent=snapshot.game_cpu_percent,
+            players_online=snapshot.players_online,
         )
 
 

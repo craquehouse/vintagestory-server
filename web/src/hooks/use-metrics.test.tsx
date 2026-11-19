@@ -37,6 +37,7 @@ const mockMetricsWithGame = {
     apiCpuPercent: 2.3,
     gameMemoryMb: 512.0,
     gameCpuPercent: 15.2,
+    playersOnline: 2,
   },
 };
 
@@ -49,6 +50,7 @@ const mockMetricsNoGame = {
     apiCpuPercent: 2.3,
     gameMemoryMb: null,
     gameCpuPercent: null,
+    playersOnline: null,
   },
 };
 
@@ -69,6 +71,7 @@ const mockHistoryResponse = {
         apiCpuPercent: 2.0,
         gameMemoryMb: 500.0,
         gameCpuPercent: 14.0,
+        playersOnline: 2,
       },
       {
         timestamp: '2026-01-17T10:30:00Z',
@@ -76,6 +79,7 @@ const mockHistoryResponse = {
         apiCpuPercent: 2.3,
         gameMemoryMb: 512.0,
         gameCpuPercent: 15.2,
+        playersOnline: 2,
       },
     ],
     count: 2,
@@ -116,6 +120,23 @@ describe('useCurrentMetrics', () => {
           headers: expect.any(Headers),
         })
       );
+    });
+
+    it('passes playersOnline through from the response (Story 22.1)', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockMetricsWithGame),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const { result } = renderHook(() => useCurrentMetrics(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(result.current.data?.data?.playersOnline).toBe(2);
     });
 
     it('provides loading state while fetching', async () => {

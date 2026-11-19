@@ -9,6 +9,7 @@
  * - Memory Usage with API/Game breakdown (AC: 2, 4)
  * - Disk Space
  * - Uptime
+ * - Players online (Story 22.1)
  *
  * Also displays time-series chart (Story 12.5):
  * - Memory usage over time with selectable time ranges
@@ -33,6 +34,7 @@ import { ServerStatusCard } from './ServerStatusCard';
 import { MemoryCard } from './MemoryCard';
 import { DiskSpaceCard } from './DiskSpaceCard';
 import { UptimeCard } from './UptimeCard';
+import { PlayersCard } from './PlayersCard';
 import { MetricsChart } from './MetricsChart';
 import { TimeRangeSelector, DEFAULT_TIME_RANGE } from './TimeRangeSelector';
 
@@ -134,6 +136,11 @@ export function Dashboard() {
         {/* Uptime */}
         <StatCardErrorBoundary title="Uptime" testId="uptime-card">
           <UptimeCard uptimeSeconds={serverStatus?.uptimeSeconds} isRunning={isRunning} />
+        </StatCardErrorBoundary>
+
+        {/* Players online (Story 22.1) */}
+        <StatCardErrorBoundary title="Players" testId="players-card">
+          <PlayersCard isRunning={isRunning} />
         </StatCardErrorBoundary>
       </div>
 

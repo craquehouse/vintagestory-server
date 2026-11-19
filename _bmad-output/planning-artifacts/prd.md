@@ -11,8 +11,10 @@ documentCounts:
   research: 0
   brainstorming: 1
   projectDocs: 1
-lastUpdated: '2026-11-17'
+lastUpdated: '2026-11-18'
 updates:
+  - date: '2026-11-18'
+    description: 'Added FR287-FR305 for Epic 22 (Server Operations and Metrics), with the maintainer''s answers of the same day'
   - date: '2026-11-17'
     description: 'Added FR260-FR285 for Epic 21 (Maintainer Decisions and Web Polish); revised the same day: FR286 added for the pulled-in VSS-q38r'
   - date: '2026-11-17'
@@ -883,3 +885,39 @@ If trivial to implement:
 #### Pulled In (Matt, 2026-11-17)
 
 - FR286: When the installed game version changes, the mod data in the web UI that depends on it (the browse cards' release badges, compatibility and update status) is fetched again without a reload, triggered by the version the server status reports
+
+### Epic 22: Server Operations and Metrics
+
+#### Players Online (Matt, 2026-11-18)
+
+- FR287: The API counts the players online from the game's console output: a join line adds the player, a leave line removes them, and a repeated join changes nothing; the count is 0 whenever the game is not running and starts at 0 at each start; player names are never returned or logged above DEBUG
+- FR288: The current and history metrics responses carry `playersOnline` (null when the game is not running), and the dashboard shows a Players card with the count
+
+#### Prometheus Metrics (Matt, 2026-11-18)
+
+- FR289: `GET /metrics` at the root answers in the Prometheus text format without an API key, with the game server's info (version), up, state, uptime, players online and maximum, pending restart, the game process's CPU seconds and resident memory, and the manager's own process metrics
+- FR290: The `/metrics` values are read when the endpoint is scraped, not from the metrics collection job; the game process and uptime series are absent when the game is not running; a source that fails is left out and the endpoint still answers
+- FR291: The README documents the endpoint, each metric, that it is open, how to keep it off the internet, and a Prometheus scrape configuration example
+
+#### Scheduled Restarts (Matt, 2026-11-18)
+
+- FR292: The API setting `scheduled_restart_times` holds up to 24 daily times as `HH:MM` (24-hour), empty by default (no scheduled restart); entries are validated, de-duplicated and stored sorted, and two times less than 16 minutes apart are rejected; the times are in the container's time zone (`TZ`, UTC when unset), which the README documents
+- FR293: At each scheduled time, if the game is running, it is restarted through the same path as the Restart button, whether or not players are online; a stopped game is never started; if another start, stop, restart, install or uninstall is in progress the scheduled restart is skipped and logged
+- FR294: Before a scheduled restart, players are warned with `/announce` 15, 5 and 1 minutes before, with fixed text, only while the game is running
+- FR295: A change of `scheduled_restart_times` takes effect at once (the restart jobs are added, replaced or removed and listed in Scheduled Jobs); a value that is saved but cannot be applied is reported as saved but not applied
+- FR296: How long the game takes to stop and whether its world save finishes inside the stop timeout are measured in a throwaway container and recorded; the timeout is changed only on the maintainer's decision. Whether the game overwrites `serverconfig.json` edits made while it runs (`VSS-zws`) is verified in the same run and recorded
+
+#### Disk Cleanup and Logs (Matt, 2026-11-18)
+
+- FR297: A daily cleanup at 03:00 container time deletes the game's log archive directories older than `log_archive_retention_days` (default 14; 0 keeps all), always keeping the newest `log_archive_keep_min` (default 5)
+- FR298: With `backup_keep_count` above 0 the cleanup keeps only that many newest files in the game's `Backups` directory; the default 0 keeps all. It never deletes from `BackupSaves`, the world save, mods or player data, never deletes the live log files, and never follows a symbolic link
+- FR299: The cleanup logs each deletion and a summary; the README says who rotates which logs (the game archives and splits its own; the manager deletes old archives; the manager's stdout is rotated by Docker or Kubernetes)
+
+#### API Settings Tab (Matt, 2026-11-18)
+
+- FR300: Each interval setting in the API Settings tab has an On switch: off saves 0 and the job stops; on saves the API's default; the tab shows Off for a saved 0
+- FR301: The API Settings tab has a Metrics Collection field (1 second to 1 hour) whose help text says the dashboard charts stop updating when it is off and `/metrics` keeps working
+- FR302: The refresh interval fields accept 60 seconds to 365 days, as the API does, and the tab's fallback values equal the API's defaults
+- FR303: A Monitor key does not see the API Settings tab, whose data only an Admin key can read
+- FR304: The API Settings tab edits the scheduled restart times (add, change and remove times, saved as one list, with the time zone and warning rules in its help text)
+- FR305: The API Settings tab edits the three disk cleanup limits within the API's bounds, each saying that 0 keeps all

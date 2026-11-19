@@ -33,6 +33,7 @@ const mockDataWithGame: MetricsSnapshot[] = [
     apiCpuPercent: 2.0,
     gameMemoryMb: 500,
     gameCpuPercent: 15.0,
+    playersOnline: 2,
   },
   {
     timestamp: '2026-01-17T10:10:00Z',
@@ -40,6 +41,7 @@ const mockDataWithGame: MetricsSnapshot[] = [
     apiCpuPercent: 2.2,
     gameMemoryMb: 510,
     gameCpuPercent: 15.5,
+    playersOnline: 2,
   },
   {
     timestamp: '2026-01-17T10:20:00Z',
@@ -47,6 +49,7 @@ const mockDataWithGame: MetricsSnapshot[] = [
     apiCpuPercent: 1.8,
     gameMemoryMb: 505,
     gameCpuPercent: 14.8,
+    playersOnline: 2,
   },
 ];
 
@@ -58,6 +61,7 @@ const mockDataWithNullGame: MetricsSnapshot[] = [
     apiCpuPercent: 2.0,
     gameMemoryMb: 500,
     gameCpuPercent: 15.0,
+    playersOnline: 2,
   },
   {
     timestamp: '2026-01-17T10:10:00Z',
@@ -65,6 +69,7 @@ const mockDataWithNullGame: MetricsSnapshot[] = [
     apiCpuPercent: 2.2,
     gameMemoryMb: null, // Server stopped
     gameCpuPercent: null,
+    playersOnline: null,
   },
   {
     timestamp: '2026-01-17T10:20:00Z',
@@ -72,6 +77,7 @@ const mockDataWithNullGame: MetricsSnapshot[] = [
     apiCpuPercent: 1.8,
     gameMemoryMb: null, // Server still stopped
     gameCpuPercent: null,
+    playersOnline: null,
   },
   {
     timestamp: '2026-01-17T10:30:00Z',
@@ -79,6 +85,7 @@ const mockDataWithNullGame: MetricsSnapshot[] = [
     apiCpuPercent: 2.5,
     gameMemoryMb: 520, // Server restarted
     gameCpuPercent: 16.0,
+    playersOnline: 2,
   },
 ];
 
@@ -176,6 +183,7 @@ describe('MetricsChart', () => {
         apiCpuPercent: 2 + Math.random() * 3,
         gameMemoryMb: 500 + Math.random() * 100,
         gameCpuPercent: 15 + Math.random() * 5,
+        playersOnline: 2,
       }));
 
       expect(() => {

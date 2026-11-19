@@ -27,6 +27,7 @@ from vintagestory_api.models.server import (
 )
 from vintagestory_api.services.config_init_service import ConfigInitService
 from vintagestory_api.services.console import ConsoleBuffer
+from vintagestory_api.services.players import PlayerTracker
 
 # Lazy import to avoid circular dependency - imported at runtime when needed
 _mod_service_module = None
@@ -184,6 +185,9 @@ class ServerService:
         # Console buffer for capturing server output
         self._console_buffer = ConsoleBuffer()
 
+        # Players online, counted from the game's output (Epic 22 ADR-1)
+        self._player_tracker = PlayerTracker()
+
     @property
     def settings(self) -> Settings:
         """Get application settings."""
@@ -209,6 +213,13 @@ class ServerService:
         if self._process is not None and self._process.returncode is None:
             return self._process.pid
         return None
+
+    @property
+    def players_online(self) -> int | None:
+        """Players online while the game process runs (Epic 22 ADR-2); None otherwise."""
+        if self.game_server_pid is None:
+            return None
+        return self._player_tracker.count
 
     def _update_mod_service_server_state(self, running: bool) -> None:
         """Update the mod service with current server running state.
@@ -1009,6 +1020,11 @@ class ServerService:
 
         self._server_state = ServerState.STARTING
         self._last_exit_code = None
+        # A run that exited by itself can leave its readers draining buffered lines; cancel
+        # them first, so none adds a name or console line after the reset below
+        await self._cancel_background_tasks()
+        # No name from an earlier run survives a start, and a failed spawn leaves 0
+        self._player_tracker.reset()
 
         try:
             self._process = await asyncio.create_subprocess_exec(
@@ -1114,13 +1130,10 @@ class ServerService:
             self._server_start_time = None
 
             # Cancel monitor and stream reader tasks if still running
-            for task in [self._monitor_task, self._stdout_task, self._stderr_task]:
-                if task and not task.done():
-                    task.cancel()
-                    try:
-                        await task
-                    except asyncio.CancelledError:
-                        pass
+            await self._cancel_background_tasks()
+
+            # After the readers are cancelled, so no reader adds a name after the reset
+            self._player_tracker.reset()
 
             # Notify mod service that server is no longer running
             self._update_mod_service_server_state(False)
@@ -1137,6 +1150,16 @@ class ServerService:
             self._settle_state_after_failed_stop(self._process)
             raise RuntimeError(ErrorCode.SERVER_STOP_FAILED) from e
 
+    async def _cancel_background_tasks(self) -> None:
+        """Cancel and await the monitor and console reader tasks that are still running."""
+        for task in [self._monitor_task, self._stdout_task, self._stderr_task]:
+            if task and not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+
     def _settle_state_after_failed_stop(self, process: asyncio.subprocess.Process) -> None:
         """Report the process's real state after a stop fails partway through.
 
@@ -1150,6 +1173,7 @@ class ServerService:
         self._last_exit_code = process.returncode
         self._server_state = ServerState.INSTALLED
         self._server_start_time = None
+        self._player_tracker.reset()
         self._update_mod_service_server_state(False)
 
     async def restart_server(self, timeout: float = 10.0) -> LifecycleResponse:
@@ -1206,6 +1230,8 @@ class ServerService:
         try:
             # Wait for process to exit
             returncode = await self._process.wait()
+            # The game exited: nobody is online, whatever the state (also during a stop)
+            self._player_tracker.reset()
 
             # Update state based on exit
             self._last_exit_code = returncode
@@ -1239,7 +1265,9 @@ class ServerService:
         """Read lines from subprocess stream and add to console buffer.
 
         This coroutine runs continuously until the stream is exhausted (process exits).
-        Each line is decoded, stripped, and added to the console buffer with a timestamp.
+        Each line is decoded, stripped, and added to the console buffer with a timestamp,
+        then given to the player tracker, which counts the game's join and leave lines.
+        A tracker fault is logged and never stops console capture.
 
         Args:
             stream: The subprocess stdout or stderr stream.
@@ -1256,6 +1284,13 @@ class ServerService:
                 # Decode and strip the line, handle encoding errors gracefully
                 text = line.decode("utf-8", errors="replace").rstrip()
                 await self._console_buffer.append(text)
+                try:
+                    self._player_tracker.observe(text)
+                except Exception as e:
+                    # A tracker fault must never stop console capture (Epic 22 ADR-1 decision 1).
+                    logger.warning(
+                        "player_tracker_error", stream=stream_name, error_type=type(e).__name__
+                    )
         except asyncio.CancelledError:
             # Stream reading cancelled during shutdown - expected
             pass

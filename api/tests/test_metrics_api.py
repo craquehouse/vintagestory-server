@@ -32,6 +32,7 @@ def _create_snapshot(
     api_cpu: float = 5.0,
     game_memory: float | None = 200.0,
     game_cpu: float | None = 10.0,
+    players: int | None = 2,
 ) -> MetricsSnapshot:
     """Helper to create test snapshots."""
     return MetricsSnapshot(
@@ -40,6 +41,7 @@ def _create_snapshot(
         api_cpu_percent=api_cpu,
         game_memory_mb=game_memory,
         game_cpu_percent=game_cpu,
+        players_online=players,
     )
 
 
@@ -317,9 +319,11 @@ class TestMetricsResponseFormat:
         assert "apiCpuPercent" in data
         assert "gameMemoryMb" in data
         assert "gameCpuPercent" in data
+        assert "playersOnline" in data
         # snake_case keys should NOT be in response
         assert "api_memory_mb" not in data
         assert "api_cpu_percent" not in data
+        assert "players_online" not in data
 
     def test_history_response_structure(
         self, client: TestClient, mock_metrics_service: MagicMock
@@ -356,3 +360,80 @@ class TestMetricsResponseFormat:
         assert "status" in json_data
         assert json_data["status"] == "ok"
         assert "data" in json_data
+
+
+class TestPlayersOnline:
+    """playersOnline in each snapshot (Story 22.1, AC 5, 6)."""
+
+    _KEYS = {
+        "timestamp",
+        "apiMemoryMb",
+        "apiCpuPercent",
+        "gameMemoryMb",
+        "gameCpuPercent",
+        "playersOnline",
+    }
+
+    def test_current_has_players_online(
+        self, client: TestClient, mock_metrics_service: MagicMock
+    ) -> None:
+        """AC 6: an Admin reads playersOnline; every other field is as before."""
+        mock_metrics_service.buffer.get_latest.return_value = _create_snapshot(
+            api_memory=128.5, api_cpu=2.3, game_memory=512.0, game_cpu=15.2, players=2
+        )
+
+        response = client.get(
+            "/api/v1alpha1/metrics/current",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert set(data) == self._KEYS
+        assert data["playersOnline"] == 2
+        assert data["apiMemoryMb"] == 128.5
+        assert data["apiCpuPercent"] == 2.3
+        assert data["gameMemoryMb"] == 512.0
+        assert data["gameCpuPercent"] == 15.2
+        assert "ExamplePlayer" not in response.text
+
+    def test_current_players_online_null_when_stopped(
+        self, client: TestClient, mock_metrics_service: MagicMock
+    ) -> None:
+        """AC 6: with the game stopped, playersOnline is null."""
+        mock_metrics_service.buffer.get_latest.return_value = _create_snapshot(
+            game_memory=None, game_cpu=None, players=None
+        )
+
+        response = client.get(
+            "/api/v1alpha1/metrics/current",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert set(data) == self._KEYS
+        assert data["playersOnline"] is None
+
+    def test_history_items_have_players_online(
+        self, client: TestClient, mock_metrics_service: MagicMock
+    ) -> None:
+        """AC 6: each history item carries playersOnline."""
+        now = datetime.now(UTC)
+        mock_metrics_service.buffer.get_all.return_value = [
+            _create_snapshot(timestamp=now - timedelta(minutes=2), players=None),
+            _create_snapshot(timestamp=now - timedelta(minutes=1), players=0),
+            _create_snapshot(timestamp=now, players=2),
+        ]
+
+        response = client.get(
+            "/api/v1alpha1/metrics/history",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+        metrics = response.json()["data"]["metrics"]
+        assert [item["playersOnline"] for item in metrics] == [None, 0, 2]
+        for item in metrics:
+            assert set(item) == self._KEYS
+        assert "ExamplePlayer" not in response.text

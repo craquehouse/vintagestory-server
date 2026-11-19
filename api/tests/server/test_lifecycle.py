@@ -6,6 +6,7 @@ from collections.abc import Generator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from structlog.testing import capture_logs
 
 from vintagestory_api.config import Settings
 from vintagestory_api.models.errors import ErrorCode
@@ -1203,3 +1204,206 @@ class TestLifecycleStateTransitions:
 
         restart_state = mock_get_module.return_value.get_restart_state.return_value
         restart_state.clear_restart.assert_not_called()
+
+
+# Placeholder player data (Story 22.1): documentation addresses only (RFC 5737).
+_NAME = "ExamplePlayer"
+_JOIN_LINE = b"18.11.2026 10:15:32 [Event] ExamplePlayer 203.0.113.5:42420 joins.\n"
+_OTHER_JOIN_LINE = b"18.11.2026 10:15:32 [Event] AnotherPlayer 198.51.100.7:42420 joins.\n"
+_TRACKED_JOIN = "18.11.2026 10:15:32 [Event] ExamplePlayer 203.0.113.5:42420 joins."
+
+
+def _running_process() -> AsyncMock:
+    """A fake game process whose monitor wait blocks until the test changes it."""
+
+    async def blocking_wait() -> int:
+        await asyncio.Event().wait()
+        return 0
+
+    process = AsyncMock()
+    process.pid = 12345
+    process.returncode = None
+    process.send_signal = MagicMock()
+    process.kill = MagicMock()
+    process.wait = AsyncMock(side_effect=blocking_wait)
+    _configure_stream_mocks(process)
+    return process
+
+
+def _let_process_exit(process: AsyncMock) -> None:
+    """Make the next wait() return at once with the process exited."""
+
+    async def exit_wait() -> int:
+        process.returncode = 0
+        return 0
+
+    process.wait = AsyncMock(side_effect=exit_wait)
+
+
+class TestPlayersOnline:
+    """Players are counted while the game runs and reset on start, stop and exit (Story 22.1)."""
+
+    @pytest.mark.asyncio
+    async def test_players_counted_while_running(self, installed_service: ServerService) -> None:
+        """Join lines from the game's stdout are counted (AC 1); no name is logged (AC 5)."""
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            process = _running_process()
+            process.stdout.readline = AsyncMock(side_effect=[_JOIN_LINE, _OTHER_JOIN_LINE, b""])
+            mock_exec.return_value = process
+
+            with capture_logs() as logs:
+                await installed_service.start_server()
+                await asyncio.sleep(0.05)
+
+                assert installed_service.players_online == 2
+
+                _let_process_exit(process)
+                await installed_service.stop_server()
+
+            captured = repr(logs)
+            for secret in ("ExamplePlayer", "AnotherPlayer", "203.0.113", "198.51.100"):
+                assert secret not in captured
+
+    @pytest.mark.asyncio
+    async def test_start_resets_count(self, installed_service: ServerService) -> None:
+        """No name from an earlier run survives a start (AC 3)."""
+        installed_service._player_tracker.observe(_TRACKED_JOIN)
+        assert installed_service._player_tracker.count == 1
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            process = _running_process()
+            mock_exec.return_value = process
+
+            await installed_service.start_server()
+
+            assert installed_service._player_tracker.count == 0
+            assert installed_service.players_online == 0
+
+            _let_process_exit(process)
+            await installed_service.stop_server()
+
+    @pytest.mark.asyncio
+    async def test_start_cancels_previous_run_readers(
+        self, installed_service: ServerService
+    ) -> None:
+        """A reader left from a run that exited by itself adds no name to the new run."""
+        spawned = asyncio.Event()
+
+        async def old_reader() -> None:
+            # Still draining the old run's buffered lines when the new run spawns
+            await spawned.wait()
+            installed_service._player_tracker.observe(_TRACKED_JOIN)
+
+        old_task = asyncio.create_task(old_reader())
+        installed_service._stdout_task = old_task
+        await asyncio.sleep(0)  # The old reader reaches its wait.
+
+        process = _running_process()
+
+        def spawn(*_args: object, **_kwargs: object) -> AsyncMock:
+            spawned.set()
+            return process
+
+        with patch("asyncio.create_subprocess_exec", side_effect=spawn):
+            await installed_service.start_server()
+            await asyncio.sleep(0.05)
+
+            assert old_task.cancelled()
+            assert installed_service.players_online == 0
+
+            _let_process_exit(process)
+            await installed_service.stop_server()
+
+    @pytest.mark.asyncio
+    async def test_stop_resets_count(self, installed_service: ServerService) -> None:
+        """A stop empties the set and players_online is None afterwards (AC 3)."""
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            process = _running_process()
+            mock_exec.return_value = process
+
+            await installed_service.start_server()
+            installed_service._player_tracker.observe(_TRACKED_JOIN)
+            assert installed_service.players_online == 1
+
+            _let_process_exit(process)
+            await installed_service.stop_server()
+
+            assert installed_service._player_tracker.count == 0
+            assert installed_service.players_online is None
+
+    @pytest.mark.asyncio
+    async def test_exit_resets_count(
+        self, installed_service: ServerService, mock_subprocess: tuple[MagicMock, AsyncMock]
+    ) -> None:
+        """The game exiting by itself empties the set (AC 3)."""
+        _, mock_process = mock_subprocess
+        mock_process.wait = AsyncMock(return_value=1)
+        mock_process.returncode = 1
+
+        await installed_service.start_server()
+        installed_service._player_tracker.observe(_TRACKED_JOIN)
+        assert installed_service._player_tracker.count == 1
+
+        await asyncio.sleep(0.1)
+
+        assert installed_service.get_server_status().state == ServerState.INSTALLED
+        assert installed_service._player_tracker.count == 0
+
+    @pytest.mark.asyncio
+    async def test_failed_stop_of_exited_process_resets_count(
+        self, installed_service: ServerService
+    ) -> None:
+        """A stop that fails after the process has exited empties the set (AC 3)."""
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            process = _running_process()
+
+            def send_signal(_: int) -> None:
+                process.returncode = 3
+                raise ProcessLookupError("process already exited")
+
+            process.send_signal = MagicMock(side_effect=send_signal)
+            mock_exec.return_value = process
+
+            await installed_service.start_server()
+            installed_service._player_tracker.observe(_TRACKED_JOIN)
+            assert installed_service._player_tracker.count == 1
+
+            with pytest.raises(RuntimeError, match=ErrorCode.SERVER_STOP_FAILED):
+                await installed_service.stop_server()
+
+            assert installed_service._player_tracker.count == 0
+            assert installed_service.players_online is None
+
+    @pytest.mark.asyncio
+    async def test_failed_stop_of_live_process_keeps_count(
+        self, installed_service: ServerService
+    ) -> None:
+        """A stop that could not signal a live process keeps its players."""
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            process = _running_process()
+            process.send_signal = MagicMock(side_effect=OSError("Permission denied"))
+            mock_exec.return_value = process
+
+            await installed_service.start_server()
+            installed_service._player_tracker.observe(_TRACKED_JOIN)
+
+            with pytest.raises(RuntimeError, match=ErrorCode.SERVER_STOP_FAILED):
+                await installed_service.stop_server()
+
+            assert installed_service.get_server_status().state == ServerState.RUNNING
+            assert installed_service.players_online == 1
+
+    @pytest.mark.asyncio
+    async def test_restart_resets_count(
+        self, installed_service: ServerService, mock_subprocess: tuple[MagicMock, AsyncMock]
+    ) -> None:
+        """A restart (stop then start) leaves the count at 0."""
+        del mock_subprocess  # Fixture sets up mock, not inspected
+
+        await installed_service.start_server()
+        installed_service._player_tracker.observe(_TRACKED_JOIN)
+        assert installed_service._player_tracker.count == 1
+
+        await installed_service.restart_server()
+
+        assert installed_service._player_tracker.count == 0

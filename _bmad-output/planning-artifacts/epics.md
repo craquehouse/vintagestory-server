@@ -4,8 +4,10 @@ inputDocuments:
   - '_bmad-output/planning-artifacts/prd.md'
   - '_bmad-output/planning-artifacts/architecture.md'
   - '_bmad-output/planning-artifacts/ux-design-specification.md'
-lastUpdated: '2026-11-17'
+lastUpdated: '2026-11-18'
 updates:
+  - date: '2026-11-18'
+    description: 'Added Epic 22 (6 stories) for Server Operations and Metrics; FR287-FR305, with the maintainer''s eleven answers of the same day (VSS-zws pulled in)'
   - date: '2026-11-17'
     description: 'Added Epic 21 (8 stories) for Maintainer Decisions and Web Polish; FR260-FR286 (revised the same day with the maintainer''s answers: every default confirmed, VSS-q38r pulled into Story 21.4 with FR286)'
   - date: '2026-11-17'
@@ -500,6 +502,25 @@ This document provides the complete epic and story breakdown for vintagestory-se
 | FR284 | Epic 21 | The sidebar follows the width until the user chooses |
 | FR285 | Epic 21 | 1280px maximum content width, console excepted |
 | FR286 | Epic 21 | Mod data is refreshed when the installed game version changes |
+| FR287 | Epic 22 | Players online are counted from the game's join and leave lines |
+| FR288 | Epic 22 | `playersOnline` in the JSON metrics and a dashboard Players card |
+| FR289 | Epic 22 | An open Prometheus `/metrics` with the game server's metrics |
+| FR290 | Epic 22 | `/metrics` is read live; absent series when the game is stopped |
+| FR291 | Epic 22 | The README documents `/metrics` with a scrape example |
+| FR292 | Epic 22 | `scheduled_restart_times`: daily `HH:MM` times in `TZ` |
+| FR293 | Epic 22 | A scheduled restart restarts a running game, never starts a stopped one |
+| FR294 | Epic 22 | Warnings at 15, 5 and 1 minutes before a scheduled restart |
+| FR295 | Epic 22 | Restart times apply at once and are listed in Scheduled Jobs |
+| FR296 | Epic 22 | Stop time measured; `VSS-zws` verified |
+| FR297 | Epic 22 | Daily deletion of old log archives, the newest kept |
+| FR298 | Epic 22 | Backups kept to a count only when set; nothing else deleted |
+| FR299 | Epic 22 | Cleanup logged; the README says who rotates which logs |
+| FR300 | Epic 22 | An On switch per interval field |
+| FR301 | Epic 22 | A Metrics Collection field |
+| FR302 | Epic 22 | Interval bounds and fallbacks match the API |
+| FR303 | Epic 22 | No API Settings tab for a Monitor key |
+| FR304 | Epic 22 | Restart times edited in the API Settings tab |
+| FR305 | Epic 22 | Cleanup limits edited in the API Settings tab |
 
 ## Epic List
 
@@ -2016,7 +2037,8 @@ So that **I can monitor background task status**.
 | Epic 19: API Security and Mod File Safety | 19.1, 19.2, 19.3, 19.4, 19.5, 19.6, 19.7 | 7 |
 | Epic 20: Tooling and Test Health | 20.1, 20.2, 20.3, 20.4, 20.5, 20.6, 20.7 | 7 |
 | Epic 21: Maintainer Decisions and Web Polish | 21.1, 21.2, 21.3, 21.4, 21.5, 21.6, 21.7, 21.8 | 8 |
-| **Total** | | **128** |
+| Epic 22: Server Operations and Metrics | 22.1, 22.2, 22.3, 22.4, 22.5, 22.6 | 6 |
+| **Total** | | **134** |
 
 ---
 
@@ -7200,3 +7222,475 @@ So that **content has room at tablet widths and stays readable on large monitors
 - [ ] `layout-widths.spec.ts` writes the new key and checks a fresh browser at 900px and 1024px (ADR-14 decision 7) (`VSS-w85`)
 - [ ] The 1280px cap in `Layout` with one constant, the console pages opted out, Game Settings on the shared constant; unit tests; a `feat(web)` commit with the release note (ADR-15 decisions 1 to 5) (`VSS-alx`)
 - [ ] Check each capped page and the console at 1440, 1920 and 2560px in both sidebar states and extend `layout-widths.spec.ts`; update the UX notes in the story on what the spec asked and what was built (ADR-15 decision 6) (`VSS-alx`)
+
+---
+
+## Epic 22: Server Operations and Metrics
+
+**Goal:** An operator can watch the game server from Prometheus and the dashboard (players online, the game process's CPU and memory, uptime, state), restart it on a daily schedule with warnings to players, and keep the disk from filling with old log archives and backups; and every scheduled job can be turned off, and metrics collection set, from the API Settings tab. Four open beads are closed.
+
+**Architecture:** `architecture/epic-22-server-operations-and-metrics.md` (ADR-1 to ADR-14, with the facts checked at `e16a7932`). There is no preparation story: what planning could not check (the stop time of a world save, whether the game prunes its own log archives, `VSS-zws`, the console prefix of the join and leave lines) is a task inside Stories 22.1, 22.3 and 22.4, run in throwaway containers or confirmed by the maintainer.
+
+**Decided by the maintainer (Matt, 2026-11-18):** eleven answers given one at a time (`sprint-change-proposal-2026-11-18-epic-22.md`, section 5): a Prometheus `/metrics` at the root and `playersOnline` in the JSON metrics and the dashboard (ADR-2, ADR-3); `/metrics` open like `/healthz` (ADR-3); the metric set of ADR-4; players counted from the game's join and leave lines (ADR-1); restart times as a daily `HH:MM` list in the container's time zone (ADR-5); warnings at 15, 5 and 1 minutes with fixed text (ADR-6); a restart whenever the game runs, players or not, and never a start (ADR-6); cleanup of log archives older than 14 days with the newest 5 kept, backups only when a count is set, `BackupSaves` never (ADR-9); log rotation left to the game (ADR-10); an On switch per interval field and a Metrics Collection field from 1 second to 1 hour (ADR-11); `VSS-zws` pulled in, `VSS-hv60`, `VSS-3tb1` and `VSS-7z3` not (ADR-8). Planner decisions not reviewed yet: the job layout of ADR-6 and ADR-7, the 16-minute gap between restart times (ADR-6 decision 6), the 03:00 cleanup time and the safety rules (ADR-9), the hidden API Settings tab for Monitor (ADR-12, told to the maintainer with question 11), and the UI of ADR-13.
+
+**Order:** 22.1, 22.2, 22.3, 22.4, 22.5, 22.6.
+
+**Dependencies:**
+
+- Story 22.2 comes after 22.1: its `vintagestory_players_online` series reads the tracker 22.1 adds.
+- Stories 22.3 and 22.4 both edit `services/api_settings.py`, `jobs/__init__.py` and the README's configuration table; 22.4 comes after 22.3 and uses the `apply_setting` function 22.3 adds (ADR-7).
+- Stories 22.5 and 22.6 both edit `ApiSettingsPanel.tsx`, its test and `web/src/api/config.ts`; 22.6 comes after 22.5, and after 22.3 and 22.4, whose settings it edits.
+- Stories are run one after another. Each branch starts from the previous story's branch, and each pull request targets `main`; the merge order is the story order.
+
+**Beads:** four in scope, each closed with an AAR by its story after merge: `VSS-bhw` in 22.2 (22.1 carries its first half), `VSS-29p` in 22.4 (22.3 carries its first half), `VSS-zws` in 22.3, `VSS-9jv` in 22.5. Story 22.6 has no bead: it is the web half of `VSS-29p`'s settings. What planning found is in the stories (the change proposal lists it), not in new beads.
+
+**Product changes:** one new route (`GET /metrics`, open); one new field in the JSON metrics (`playersOnline`); four new API settings (`scheduled_restart_times`, `log_archive_retention_days`, `log_archive_keep_min`, `backup_keep_count`; the existing settings' API bounds do not change); two new background jobs (`scheduled_restart_HHMM`, `disk_cleanup`); `TZ` documented; one new runtime dependency (`prometheus-client`). No existing route, field or status code changes. Nothing is breaking. Deleting old log archives by default (14 days, 5 kept) is new behaviour an operator should read about in the release note.
+
+### Current State
+
+- Game CPU and memory are in the JSON metrics and uptime is in the server status, but there is no player count and no Prometheus endpoint, although the PRD describes one
+- The game is restarted only by hand; there is no schedule and no warning to players
+- The game moves each run's logs into `Logs/Archive/` and nothing deletes them; `/genbackup` files accumulate in `Backups/`
+- Nobody has measured whether a stop's 10-second timeout leaves the world save enough time, and `VSS-zws` (does the game overwrite `serverconfig.json` edits made while it runs) is open
+- The API Settings tab cannot turn an interval job off, has no Metrics Collection field, caps the refresh intervals below the API's maximum, has two fallbacks that differ from the API defaults, and is shown to a Monitor key that cannot read it
+
+### Target State
+
+- The API counts players from the game's join and leave lines; the JSON metrics and a dashboard card show the count
+- `/metrics` serves the game server's info, state, uptime, players and process metrics in the Prometheus format, read live, without a key
+- Daily restart times, with warnings at 15, 5 and 1 minutes, restart a running game and never start a stopped one
+- A daily cleanup deletes old log archives and, when asked, old backups, and never touches the world, mods or `BackupSaves`
+- The stop time and `VSS-zws` are measured and recorded
+- Every interval job can be turned off and on in the UI, Metrics Collection has a field, the bounds and fallbacks match the API, and a Monitor key does not see the tab
+- Restart times and cleanup limits are edited in the API Settings tab
+
+---
+
+### Story 22.1: Players Online Are Counted
+
+**Sprint key:** `22-1-players-online-are-counted`
+**Beads:** `VSS-bhw` (API-023), first half
+**FRs:** FR287, FR288
+
+As an **operator**,
+I want **to see how many players are on the server**,
+So that **I know whether anyone is playing before I restart or change something, and how busy the server is over time**.
+
+**Acceptance Criteria:**
+
+**Given** the game is running and prints a join line for `ExamplePlayer` (the `'{0} {1} joins.'` literal, with a documentation address such as `203.0.113.5:42420`)
+**When** the line is read from the game's output
+**Then** the count of players online is 1, and a second join line for another name makes it 2
+
+*(Covers FR287; ADR-1 decision 2)*
+
+**Given** `ExamplePlayer` is online
+**When** the game prints `Player ExamplePlayer left.`
+**Then** the count goes down by one; a leave line for a name not online, and a join line for a name already online (including `ExamplePlayer joined again, killing previous client.`), change nothing
+
+*(Covers FR287; ADR-1 decisions 2 and 5)*
+
+**Given** players are counted
+**When** the game is started, stopped or exits by itself
+**Then** the count is 0
+
+*(Covers FR287; ADR-1 decision 3)*
+
+**Given** a chat line whose text ends in "joins."
+**When** it is read
+**Then** it is not counted
+
+*(Covers FR287; ADR-1 decision 6)*
+
+**Given** players join and leave
+**When** I read the API's log at INFO and the API responses
+**Then** no player name appears in either
+
+*(Covers FR287; ADR-1 decision 4)*
+
+**Given** the game is running with two players online
+**When** an authenticated client reads `GET /api/v1alpha1/metrics/current` and `/history` after a collection
+**Then** the snapshots have `playersOnline: 2`; with the game stopped they have `playersOnline: null`; every other field is as before
+
+*(Covers FR288; ADR-2 decisions 1 and 2)*
+
+**Given** the dashboard
+**When** the game is running, and when it is stopped
+**Then** a Players card shows the count, or "Server stopped", next to the Uptime card, at every width the dashboard supports
+
+*(Covers FR288; ADR-2 decision 3)*
+
+**Given** one anonymised join line and one leave line from a real server, provided by the maintainer
+**When** they are added as test cases
+**Then** they are counted (manual check, reserved for the maintainer, ticked only on his confirmation)
+
+*(Covers FR287; ADR-1 decision 2, ADR-14 decision 4)*
+
+**Tasks:**
+
+- [ ] `PlayerTracker` with the three patterns, the name set and the reset, and unit tests for every pattern and edge case listed in Epic 22 ADR-1 decision 6
+- [ ] Wire the tracker into `ServerService`: every output line after the console append, resets on start, stop and exit; tests with a stubbed process (ADR-1 decisions 1 and 3)
+- [ ] `players_online` in `MetricsSnapshot` and `playersOnline` in the responses, with API tests; a `feat(api)` commit with the release note (ADR-2 decisions 1 and 4)
+- [ ] `playersOnline` in the web type and the Players card on the dashboard, with unit tests; a `feat(web)` commit with the release note (ADR-2 decisions 2 and 3)
+- [ ] Ask the maintainer for the anonymised sample lines; fix the prefix pattern from them and add them as test cases (ADR-1 decision 2; manual check)
+
+---
+
+### Story 22.2: A Prometheus `/metrics` Endpoint
+
+**Sprint key:** `22-2-prometheus-metrics-endpoint`
+**Beads:** `VSS-bhw` (API-023), closes here
+**FRs:** FR289, FR290, FR291
+
+As an **operator who runs Prometheus and Grafana**,
+I want **the manager to serve the game server's metrics in the Prometheus format**,
+So that **I can graph players, CPU, memory and uptime, and alert when the server is down, with the tools I already use**.
+
+**Acceptance Criteria:**
+
+**Given** a running API
+**When** a client without an API key requests `GET /metrics`
+**Then** the answer is 200 with `Content-Type` `text/plain; version=0.0.4; charset=utf-8` (prometheus-client's `CONTENT_TYPE_LATEST`) and a body in the Prometheus text format
+
+*(Covers FR289; ADR-3 decisions 2 and 6)*
+
+**Given** the game is running, version 1.22.7, with two players, `MaxClients` 16 and no pending restart
+**When** `/metrics` is scraped
+**Then** it has `vintagestory_server_info{version="1.22.7"} 1`, `vintagestory_server_up 1`, `vintagestory_server_state{state="running"} 1` and a 0 series for every other state, `vintagestory_server_uptime_seconds`, `vintagestory_players_online 2`, `vintagestory_players_max 16`, `vintagestory_server_pending_restart 0`, `vintagestory_server_process_cpu_seconds_total` and `vintagestory_server_process_resident_memory_bytes`, each with `# HELP` and `# TYPE`, and the manager's `process_*` and `python_info` series
+
+*(Covers FR289; ADR-4 decisions 1, 3 and 4)*
+
+**Given** the game is installed and stopped
+**When** `/metrics` is scraped
+**Then** `vintagestory_server_up` is 0, `vintagestory_players_online` is 0, and the uptime and `server_process_*` series are absent
+
+*(Covers FR290; ADR-4 decision 2)*
+
+**Given** `metrics_collection_interval` is 0 (the collection job is off)
+**When** `/metrics` is scraped twice a few seconds apart while the game runs
+**Then** both answers carry current values, and the CPU counter does not go down
+
+*(Covers FR290; ADR-3 decision 4)*
+
+**Given** reading `MaxClients` (or another single source) raises
+**When** `/metrics` is scraped
+**Then** the answer is 200 without that source's series, and one WARNING is logged
+
+*(Covers FR290; ADR-3 decision 5)*
+
+**Given** the web UI is served by the API
+**When** `/metrics` is requested
+**Then** the metrics answer it, not the web UI's page
+
+*(Covers FR289; ADR-3 decision 2)*
+
+**Given** the README
+**When** I read its metrics section
+**Then** it lists each series with its meaning, says that the endpoint is open and how to keep it off the internet, and gives a Prometheus `scrape_configs` example with `metrics_path: /metrics` and a placeholder target
+
+*(Covers FR291; ADR-3 decision 6)*
+
+**Given** the API in a container (the CI E2E stack)
+**When** the API E2E tests run
+**Then** one test scrapes `/metrics` without a key and finds `vintagestory_server_up`
+
+*(Covers FR289)*
+
+**Tasks:**
+
+- [ ] Add `prometheus-client` with a minimum version and the next major excluded (`uv add`, lock updated), with a `build(api)` commit (Epic 22 ADR-3 decision 1)
+- [ ] The custom collector and the project registry with the default collectors; unit tests for each series with the game running, stopped and not installed, and for a failing source (ADR-3 decisions 3 to 5, ADR-4)
+- [ ] The root `GET /metrics` route without authentication; API tests for the content type, no key, and the web UI not answering it; a `feat(api)` commit with the release note (ADR-3 decision 2)
+- [ ] An API E2E test that scrapes `/metrics` on the E2E stack (`api/tests/e2e`, base URL default `http://localhost:9080`) (FR289)
+- [ ] The README's metrics section with the scrape example; the PRD's post-MVP line updated to say where it is built (ADR-3 decision 6)
+
+---
+
+### Story 22.3: Scheduled Restarts
+
+**Sprint key:** `22-3-scheduled-restarts`
+**Beads:** `VSS-29p` (API-011), first half; `VSS-zws` (API-073), closes here
+**FRs:** FR292, FR293, FR294, FR295, FR296
+
+As an **operator**,
+I want **the game server to restart at the times I set, after warning the players**,
+So that **it runs fresh every day without me being there, and nobody is surprised**.
+
+**Acceptance Criteria:**
+
+**Given** an Admin key
+**When** it sets `scheduled_restart_times` to `["16:00", "04:00", "04:00"]`
+**Then** the setting is saved as `["04:00", "16:00"]`, and `GET /config/api` returns it
+
+*(Covers FR292; ADR-5 decision 2)*
+
+**Given** an Admin key
+**When** it sets `scheduled_restart_times` to a list with `4:00`, `24:00`, `04:60`, a non-string, 25 entries, or `04:00` and `04:10`
+**Then** the answer is 400 `API_SETTING_INVALID` with a message naming the problem, and the saved value does not change
+
+*(Covers FR292; ADR-5 decision 2, ADR-6 decision 6)*
+
+**Given** `scheduled_restart_times` is `["04:00"]`
+**When** the API starts, or the setting is saved
+**Then** the job `scheduled_restart_0400` is registered with a next run at 03:45 in the container's time zone, and is listed by `GET /api/v1alpha1/jobs`; saving `[]` removes it at once
+
+*(Covers FR295; ADR-6 decisions 1 and 7, ADR-7)*
+
+**Given** the scheduler cannot apply the saved times
+**When** the setting is saved
+**Then** the value is saved and the answer is `API_SETTING_NOT_APPLIED`, as for an interval
+
+*(Covers FR295; ADR-7 decision 2)*
+
+**Given** the game is running when `scheduled_restart_0400` fires
+**When** the sequence runs (with a fake sleep in tests)
+**Then** `/announce Server restarts in 15 minutes`, then `in 5 minutes`, then `in 1 minute` are sent at the right offsets, and the restart goes through `ServerService.restart_server()`, which clears the pending-restart flag; the log line says how many players were online
+
+*(Covers FR293, FR294; ADR-6 decisions 1, 2, 4 and 5)*
+
+**Given** the game is stopped when the job fires, or stops during the warnings
+**When** the sequence reaches its next step
+**Then** nothing more is announced, the game is not started, and `scheduled_restart_skipped reason=not_running` is logged
+
+*(Covers FR293, FR294; ADR-6 decision 3)*
+
+**Given** a manual restart (or start, stop, install, uninstall) holds the lifecycle lock when the restart is due
+**When** the scheduled restart runs
+**Then** it does not wait, does not restart, and logs `scheduled_restart_skipped reason=lifecycle_busy`
+
+*(Covers FR293; ADR-6 decision 4)*
+
+**Given** a throwaway container with a fresh world (never the dev stack)
+**When** the game is stopped three times
+**Then** the story records each stop's duration, whether it ended within 10 seconds and whether the log shows the world saved; if any stop needs more than 10 seconds or cuts the save short, the story stops for the maintainer's decision before the restart job is merged
+
+*(Covers FR296; ADR-8 decisions 1 and 2, ADR-14)*
+
+**Given** the same throwaway container
+**When** `Port` is changed through the API while the game runs, a live `/serverconfig` command is sent, the game is stopped, and then started again
+**Then** the story records what `serverconfig.json` holds after the stop and after the start, and `VSS-zws` is closed with that evidence (and a fix only if it is small; otherwise the maintainer decides)
+
+*(Covers FR296; ADR-8 decision 3)*
+
+**Given** the README
+**When** I read its configuration table and the scheduled restarts paragraph
+**Then** `TZ` is documented (UTC when unset, an example value), and the paragraph says when the warnings come, that a stopped server is not started, that a time less than 15 minutes ahead first runs the next day, and how a restart is skipped
+
+*(Covers FR292, FR293; ADR-5 decision 4, ADR-6 decision 6)*
+
+**Given** a scheduled restart on a real deployment
+**When** the maintainer is in the game at the warning times
+**Then** he sees the three warnings and the restart (manual check, reserved for the maintainer)
+
+*(Covers FR294; ADR-14 decision 4)*
+
+**Tasks:**
+
+- [ ] The `scheduled_restart_times` setting with its validator and list handling in `update_setting`, with tests (Epic 22 ADR-5 decisions 1 to 3, ADR-6 decision 6)
+- [ ] `apply_setting` and `apply_restart_schedule`, `SCHEDULED_SETTINGS`, the router's callback and start-up registration; tests for add, replace, remove and the not-applied path (ADR-7 decisions 1 to 3)
+- [ ] The warning and restart sequence with injectable sleep, the skip rules and the log lines; tests for each path; a `feat(api)` commit with the release note (ADR-6 decisions 1 to 5)
+- [ ] The throwaway-container run: stop time and world save, and `VSS-zws`; record the results in the story and the ADR; stop for the maintainer if the stop is too slow (ADR-8)
+- [ ] The README: `TZ` and the scheduled restarts paragraph (ADR-5 decision 4, ADR-6 decision 6)
+
+---
+
+### Story 22.4: Log Archive and Backup Cleanup
+
+**Sprint key:** `22-4-log-archive-and-backup-cleanup`
+**Beads:** `VSS-29p` (API-011), closes here
+**FRs:** FR297, FR298, FR299
+
+As an **operator**,
+I want **old log archives, and old backups when I ask for it, deleted every day**,
+So that **the disk does not fill up over months of restarts, and my world and its own backups are never touched**.
+
+**Acceptance Criteria:**
+
+**Given** `serverdata/Logs/Archive/` holds 20 archive directories, one per day for the last 20 days, and the default settings
+**When** the cleanup runs
+**Then** the archives older than 14 days are deleted, the newest 14 remain, and each deletion is logged with its name and size
+
+*(Covers FR297, FR299; ADR-9 decisions 1, 3 and 6)*
+
+**Given** 7 archives, all older than 14 days, and `log_archive_keep_min` 5
+**When** the cleanup runs
+**Then** the newest 5 remain
+
+*(Covers FR297; ADR-9 decision 3)*
+
+**Given** `log_archive_retention_days` is 0
+**When** the cleanup runs
+**Then** no archive is deleted
+
+*(Covers FR297; ADR-9 decision 1)*
+
+**Given** an entry in `Archive/` whose name does not match `YYYY-MM-DD_HH_MM_SS`, a file in `Archive/`, or an archive that is a symbolic link
+**When** the cleanup runs
+**Then** it is not deleted; a symbolic link is logged at WARNING
+
+*(Covers FR298; ADR-9 decisions 3 and 5)*
+
+**Given** `serverdata/Backups/` holds 8 files and a directory, and `backup_keep_count` is 3
+**When** the cleanup runs
+**Then** the 3 newest files and the directory remain; with `backup_keep_count` 0 (the default) all 8 files remain
+
+*(Covers FR298; ADR-9 decisions 1 and 4)*
+
+**Given** files in `BackupSaves/`, `Saves/`, `Mods/`, `Playerdata/` and the live `server-*.log` files, and `Logs/Archive` itself a symbolic link to a directory outside `serverdata`
+**When** the cleanup runs with every limit at its smallest
+**Then** none of them is deleted
+
+*(Covers FR298; ADR-9 decision 5)*
+
+**Given** one entry cannot be deleted (permission denied)
+**When** the cleanup runs
+**Then** the error is logged, the other entries are still handled, and the summary line counts what was deleted
+
+*(Covers FR299; ADR-9 decision 6)*
+
+**Given** the API starts
+**When** I list the jobs
+**Then** `disk_cleanup` is registered as a cron job at 03:00 in the container's time zone, and it reads the limits when it runs, so a changed limit applies at the next run
+
+*(Covers FR297; ADR-7 decisions 3 and 4, ADR-9 decision 6)*
+
+**Given** each cleanup setting
+**When** an Admin key saves a value outside its bounds
+**Then** the answer is 400 `API_SETTING_INVALID` and nothing changes
+
+*(Covers FR297, FR298; ADR-9 decision 1)*
+
+**Given** a throwaway container (never the dev stack)
+**When** the game is started and stopped several times
+**Then** the story records the archive directory names the game writes and that it deletes none of them, and the cleanup deletes the expected ones
+
+*(Covers FR297; ADR-9 decision 7, ADR-14)*
+
+**Given** the README
+**When** I read "Logs and disk use"
+**Then** it says what the game rotates, what the cleanup deletes and when, the three settings, and how to rotate the manager's stdout with Docker's log options
+
+*(Covers FR299; ADR-10)*
+
+**Tasks:**
+
+- [ ] The three cleanup settings with bounds and tests (Epic 22 ADR-9 decision 1)
+- [ ] `DiskCleanupService` with the archive and backup rules, the path and symlink checks, and tests on temporary directories for every case above (ADR-9 decisions 2 to 5)
+- [ ] The `disk_cleanup` cron job, always registered, with its log lines and tests; a `feat(api)` commit with the release note, saying that archives older than 14 days are now deleted by default (ADR-9 decision 6, ADR-7 decisions 3 and 4)
+- [ ] The throwaway-container run for the archive names and the game's own behaviour; record the result in the story and the ADR (ADR-9 decision 7)
+- [ ] The README's "Logs and disk use" section and the settings rows (ADR-10)
+
+---
+
+### Story 22.5: Interval Fields Can Turn Jobs Off
+
+**Sprint key:** `22-5-interval-fields-can-turn-jobs-off`
+**Beads:** `VSS-9jv` (UI-085)
+**FRs:** FR300, FR301, FR302, FR303
+
+As an **administrator**,
+I want **to turn each background job off and on, and set how often metrics are collected, from the API Settings tab**,
+So that **I do not have to call the API by hand for what the API already allows**.
+
+**Acceptance Criteria:**
+
+**Given** the API Settings tab with Mod List Refresh at 4h
+**When** I turn its On switch off
+**Then** 0 is saved, the duration input is replaced by "Off", one success toast is shown, and the job is no longer listed in Scheduled Jobs
+
+*(Covers FR300; ADR-11 decision 1)*
+
+**Given** Mod List Refresh is off (saved 0)
+**When** I load the tab, and then turn the switch on
+**Then** it shows Off on load, and turning it on saves 14400 and shows the duration input with 4h
+
+*(Covers FR300; ADR-11 decisions 1 and 4)*
+
+**Given** the API Settings tab
+**When** I look at Refresh Intervals
+**Then** there is a Metrics Collection field with an On switch, accepting 1 second to 1 hour, defaulting to 10 seconds, whose help text says the dashboard charts stop updating when it is off and `/metrics` keeps working
+
+*(Covers FR301; ADR-11 decisions 2 and 3)*
+
+**Given** Mod List Refresh or Server Versions Refresh
+**When** I enter 30s, 2d or 400d
+**Then** 30s and 400d are refused with the field's bounds message and 2d is saved (the bounds are 60 seconds to 365 days)
+
+*(Covers FR302; ADR-11 decision 2)*
+
+**Given** the settings have not loaded a value for Server Versions Refresh or Enforce Env on Restart
+**When** the fields render
+**Then** they show 1 day and off, the API's defaults, from one web constant
+
+*(Covers FR302; ADR-11 decision 4)*
+
+**Given** a save that fails, or that answers `API_SETTING_NOT_APPLIED`
+**When** I use a switch
+**Then** one toast is shown, as for the duration input
+
+*(Covers FR300; ADR-11 decision 6)*
+
+**Given** a Monitor key
+**When** I open Settings, or a link to its API Settings tab
+**Then** the API Settings tab is not shown and UI Preferences is shown; with an Admin key the tab is shown as before
+
+*(Covers FR303; ADR-12)*
+
+**Tasks:**
+
+- [ ] The optional off/on pair in `DurationSettingField`, with unit tests; other users unchanged (Epic 22 ADR-11 decision 5)
+- [ ] The switches on the two refresh fields, the bounds and the fallbacks from one constant of API defaults; unit tests; a `feat(web)` commit with the release note (ADR-11 decisions 1, 2 and 4)
+- [ ] The Metrics Collection field with its help text; unit tests (ADR-11 decisions 2 and 3)
+- [ ] Hide the API Settings tab for Monitor, with the fallback for a stored or linked tab; unit tests for both roles; a `fix(web)` commit with the release note (ADR-12)
+- [ ] E2E: turn a job off and on in the tab and restore the saved value from a snapshot; the Monitor check with a precondition skip; base URL default `http://localhost:9080` (ADR-11, ADR-12, ADR-14 decision 3)
+
+---
+
+### Story 22.6: Restart and Cleanup Settings in the UI
+
+**Sprint key:** `22-6-restart-and-cleanup-settings-in-the-ui`
+**Beads:** none (the web half of `VSS-29p`'s settings, closed by Story 22.4)
+**FRs:** FR304, FR305
+
+As an **administrator**,
+I want **to set the restart times and the cleanup limits in the API Settings tab**,
+So that **I can schedule restarts and control disk use without calling the API**.
+
+**Acceptance Criteria:**
+
+**Given** no restart time is set
+**When** I open the API Settings tab
+**Then** a Scheduled Restarts group says no restart is scheduled and offers Add time; its help text says the times are in the server's time zone (`TZ`, UTC unless set), that players are warned at 15, 5 and 1 minutes, that a stopped server is not started, and that a time less than 15 minutes ahead first runs the next day
+
+*(Covers FR304; ADR-13 decision 1)*
+
+**Given** the Scheduled Restarts group
+**When** I add 04:00, add 16:00, change 16:00 to 18:30, and remove 04:00
+**Then** each change saves the whole list once (`["04:00"]`, `["04:00", "16:00"]`, `["04:00", "18:30"]`, `["18:30"]`), with one toast each
+
+*(Covers FR304; ADR-13 decision 1)*
+
+**Given** the API answers 400 for a list (for example two times 10 minutes apart)
+**When** I save it
+**Then** the edited list stays on screen with the API's message, and one error toast is shown
+
+*(Covers FR304; ADR-13 decision 1)*
+
+**Given** the API Settings tab
+**When** I look at Disk Cleanup
+**Then** it has Log archive retention (days), Archives always kept and Backups kept, with the API's bounds and "0 keeps all" in each help text, and saving one shows one toast
+
+*(Covers FR305; ADR-13 decision 2)*
+
+**Given** a phone width (320px) and a desktop width
+**When** I open the tab
+**Then** the two groups fit without sideways scrolling, and each input and button is at least 44px tall below 1024px
+
+*(Covers FR304, FR305)*
+
+**Tasks:**
+
+- [ ] The four settings in the web's API settings type and client, with tests (Epic 22 ADR-13 decision 4)
+- [ ] The Scheduled Restarts group (time list, add, change, remove, one save per change, error state), with unit tests; a `feat(web)` commit with the release note (ADR-13 decision 1)
+- [ ] The Disk Cleanup group, with unit tests; a `feat(web)` commit with the release note (ADR-13 decision 2)
+- [ ] E2E: set and clear a restart time and a cleanup limit in the tab, restoring the saved values from a snapshot, at 320px and desktop width; base URL default `http://localhost:9080` (ADR-13, ADR-14 decision 3)

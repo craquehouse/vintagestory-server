@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 from collections.abc import Generator
 from dataclasses import FrozenInstanceError
 from datetime import datetime
@@ -104,6 +105,45 @@ class TestMetricsSnapshot:
         # Should be hashable since it's frozen
         snapshot_set = {snapshot}
         assert snapshot in snapshot_set
+
+    def test_players_online_defaults_to_none(self) -> None:
+        """players_online is None unless given (Story 22.1)."""
+        snapshot = MetricsSnapshot(
+            timestamp=datetime.now(),
+            api_memory_mb=100.5,
+            api_cpu_percent=25.0,
+            game_memory_mb=None,
+            game_cpu_percent=None,
+        )
+
+        assert snapshot.players_online is None
+
+    def test_players_online_kept_frozen_and_hashable(self) -> None:
+        """An explicit players_online is kept; the snapshot stays frozen and hashable."""
+        snapshot = MetricsSnapshot(
+            timestamp=datetime.now(),
+            api_memory_mb=100.5,
+            api_cpu_percent=25.0,
+            game_memory_mb=512.0,
+            game_cpu_percent=45.0,
+            players_online=2,
+        )
+
+        assert snapshot.players_online == 2
+        assert snapshot in {snapshot}
+        with pytest.raises(FrozenInstanceError):
+            setattr(snapshot, "players_online", 3)
+
+    def test_players_online_is_the_last_field(self) -> None:
+        """The field order is unchanged apart from the new last field."""
+        assert [field.name for field in dataclasses.fields(MetricsSnapshot)] == [
+            "timestamp",
+            "api_memory_mb",
+            "api_cpu_percent",
+            "game_memory_mb",
+            "game_cpu_percent",
+            "players_online",
+        ]
 
 
 def _create_snapshot(
@@ -269,6 +309,7 @@ class TestMetricsService:
         # Game metrics should be None
         assert snapshot.game_memory_mb is None
         assert snapshot.game_cpu_percent is None
+        assert snapshot.players_online is None
 
     def test_collect_with_game_server_running(self) -> None:
         """Test that game metrics are collected when server is running (AC: 2)."""
@@ -279,6 +320,7 @@ class TestMetricsService:
         # Mock server service with game_server_pid property returning a PID
         mock_server_service = MagicMock()
         mock_server_service.game_server_pid = 12345
+        mock_server_service.players_online = 2
 
         # Mock psutil.Process for the game server PID
         mock_game_process = MagicMock()
@@ -302,6 +344,7 @@ class TestMetricsService:
         # Game metrics should be present
         assert snapshot.game_memory_mb == 512.0
         assert snapshot.game_cpu_percent == 45.5
+        assert snapshot.players_online == 2
 
     def test_graceful_degradation_on_no_such_process(self) -> None:
         """Test graceful handling when game process disappears (AC: 3)."""
@@ -399,6 +442,52 @@ class TestMetricsService:
         with patch("vintagestory_api.services.server.get_server_service", return_value=None):
             # This should trigger the line 203 path: return None
             assert service._get_game_server_pid() is None
+
+    def test_collect_players_online_none_when_game_stopped(self) -> None:
+        """A server service reporting no players count (game stopped) gives None."""
+        from unittest.mock import MagicMock
+
+        mock_server_service = MagicMock()
+        mock_server_service.game_server_pid = None
+        mock_server_service.players_online = None
+
+        service = MetricsService(
+            buffer=MetricsBuffer(capacity=10), server_service=mock_server_service
+        )
+        snapshot = service.collect()
+
+        assert snapshot.players_online is None
+
+    def test_collect_passes_players_online_explicitly(self) -> None:
+        """collect() names players_online when it builds the snapshot (no default used)."""
+        from unittest.mock import MagicMock, patch
+
+        mock_server_service = MagicMock()
+        mock_server_service.game_server_pid = None
+        mock_server_service.players_online = 0
+        built: list[dict[str, object]] = []
+
+        def record(**kwargs: object) -> MagicMock:
+            built.append(kwargs)
+            return MagicMock()
+
+        with patch("vintagestory_api.services.metrics.MetricsSnapshot", side_effect=record):
+            service = MetricsService(
+                buffer=MetricsBuffer(capacity=10), server_service=mock_server_service
+            )
+            service.collect()
+
+        assert len(built) == 1
+        assert built[0]["players_online"] == 0
+
+    def test_get_players_online_none_without_server_service(self) -> None:
+        """_get_players_online() is None when no server service is available."""
+        from unittest.mock import patch
+
+        service = MetricsService(buffer=MetricsBuffer(capacity=10), server_service=None)
+
+        with patch("vintagestory_api.services.server.get_server_service", return_value=None):
+            assert service._get_players_online() is None
 
     def test_buffer_property(self) -> None:
         """Test that buffer property returns the buffer."""
