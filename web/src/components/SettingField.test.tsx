@@ -841,6 +841,21 @@ describe('SettingField', () => {
       expect(switchInput).toBeChecked();
     });
 
+    it('names the reason in aria-describedby while disabled (review LOW-3)', () => {
+      render(<SettingField {...defaultProps} description="d" disabled disabledReasonId="why" />);
+
+      expect(screen.getByLabelText('Server Name')).toHaveAttribute(
+        'aria-describedby',
+        'ServerName-desc why'
+      );
+    });
+
+    it('does not name the reason when enabled', () => {
+      render(<SettingField {...defaultProps} disabledReasonId="why" />);
+
+      expect(screen.getByLabelText('Server Name')).not.toHaveAttribute('aria-describedby');
+    });
+
     it('shows no environment badge', () => {
       render(<SettingField {...defaultProps} disabled />);
 
