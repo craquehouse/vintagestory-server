@@ -1,6 +1,6 @@
 # Story 23.4: Config Files Can Be Saved Through the API
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR314-FR318, Epic 23 ADR-1 decision 5, ADR-4, ADR-9. Bead: VSS-glz (UI-025), first half (Story 23.5 closes it). Branch story/23-4-config-files-can-be-saved-through-the-api, stacked on story/23-3-game-settings-are-read-only-for-monitor-keys at 02c96240 (23.3 in review); the PR targets main and merges after 23.3's. API only: no web change, no new dependency. Line references verified at 02c96240. -->
 
@@ -83,11 +83,11 @@ so that **the web editor can change configs safely, keeping comments and formatt
   - [x] 4.2: `models/errors.py`: `CONFIG_FILE_INVALID`, `CONFIG_FILE_SERVER_RUNNING`, `CONFIG_FILE_SERVER_BUSY`, `CONFIG_FILE_CHANGED`, `CONFIG_FILE_WRITE_FAILED`; `routers/config.py`: `POST /files/validate` (declared before the `PUT`), `PUT /files/{filename:path}` with docstrings, `NO_STORE` on every answer, the module docstring's route list
   - [x] 4.3: Commit `feat(story-23.4/task-4): save config files through the API while the game server is stopped`
 
-- [ ] Task 5: Validate and move the story to review (AC: all)
-  - [ ] 5.1: `just check` green; `git diff 02c96240 -- web` empty; no suppression added
-  - [ ] 5.2: `just changelog` lists exactly one entry from this story (Task 4)
-  - [ ] 5.3: Status `review`; `just sprint set 23-4-config-files-can-be-saved-through-the-api review`; Dev Agent Record and File List
-  - [ ] 5.4: Commit `chore(story-23.4/task-5): validate and move story 23.4 to review`
+- [x] Task 5: Validate and move the story to review (AC: all)
+  - [x] 5.1: `just check` green; `git diff 02c96240 -- web` empty; no suppression added
+  - [x] 5.2: `just changelog` lists exactly one entry from this story (Task 4)
+  - [x] 5.3: Status `review`; `just sprint set 23-4-config-files-can-be-saved-through-the-api review`; Dev Agent Record and File List
+  - [x] 5.4: Commit `chore(story-23.4/task-5): validate and move story 23.4 to review`
 
 ## Dev Notes
 
@@ -171,8 +171,29 @@ A start requested during the save awaits the lock (FIFO), so it begins after the
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5), as the epic's controller.
+
 ### Debug Log References
+
+- `just check` (2026-11-19): API 3932 passed, web 3757 passed, 0 skipped; Pyright 0/0; lints green.
 
 ### Completion Notes List
 
+- 2026-11-19 (create-story, dev-story): Tasks 1 to 5 done.
+- **What changed.** `services/server.py`: `GameServerNotStoppedError(reason)`, `ServerService.config_write()` (an `asynccontextmanager` typed `AsyncGenerator[None]`: typeshed marks the `AsyncIterator` form deprecated), `drop_pending_edits_changed_by_save()`. `services/config_files.py`: `ConfigFileInvalidError`, `ConfigFileChangedError`, `ConfigFileWriteError`, `SavedConfigFile`, `changed_top_level_keys`, `is_root_serverconfig`, `check_text`, `save_file`, `_write_atomically` (exclusive temp file, full write loop, fsync, chmod, chown as root, `os.replace`, directory fsync). `services/pending_config_edits.py`: `DropReason` gains `file_edited`. `models/errors.py`: five codes. `routers/config.py`: `POST /files/validate`, `PUT /files/{filename:path}`, a module `logger`, the route list in the module docstring.
+- **Tests.** `tests/server/test_config_write.py` (7: the states, both locks, a start waiting for the save); `tests/test_config_files_save.py` (25); `tests/server/test_pending_edits_file_save.py` (10); `tests/test_routers_config_save.py` (24, over HTTP with a real `ServerService` on `tmp_path`; the busy case patches `config_write` because the TestClient runs its own event loop).
+- **Deviations.** (1) The request's `version` is validated as 64 lowercase hex characters (a malformed one is FastAPI's 422 validation error, not `CONFIG_FILE_CHANGED`). (2) The check endpoint's body `filename` is limited to 255 characters, as the read's path. (3) A body over 2 MiB is read in full by FastAPI before the size check; a limit on the request size itself is left to a proxy (noted, no bead: the route is Admin only).
+- The new test module imports `conftest` without the `type: ignore[import-not-found]` the older router test carries; Pyright resolves it through `extraPaths`. No suppression added. `git diff 02c96240 -- web` empty. `just changelog`: one entry from this story, f029340 (Task 4).
+
 ### File List
+
+- `api/src/vintagestory_api/services/server.py`, `services/config_files.py`, `services/pending_config_edits.py` (modified)
+- `api/src/vintagestory_api/models/errors.py`, `routers/config.py` (modified)
+- `api/tests/server/test_config_write.py`, `api/tests/server/test_pending_edits_file_save.py`, `api/tests/test_config_files_save.py`, `api/tests/test_routers_config_save.py` (new)
+- `_bmad-output/implementation-artifacts/23-4-config-files-can-be-saved-through-the-api.md` (this file)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
+
+## Change Log
+
+- 2026-11-19: Story 23.4 created (ready-for-dev).
+- 2026-11-19: Implemented (dev-story): Tasks 1 to 5; status review.
