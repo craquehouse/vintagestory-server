@@ -46,7 +46,7 @@ from fastapi.testclient import TestClient
 from structlog.testing import capture_logs
 
 from vintagestory_api.config import Settings
-from vintagestory_api.jobs import INTERVAL_JOBS
+from vintagestory_api.jobs import INTERVAL_JOBS, register_disk_cleanup
 from vintagestory_api.main import app
 from vintagestory_api.middleware.auth import get_settings
 from vintagestory_api.models.errors import ErrorCode
@@ -2603,3 +2603,22 @@ class TestBackupKeepCount:
         )
 
         assert response.status_code == 403
+
+
+class TestBackupKeepCountLeavesTheJobsAlone:
+    """Saving the backup limit touches no job; the job reads it when it runs (Story 22.4, AC 9)."""
+
+    async def test_save_keeps_the_jobs(
+        self,
+        reschedule_client: httpx.AsyncClient,
+        reschedule_scheduler: SchedulerService,
+    ) -> None:
+        await _save(reschedule_client, "mod_list_refresh_interval", 600)
+        register_disk_cleanup(reschedule_scheduler)
+        before = await _jobs(reschedule_client)
+        assert "disk_cleanup" in before
+
+        response = await _save(reschedule_client, "backup_keep_count", 7)
+
+        assert response.status_code == 200
+        assert await _jobs(reschedule_client) == before

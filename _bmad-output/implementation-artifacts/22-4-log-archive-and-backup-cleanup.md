@@ -141,13 +141,13 @@ so that **the disk does not fill up over months of restarts, and my world and it
   - [x] 3a.3: Remove the two settings and constants from `services/api_settings.py`, and the archive pass from `services/disk_cleanup.py` (`CleanupLimits` holds `backup_keep_count` only; `CleanupResult` the backup counts and `errors`)
   - [x] 3a.4: Commit `refactor(story-22.4/user): drop the log archive cleanup the game already does`
 
-- [ ] Task 4: The `disk_cleanup` cron job, always registered, with its log lines + tests (AC: 8, 9, 13; AC 1 removed)
-  - [ ] 4.1: Red first: new `api/tests/jobs/test_disk_cleanup_job.py` and the Task 4 rows in `api/tests/test_jobs_registration.py` and `api/tests/test_routers_config.py`; see them fail
-  - [ ] 4.2: `api/tests/conftest.py`: the autouse no-op for the cleanup job (Dev Notes "Test safety"), in the same commit as the registration and in place before the first test run with `register_disk_cleanup` called from `register_default_jobs`, so no test run can delete under `dev/`. Its string target imports `vintagestory_api.jobs.disk_cleanup`, so add it once that module exists (before, every test errors at set-up)
-  - [ ] 4.3: New `api/src/vintagestory_api/jobs/disk_cleanup.py` (Dev Notes "The job"): the constants, `run_disk_cleanup(settings, *, now=...)` and the job function `disk_cleanup` under `@safe_job("disk_cleanup")`; `jobs/__init__.py`: `register_disk_cleanup(scheduler)` and its call at the end of `register_default_jobs` (Dev Notes "Registration"); the module docstrings name Story 22.4
-  - [ ] 4.4: The existing tests listed in Dev Notes "Existing tests that change", and nothing else
-  - [ ] 4.5: `cd api && uv run ruff format <changed files>`; `just test-api tests/jobs tests/test_jobs_registration.py tests/test_routers_config.py tests/test_jobs_router.py tests/test_main.py tests/test_disk_cleanup.py tests/test_scheduler.py` green; `just typecheck-api` 0/0
-  - [ ] 4.6: Commit `feat(story-22.4/task-4): delete old backups every day when a limit is set` (body: Story 22.4 / task 4; a daily `disk_cleanup` job at 03:00 in the container's time zone keeps only the newest `backup_keep_count` files in `Backups` when it is above 0 (default 0 keeps all, so nothing is deleted by default); log archives are left to the game, which keeps 5; `BackupSaves`, the world, mods and the logs are never touched). **Amended (2026-11-19); the original subject and body were:** `feat(story-22.4/task-4): delete old game log archives every day, and old backups when a limit is set` (body: Story 22.4 / task 4; a daily `disk_cleanup` job at 03:00 in the container's time zone deletes the game's log archives older than `log_archive_retention_days` (default 14, 0 keeps all), always keeping the newest `log_archive_keep_min` (default 5), and keeps only the newest `backup_keep_count` files in `Backups` when it is above 0 (default 0 keeps all); **archives older than 14 days are now deleted by default**; `BackupSaves`, the world, mods and the live logs are never touched)
+- [x] Task 4: The `disk_cleanup` cron job, always registered, with its log lines + tests (AC: 8, 9, 13; AC 1 removed)
+  - [x] 4.1: Red first: new `api/tests/jobs/test_disk_cleanup_job.py` and the Task 4 rows in `api/tests/test_jobs_registration.py` and `api/tests/test_routers_config.py`; see them fail
+  - [x] 4.2: `api/tests/conftest.py`: the autouse no-op for the cleanup job (Dev Notes "Test safety"), in the same commit as the registration and in place before the first test run with `register_disk_cleanup` called from `register_default_jobs`, so no test run can delete under `dev/`. Its string target imports `vintagestory_api.jobs.disk_cleanup`, so add it once that module exists (before, every test errors at set-up)
+  - [x] 4.3: New `api/src/vintagestory_api/jobs/disk_cleanup.py` (Dev Notes "The job"): the constants, `run_disk_cleanup(settings, *, now=...)` and the job function `disk_cleanup` under `@safe_job("disk_cleanup")`; `jobs/__init__.py`: `register_disk_cleanup(scheduler)` and its call at the end of `register_default_jobs` (Dev Notes "Registration"); the module docstrings name Story 22.4
+  - [x] 4.4: The existing tests listed in Dev Notes "Existing tests that change", and nothing else
+  - [x] 4.5: `cd api && uv run ruff format <changed files>`; `just test-api tests/jobs tests/test_jobs_registration.py tests/test_routers_config.py tests/test_jobs_router.py tests/test_main.py tests/test_disk_cleanup.py tests/test_scheduler.py` green; `just typecheck-api` 0/0
+  - [x] 4.6: Commit `feat(story-22.4/task-4): delete old backups every day when a limit is set` (body: Story 22.4 / task 4; a daily `disk_cleanup` job at 03:00 in the container's time zone keeps only the newest `backup_keep_count` files in `Backups` when it is above 0 (default 0 keeps all, so nothing is deleted by default); log archives are left to the game, which keeps 5; `BackupSaves`, the world, mods and the logs are never touched). **Amended (2026-11-19); the original subject and body were:** `feat(story-22.4/task-4): delete old game log archives every day, and old backups when a limit is set` (body: Story 22.4 / task 4; a daily `disk_cleanup` job at 03:00 in the container's time zone deletes the game's log archives older than `log_archive_retention_days` (default 14, 0 keeps all), always keeping the newest `log_archive_keep_min` (default 5), and keeps only the newest `backup_keep_count` files in `Backups` when it is above 0 (default 0 keeps all); **archives older than 14 days are now deleted by default**; `BackupSaves`, the world, mods and the live logs are never touched)
 
 - [ ] Task 5: Document who rotates which logs and the cleanup (AC: 12; text as amended in Dev Notes "Maintainer decision after Task 3")
   - [ ] 5.1: `README.md`: a new `### Logs and disk use` section between "Scheduled restarts" and "Metrics" (`:93-112`), and the Features "Scheduled jobs" bullet (`:17`), with the text of Dev Notes "Documentation". The compose files are not changed
@@ -623,6 +623,7 @@ Cleanup done: the container and the image were removed; both listings and `git s
 ### Debug Log References
 
 - Task 1: red first (`ImportError` for `MAX_BACKUP_KEEP_COUNT`; the router's defaults and save tests failed), then green: `just test-api tests/test_api_settings.py tests/test_routers_config.py tests/test_jobs_registration.py` 410 passed; pyright 0/0.
+- Task 4: drafted while Task 3's container ran (red: the module and `register_disk_cleanup` did not exist; then green), stashed at the stop rule, restored after Task 3a and adapted to backups only (red again: the draft read `log_archive_retention_days` from the settings; then green). `run_disk_cleanup(settings)` lost its `now` argument with the service's. `just test-api tests/jobs tests/test_jobs_registration.py tests/test_routers_config.py tests/test_jobs_router.py tests/test_main.py tests/test_disk_cleanup.py tests/test_scheduler.py tests/test_api_settings.py`: 523 passed; pyright 0/0; ruff clean.
 - Task 3a (maintainer decision): red first (14 failures and 1 failing assertion: `CleanupLimits` still required the two archive limits, `ApiSettings` still had the fields), then green: the four affected test files 408 passed; pyright 0/0, ruff clean. `DiskCleanupService` lost its `now` argument too: with no archive pass nothing reads the clock (backups are ordered by modification time).
 - Task 3: the 7-round script waited up to 120 s for the archive count to reach the count before the start + 1; in round 7 it never did (the game deleted one archive as it added one), which is how the pruning showed.
 - Task 2: red first was an `ImportError` at collection (the service module did not exist), not 28 individual failures; then 28 passed; pyright 0/0, ruff clean. The newline and full-width archive names are created on the host's APFS, so those cases run (built conditionally, never skipped).
@@ -643,12 +644,20 @@ Cleanup done: the container and the image were removed; both listings and `git s
 
 ### File List
 
-- `api/src/vintagestory_api/services/api_settings.py` (Task 1: three constants and fields)
-- `api/tests/test_api_settings.py` (Task 1)
-- `api/tests/test_routers_config.py` (Task 1)
-- `api/src/vintagestory_api/services/disk_cleanup.py` (Task 2, new)
-- `api/tests/test_disk_cleanup.py` (Task 2, new)
-- `_bmad-output/planning-artifacts/architecture/epic-22-server-operations-and-metrics.md` (Task 3: ADR-9 "Results (Story 22.4)")
+- `api/src/vintagestory_api/services/api_settings.py` (Task 1: three constants and fields; Task 3a: two of them removed, `backup_keep_count` and `MAX_BACKUP_KEEP_COUNT` remain)
+- `api/tests/test_api_settings.py` (Tasks 1 and 3a)
+- `api/tests/test_routers_config.py` (Tasks 1, 3a and 4)
+- `api/src/vintagestory_api/services/disk_cleanup.py` (Task 2, new; Task 3a: backups only)
+- `api/tests/test_disk_cleanup.py` (Task 2, new; Task 3a: rewritten for backups only)
+- `_bmad-output/planning-artifacts/architecture/epic-22-server-operations-and-metrics.md` (Task 3: ADR-9 "Results (Story 22.4)"; Task 3a: ADR-9 and ADR-10 amended)
+- `_bmad-output/planning-artifacts/prd.md` (Task 3a: FR297, FR299)
+- `_bmad-output/planning-artifacts/epics.md` (Task 3a: Story 22.4 entry, FR297 coverage row)
+- `_bmad-output/planning-artifacts/sprint-change-proposal-2026-11-18-epic-22.md` (Task 3a: answers 8 and 9, the controller decisions)
+- `api/src/vintagestory_api/jobs/disk_cleanup.py` (Task 4, new)
+- `api/src/vintagestory_api/jobs/__init__.py` (Task 4: `register_disk_cleanup`, called from `register_default_jobs`)
+- `api/tests/conftest.py` (Task 4: autouse no-op for the job)
+- `api/tests/jobs/test_disk_cleanup_job.py` (Task 4, new)
+- `api/tests/test_jobs_registration.py` (Task 4)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint` only: in-progress, then review)
 - `_bmad-output/implementation-artifacts/22-4-log-archive-and-backup-cleanup.md` (this file)
 
