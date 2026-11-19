@@ -58,10 +58,10 @@ so that **I can read the configs the game itself accepts instead of a parse erro
 
 <!-- Each code task includes its tests in the same commit, red first. Subjects: type(story-23.1/task-N): ..., the type chosen by what an admin notices. User-visible commits: Task 3 (fix(api)) and Task 4 (fix(web)). -->
 
-- [ ] Task 1: Add `pyjson5` + a test pinning its error shape (AC: 4, 9)
-  - [ ] 1.1: `cd api && uv add "pyjson5>=2.0.1,<3"` (no `just` recipe adds a dependency; precedent Story 22.2 Task 1). `api/pyproject.toml` gains exactly that line in alphabetical order; `api/uv.lock` gains `pyjson5` 2.0.x and no other version changes
-  - [ ] 1.2: In the new `api/tests/test_config_parse.py`, a test that pins what Dev Notes "pyjson5 facts" records: a `Json5DecoderException` subclass, `.message` ending in `near N` with N the 1-based character position of the offending character, and `Infinity` decoding to `inf` (so the API must refuse it)
-  - [ ] 1.3: Commit `build(story-23.1/task-1): add the pyjson5 dependency`
+- [x] Task 1: Add `pyjson5` + a test pinning its error shape (AC: 4, 9)
+  - [x] 1.1: `cd api && uv add "pyjson5>=2.0.1,<3"` (no `just` recipe adds a dependency; precedent Story 22.2 Task 1). `api/pyproject.toml` gains exactly that line in alphabetical order; `api/uv.lock` gains `pyjson5` 2.0.x and no other version changes
+  - [x] 1.2: In the new `api/tests/test_config_parse.py`, a test that pins what Dev Notes "pyjson5 facts" records: a `Json5DecoderException` subclass, `.message` ending in `near N` with N the 1-based character position of the offending character, and `Infinity` decoding to `inf` (so the API must refuse it)
+  - [x] 1.3: Commit `build(story-23.1/task-1): add the pyjson5 dependency`
 
 - [ ] Task 2: `services/config_parse.py` + tests (AC: 1, 2, 3, 4, 9)
   - [ ] 2.1: Red first: the parser rows of Dev Notes "API tests" in `api/tests/test_config_parse.py`; see them fail
