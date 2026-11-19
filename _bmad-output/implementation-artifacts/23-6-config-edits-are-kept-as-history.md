@@ -68,9 +68,9 @@ so that **I can see what changed and undo a bad edit**.
   - [x] 4.2: `models/errors.py`: `CONFIG_HISTORY_WRITE_FAILED`, `CONFIG_REVISION_INVALID`, `CONFIG_REVISION_NOT_FOUND`; `routers/config.py`: the PUT maps `ConfigHistoryWriteError` to 500; `GET /history/{filename:path}` (list, or `?revision=`), `POST /history/{filename:path}/restore`; module docstring
   - [x] 4.3: Commit `feat(story-23.6/task-4): keep earlier versions of config files saved through the API, and restore them`
 
-- [ ] Task 5: README (AC: 6)
-  - [ ] 5.1: README Config files: the history paragraph (Dev Notes "Documentation")
-  - [ ] 5.2: Commit `docs(story-23.6/task-5): explain config file history`
+- [x] Task 5: README (AC: 6)
+  - [x] 5.1: README Config files: the history paragraph (Dev Notes "Documentation")
+  - [x] 5.2: Commit `docs(story-23.6/task-5): explain config file history`
 
 - [ ] Task 6: Validate and move the story to review (AC: all)
   - [ ] 6.1: `just check` green; `git diff f55b09c6 -- web` empty
