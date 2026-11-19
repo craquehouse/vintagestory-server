@@ -61,11 +61,11 @@ so that **the world is saved and players do not lose their progress when I upgra
 
 <!-- Each code task includes its tests in the same commit, red first (write the new tests, run them, see them fail, then implement). Subjects: type(story-22.8/task-N): ..., the type chosen by what an admin notices. One commit is user-visible: Task 2 (fix), the commit that makes a container stop save the world; its subject is written for admins and its body names Story 22.8 and the task. -->
 
-- [ ] Task 1: The shutdown stop in `ServerService` and the refusal of starts + tests (AC: 1, 2, 3, 4, 6, 9)
-  - [ ] 1.1: Red first: new `api/tests/server/test_api_shutdown_stop.py` with the Task 1 rows of Dev Notes "API tests"; see them fail (an `ImportError` at collection is the expected first red)
-  - [ ] 1.2: `services/server.py`: the constant `SHUTDOWN_STOP_TIMEOUT_SECONDS = 8.0`; `self._shutting_down = False` in `__init__`; the refusal in `_start_server_locked`; the public `ServerService.stop_for_api_shutdown(timeout)`; the module-level `stop_game_server_for_api_shutdown()` (Dev Notes "The shutdown stop"). Nothing calls them yet
-  - [ ] 1.3: `cd api && uv run ruff format <changed files>`; `just test-api tests/server tests/test_scheduled_restart.py` green; `just typecheck-api` 0 errors, 0 warnings
-  - [ ] 1.4: Commit `refactor(story-22.8/task-1): add a game server stop for the API's shutdown`
+- [x] Task 1: The shutdown stop in `ServerService` and the refusal of starts + tests (AC: 1, 2, 3, 4, 6, 9)
+  - [x] 1.1: Red first: new `api/tests/server/test_api_shutdown_stop.py` with the Task 1 rows of Dev Notes "API tests"; see them fail (an `ImportError` at collection is the expected first red)
+  - [x] 1.2: `services/server.py`: the constant `SHUTDOWN_STOP_TIMEOUT_SECONDS = 8.0`; `self._shutting_down = False` in `__init__`; the refusal in `_start_server_locked`; the public `ServerService.stop_for_api_shutdown(timeout)`; the module-level `stop_game_server_for_api_shutdown()` (Dev Notes "The shutdown stop"). Nothing calls them yet
+  - [x] 1.3: `cd api && uv run ruff format <changed files>`; `just test-api tests/server tests/test_scheduled_restart.py` green; `just typecheck-api` 0 errors, 0 warnings
+  - [x] 1.4: Commit `refactor(story-22.8/task-1): add a game server stop for the API's shutdown`
 
 - [ ] Task 2: The lifespan stops the game before the scheduler + tests (AC: 1, 2, 5, 9)
   - [ ] 2.1: Red first: the Task 2 rows of Dev Notes "API tests" in `api/tests/test_main.py` (new class `TestLifespanShutdownStopsTheGame`), in `api/tests/server/test_api_shutdown_stop.py` (new class `TestLifespanRunsTheShutdownStop`) and the autouse recorder in `api/tests/conftest.py`; see them fail
