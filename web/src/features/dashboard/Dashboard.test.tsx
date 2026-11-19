@@ -105,6 +105,7 @@ const sampleMetrics: MetricsSnapshot[] = [
     apiCpuPercent: 2.0,
     gameMemoryMb: 500,
     gameCpuPercent: 15.0,
+    playersOnline: 0,
   },
   {
     timestamp: '2026-01-17T10:10:00Z',
@@ -112,6 +113,7 @@ const sampleMetrics: MetricsSnapshot[] = [
     apiCpuPercent: 2.2,
     gameMemoryMb: 510,
     gameCpuPercent: 15.5,
+    playersOnline: 1,
   },
 ];
 
@@ -404,7 +406,7 @@ describe('Dashboard', () => {
   });
 
   describe('stat cards grid (Story 12.4)', () => {
-    it('renders stats grid with 4 cards when server is installed (AC: 1)', async () => {
+    it('renders stats grid with 5 cards when server is installed (AC: 1)', async () => {
       const mockFetch = vi.fn().mockResolvedValue(
         mockServerStatus(
           createServerStatus({
@@ -430,11 +432,57 @@ describe('Dashboard', () => {
         expect(screen.getByTestId('dashboard-stats-grid')).toBeInTheDocument();
       });
 
-      // Verify all 4 stat cards are present
+      // Verify all 5 stat cards are present
       expect(screen.getByTestId('server-status-card')).toBeInTheDocument();
       expect(screen.getByTestId('memory-card')).toBeInTheDocument();
       expect(screen.getByTestId('disk-card')).toBeInTheDocument();
       expect(screen.getByTestId('uptime-card')).toBeInTheDocument();
+      expect(screen.getByTestId('players-card')).toBeInTheDocument();
+    });
+
+    it('places the Players card directly after the Uptime card (Story 22.1, AC 8)', async () => {
+      const mockFetch = vi.fn().mockResolvedValue(
+        mockServerStatus(
+          createServerStatus({
+            state: 'running',
+            version: '1.21.3',
+            uptimeSeconds: 3600,
+          })
+        )
+      );
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<Dashboard />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('dashboard-stats-grid')).toBeInTheDocument();
+      });
+
+      const order = Array.from(screen.getByTestId('dashboard-stats-grid').children).map((child) =>
+        child.getAttribute('data-testid')
+      );
+      expect(order.indexOf('players-card')).toBe(order.indexOf('uptime-card') + 1);
+    });
+
+    it('shows Stopped on the Players card when the server is installed but stopped (Story 22.1, AC 8)', async () => {
+      const mockFetch = vi.fn().mockResolvedValue(
+        mockServerStatus(
+          createServerStatus({
+            state: 'installed',
+            version: '1.21.3',
+          })
+        )
+      );
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<Dashboard />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('players-card-value')).toHaveTextContent('Stopped');
+      });
+      expect(screen.getByTestId('players-card-subtitle')).toHaveTextContent('Server stopped');
     });
 
     it('shows responsive grid layout (AC: 5)', async () => {

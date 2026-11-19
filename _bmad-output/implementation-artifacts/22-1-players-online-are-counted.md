@@ -90,14 +90,14 @@ so that **I know whether anyone is playing before I restart or change something,
   - [x] 3.5: `ruff format` the changed files; `just test-api tests/test_metrics.py tests/test_metrics_api.py tests/test_metrics_edge_cases.py tests/test_metrics_job.py` green
   - [x] 3.6: Commit `feat(api): count the players online and include them in the metrics` (body: Story 22.1 / task 3; `playersOnline` is a new field of each snapshot from `/metrics/current` and `/metrics/history`, null when the game is not running; counted from the game's join and leave lines)
 
-- [ ] Task 4: `playersOnline` in the web type and the Players card on the dashboard + tests (AC: 8)
-  - [ ] 4.1: Red first: new `web/src/features/dashboard/PlayersCard.test.tsx` and the Dashboard rows of Dev Notes "Web tests"; run `just test-web src/features/dashboard` and see them fail
-  - [ ] 4.2: `web/src/api/types.ts` `MetricsSnapshot` (`:559-565`): `playersOnline: number | null;` after `gameCpuPercent`, with a comment (count while the game runs, null otherwise); update the interface's doc comment (`:552-558`)
-  - [ ] 4.3: Add `playersOnline` to every `MetricsSnapshot` fixture the type now requires (Dev Notes "Existing tests that change"); `just typecheck-web` is the list
-  - [ ] 4.4: New `web/src/features/dashboard/PlayersCard.tsx` (Dev Notes "The Players card"): `isRunning` prop, `useCurrentMetrics()` inside (the query MemoryCard already polls; no new request), lucide `Users` icon, `testId="players-card"`, `memo` like `UptimeCard`
-  - [ ] 4.5: `Dashboard.tsx`: import it (`:32-37`), render it in a `StatCardErrorBoundary title="Players" testId="players-card"` directly after the Uptime boundary (`:134-137`), `isRunning={isRunning}` (`:87`); update the file comment's card list (`:7-11`). The grid classes (`:118`) do not change
-  - [ ] 4.6: `just format-web` (it takes no file arguments; the tree is already formatted, so only this task's files should change: check `git status`, Dev Notes "Development Commands"); `just lint-web`, `just typecheck-web`, `just test-web` green
-  - [ ] 4.7: Commit `feat(web): show the players online on the dashboard` (body: Story 22.1 / task 4; the card shows the count from the current metrics, or Stopped)
+- [x] Task 4: `playersOnline` in the web type and the Players card on the dashboard + tests (AC: 8)
+  - [x] 4.1: Red first: new `web/src/features/dashboard/PlayersCard.test.tsx` and the Dashboard rows of Dev Notes "Web tests"; run `just test-web src/features/dashboard` and see them fail
+  - [x] 4.2: `web/src/api/types.ts` `MetricsSnapshot` (`:559-565`): `playersOnline: number | null;` after `gameCpuPercent`, with a comment (count while the game runs, null otherwise); update the interface's doc comment (`:552-558`)
+  - [x] 4.3: Add `playersOnline` to every `MetricsSnapshot` fixture the type now requires (Dev Notes "Existing tests that change"); `just typecheck-web` is the list
+  - [x] 4.4: New `web/src/features/dashboard/PlayersCard.tsx` (Dev Notes "The Players card"): `isRunning` prop, `useCurrentMetrics()` inside (the query MemoryCard already polls; no new request), lucide `Users` icon, `testId="players-card"`, `memo` like `UptimeCard`
+  - [x] 4.5: `Dashboard.tsx`: import it (`:32-37`), render it in a `StatCardErrorBoundary title="Players" testId="players-card"` directly after the Uptime boundary (`:134-137`), `isRunning={isRunning}` (`:87`); update the file comment's card list (`:7-11`). The grid classes (`:118`) do not change
+  - [x] 4.6: `just format-web` (it takes no file arguments; the tree is already formatted, so only this task's files should change: check `git status`, Dev Notes "Development Commands"); `just lint-web`, `just typecheck-web`, `just test-web` green
+  - [x] 4.7: Commit `feat(web): show the players online on the dashboard` (body: Story 22.1 / task 4; the card shows the count from the current metrics, or Stopped)
 
 - [ ] Task 5: The Players card at every dashboard width + E2E test (AC: 8)
   - [ ] 5.1: `web/e2e/layout-widths.spec.ts`: a new `test.describe('Players card at every width (Story 22.1, AC 8)')` (Dev Notes "E2E test"); add Story 22.1 to the file comment (`:4-65`)
@@ -393,6 +393,7 @@ Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive
 - Task 1 red: `just test-api tests/test_players.py` failed at collection (`cannot import name 'players'`).
 - Task 2 red: the 10 new tests in `tests/server/test_internal_methods.py` and `tests/server/test_lifecycle.py` failed (`ServerService` had no `players_online` or `_player_tracker`).
 - Task 3 red: 19 tests failed in `tests/test_metrics.py` and `tests/test_metrics_api.py` (`MetricsSnapshot` had no `players_online`; `_create_snapshot` passed it).
+- Task 4 red: `just test-web src/features/dashboard src/hooks/use-metrics.test.tsx` failed (`PlayersCard.test.tsx` could not import `./PlayersCard`; 3 Dashboard tests); `just typecheck-web` reported `playersOnline` unknown on `MetricsSnapshot` in the fixtures.
 
 ### Completion Notes List
 
@@ -401,6 +402,8 @@ Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive
 - Task 2: `ServerService` owns a `PlayerTracker`; `players_online` reports its count while `game_server_pid` is set, else `None`. `_read_stream` passes each line to the tracker after the console append, inside its own `try`/`except Exception` that logs `player_tracker_error` (WARNING, `stream` and `error_type` only) and continues. Resets in `_start_server_locked` (before the spawn), `_stop_server_locked` (after the readers are cancelled), the exited branch of `_settle_state_after_failed_stop`, and `_monitor_process` right after the wait. Tests: 3 in `TestReadStream` (count while running, `None` without a process, AC 7 tracker fault: lines kept, one WARNING per line, no `stream_read_error`, no line text logged) and 7 in a new `TestPlayersOnline` class in `test_lifecycle.py` (count while running with a no-name log check, start, stop, exit, failed stop of an exited and of a live process, restart). The lifecycle tests use a blocking-`wait` fake process (as `test_stop_server_records_exit_code`) so the start and stop resets are tested on their own, not by the monitor's; the exit and restart tests use `mock_subprocess`.
 - Task 3: `MetricsSnapshot.players_online: int | None = None` (last field); `MetricsSnapshotResponse.players_online` (alias `playersOnline`, no default) after `game_cpu_percent`; `MetricsService.collect()` passes `players_online` from the new `_get_players_online()` explicitly and logs it in `metrics_collected`. Tests: 3 new in `TestMetricsSnapshot` (default `None`, explicit value frozen and hashable, field order), `players_online` assertions in the running and no-server-service `collect()` tests, 3 new in `TestMetricsService` (game stopped gives `None`, `collect()` names the field when it builds the snapshot, `_get_players_online()` without a server service), and a new `TestPlayersOnline` class in `test_metrics_api.py` (`/current` 2 and null with the full key set, `/history` items, no name in the response text). Full API suite: 3503 passed.
 - Commit subject: `feat(story-22.1/task-3): count the players online and include them in the metrics` instead of the story's `feat(api): ...` (orchestrator's instruction: the project's `type(story-X.Y/task-N)` convention; the scope is stripped from release notes, so the release note reads the same).
+- Task 4: `playersOnline: number | null` on the web `MetricsSnapshot`; new `PlayersCard` (memo, `isRunning` prop, `useCurrentMetrics()`, lucide `Users`, `testId="players-card"`) with the states of the card table in the order loading, stopped, error, N/A, count; rendered in a `StatCardErrorBoundary` directly after Uptime in `Dashboard.tsx` (grid classes unchanged). Tests: 11 in `PlayersCard.test.tsx` (every row of the table, Stopped with a lagging snapshot of 3, NaN, fetch URLs are only `/api/v1alpha1/metrics/current`; uses `vi.stubGlobal`/`vi.unstubAllGlobals`), the Dashboard grid test now expects 5 cards, 2 new Dashboard tests (Players right after Uptime in the grid's children, Stopped when installed), 1 new `use-metrics` test (`playersOnline` passes through). `playersOnline` added to the typed fixtures of `Dashboard.test.tsx` and `MetricsChart.test.tsx` and to the fetch bodies of `use-metrics.test.tsx` (null where the game fields are null). `just format-web` changed no file outside this task; `just lint-web`, `just typecheck-web` clean; `just test-web` 3567 passed in 137 files.
+- Commit subject: `feat(story-22.1/task-4): show the players online on the dashboard` instead of the story's `feat(web): ...` (same reason as Task 3).
 
 ### File List
 
@@ -413,6 +416,13 @@ Claude Opus 5.5 (claude-opus-5-5), dev-story workflow, non-interactive
 - `api/src/vintagestory_api/services/metrics.py` (modified)
 - `api/tests/test_metrics.py` (modified)
 - `api/tests/test_metrics_api.py` (modified)
+- `web/src/api/types.ts` (modified)
+- `web/src/features/dashboard/PlayersCard.tsx` (new)
+- `web/src/features/dashboard/PlayersCard.test.tsx` (new)
+- `web/src/features/dashboard/Dashboard.tsx` (modified)
+- `web/src/features/dashboard/Dashboard.test.tsx` (modified)
+- `web/src/features/dashboard/MetricsChart.test.tsx` (modified)
+- `web/src/hooks/use-metrics.test.tsx` (modified)
 
 ## Change Log
 
