@@ -143,8 +143,9 @@ class ApiSettings(BaseModel):
             for this, following in zip(times, [*times[1:], times[0]], strict=True):
                 gap = (_minutes(following) - _minutes(this)) % _MINUTES_PER_DAY
                 if gap < MIN_RESTART_GAP_MINUTES:
+                    apart = "1 minute" if gap == 1 else f"{gap} minutes"
                     raise ValueError(
-                        f"{this!r} and {following!r} are {gap} minutes apart; restart times "
+                        f"{this!r} and {following!r} are {apart} apart; restart times "
                         f"must be at least {MIN_RESTART_GAP_MINUTES} minutes apart"
                     )
         return times
@@ -419,12 +420,12 @@ class ApiSettingsService:
         logger.info(
             "api_setting_updated",
             key=key,
-            value=validated_value,
+            value=stored,
             old_value=old_value,
             source="api",
         )
 
-        return {"key": key, "value": getattr(updated, key)}
+        return {"key": key, "value": stored}
 
     def _save_settings(self, settings: ApiSettings) -> None:
         """Save settings with atomic write pattern.

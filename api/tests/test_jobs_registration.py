@@ -1112,6 +1112,14 @@ class TestApplySetting:
             apply_setting(started_scheduler, "mod_list_refresh_interval", ["04:00"])
         assert started_scheduler.get_jobs() == []
 
+    @pytest.mark.parametrize("value", [True, False])
+    async def test_interval_key_with_a_bool(
+        self, started_scheduler: SchedulerService, value: bool
+    ) -> None:
+        with pytest.raises(TypeError, match="takes an int, got bool"):
+            apply_setting(started_scheduler, "mod_list_refresh_interval", value)
+        assert started_scheduler.get_jobs() == []
+
     async def test_restart_times_with_an_int(self, started_scheduler: SchedulerService) -> None:
         with pytest.raises(TypeError):
             apply_setting(started_scheduler, "scheduled_restart_times", 600)
