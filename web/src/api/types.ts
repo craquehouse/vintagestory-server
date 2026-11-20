@@ -244,6 +244,36 @@ export interface ModRemoveData {
   pendingRestart: boolean;
 }
 
+/** Why the manager does not use a file in the mods folder (Story 24.5, Epic 24 ADR-3). */
+export type UnusedFileReason = 'leftover' | 'unreadable' | 'duplicate_mod_id';
+
+/** A file in the mods folder the manager does not use (GET /mods/unused-files). */
+export interface UnusedFile {
+  name: string;
+  sizeBytes: number;
+  modifiedAt: string; // ISO 8601
+  reason: UnusedFileReason;
+  /** For `duplicate_mod_id`: the file the same mod is installed as */
+  installedAs: string | null;
+}
+
+export interface UnusedFilesData {
+  files: UnusedFile[];
+}
+
+export interface UnusedFileDeleteData {
+  name: string;
+  pendingRestart: boolean;
+}
+
+/** Result of POST /mods/rescan (Story 24.5, Epic 24 ADR-4). */
+export interface ModRescanData {
+  added: number;
+  removed: number;
+  skipped: number;
+  pendingRestart: boolean;
+}
+
 // ===== Game Config Types =====
 
 /**

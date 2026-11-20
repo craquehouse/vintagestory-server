@@ -20,6 +20,9 @@ import {
   checkModUpdates,
   changeModVersion,
   applyAllModUpdates,
+  fetchUnusedFiles,
+  deleteUnusedFile,
+  rescanMods,
 } from '@/api/mods';
 import type {
   ApiResponse,
@@ -417,6 +420,55 @@ export function useApplyAllModUpdates() {
 
   return useMutation({
     mutationFn: () => applyAllModUpdates(),
+    onError: () => {},
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.mods.all });
+    },
+  });
+}
+
+/**
+ * Hook to list the files in the mods folder the manager does not use (Story 24.6).
+ *
+ * Admin only: pass `enabled: false` for other keys, which the API refuses.
+ */
+export function useUnusedFiles({ enabled }: { enabled: boolean }) {
+  return useQuery({
+    queryKey: queryKeys.mods.unusedFiles,
+    queryFn: fetchUnusedFiles,
+    enabled,
+  });
+}
+
+/**
+ * Hook to delete one unused file (Admin, Story 24.6).
+ *
+ * Refetches the mod queries when it settles. Errors are not toasted globally; pass
+ * `onError` to `mutate`.
+ */
+export function useDeleteUnusedFile() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (name: string) => deleteUnusedFile(name),
+    onError: () => {},
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.mods.all });
+    },
+  });
+}
+
+/**
+ * Hook to rescan the mods folder (Admin, Story 24.6).
+ *
+ * Refetches every mod query (installed list, update status, unused files) when it
+ * settles. Errors are not toasted globally; pass `onError` to `mutate`.
+ */
+export function useRescanMods() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => rescanMods(),
     onError: () => {},
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.mods.all });

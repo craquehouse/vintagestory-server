@@ -54,6 +54,7 @@ vi.mock('@/hooks/use-mods', async (importOriginal) => {
 import { InstalledTab } from './InstalledTab';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
 import { toast } from 'sonner';
+import { queryKeys } from '@/api/query-keys';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -747,6 +748,122 @@ describe('InstalledTab', () => {
 
       expect(await screen.findByTestId('mod-updates-update-all')).toHaveClass('max-lg:h-11');
       expect(screen.getByTestId('mod-updates-check')).toHaveClass('max-lg:h-11');
+    });
+  });
+
+  describe('Rescan (Story 24.6)', () => {
+    function rescanFetch(rescan: () => Promise<Partial<Response>>) {
+      return vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (url.includes('/mods/rescan') && init?.method === 'POST') {
+          return rescan();
+        }
+        if (url.includes('/mods/unused-files')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ status: 'ok', data: { files: [] } }),
+          });
+        }
+        if (url.includes('/mods')) {
+          return Promise.resolve({ ok: true, json: () => Promise.resolve(mockEmptyModsResponse) });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockServerStatusResponse),
+        });
+      });
+    }
+
+    function renderAs(role: string) {
+      const queryClient = createTestQueryClient();
+      queryClient.setQueryData(queryKeys.auth.me, { status: 'ok', data: { role } });
+      render(<InstalledTab />, { wrapper: createWrapper(queryClient) });
+    }
+
+    it('rescans and reports what changed', async () => {
+      const fetchMock = rescanFetch(() =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              status: 'ok',
+              data: { added: 2, removed: 1, skipped: 0, pending_restart: false },
+            }),
+        })
+      );
+      globalThis.fetch = fetchMock;
+      renderAs('admin');
+
+      fireEvent.click(await screen.findByTestId('mods-rescan'));
+
+      await waitFor(() =>
+        expect(toast.success).toHaveBeenCalledWith('Rescanned the mods folder', {
+          description: '2 added, 1 removed, 0 skipped.',
+        })
+      );
+      expect(
+        fetchMock.mock.calls.filter(([url]) => String(url).includes('/mods/rescan'))
+      ).toHaveLength(1);
+    });
+
+    it('says a restart is needed when the server runs', async () => {
+      globalThis.fetch = rescanFetch(() =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              status: 'ok',
+              data: { added: 1, removed: 0, skipped: 0, pending_restart: true },
+            }),
+        })
+      );
+      renderAs('admin');
+
+      fireEvent.click(await screen.findByTestId('mods-rescan'));
+
+      await waitFor(() =>
+        expect(toast.success).toHaveBeenCalledWith('Rescanned the mods folder', {
+          description:
+            '1 added, 0 removed, 0 skipped. A server restart is required for the changes to take effect.',
+        })
+      );
+    });
+
+    it('reports a refused rescan', async () => {
+      globalThis.fetch = rescanFetch(() =>
+        Promise.resolve({
+          ok: false,
+          status: 409,
+          statusText: 'Conflict',
+          json: () =>
+            Promise.resolve({
+              detail: { code: 'MODS_BUSY', message: 'A mod install is running.' },
+            }),
+        })
+      );
+      renderAs('admin');
+
+      fireEvent.click(await screen.findByTestId('mods-rescan'));
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith('Rescan failed', {
+          description: 'A mod install is running.',
+        })
+      );
+    });
+
+    it('is not shown to a Monitor key', async () => {
+      globalThis.fetch = rescanFetch(() => Promise.reject(new Error('not called')));
+      renderAs('monitor');
+
+      await screen.findByTestId('mod-updates-check');
+      expect(screen.queryByTestId('mods-rescan')).not.toBeInTheDocument();
+    });
+
+    it('is 44px tall on phones, like the other toolbar buttons', async () => {
+      globalThis.fetch = rescanFetch(() => Promise.reject(new Error('not called')));
+      renderAs('admin');
+
+      expect(await screen.findByTestId('mods-rescan')).toHaveClass('max-lg:h-11');
     });
   });
 });

@@ -28,26 +28,10 @@ import type { ConfigRevision } from '@/api/types';
 import { ServerNotStoppedNote } from './ConfigFileEditor';
 import { ConfirmDialog } from './ConfirmDialog';
 
-const RELATIVE_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
-  ['year', 365 * 24 * 3600],
-  ['month', 30 * 24 * 3600],
-  ['day', 24 * 3600],
-  ['hour', 3600],
-  ['minute', 60],
-  ['second', 1],
-];
+// Story 24.6 review: moved to lib/ for the unused-files notice; re-exported for callers
+import { relativeTime } from '@/lib/relative-time';
 
-/** "3 hours ago", in the browser's language (or `locale`, for tests). */
-export function relativeTime(iso: string, now: number = Date.now(), locale?: string): string {
-  const seconds = Math.round((new Date(iso).getTime() - now) / 1000);
-  const format = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
-  for (const [unit, size] of RELATIVE_UNITS) {
-    if (Math.abs(seconds) >= size || unit === 'second') {
-      return format.format(Math.round(seconds / size), unit);
-    }
-  }
-  return format.format(0, 'second');
-}
+export { relativeTime };
 
 /** "512 B", "1.5 KiB". */
 export function formatSize(bytes: number): string {
