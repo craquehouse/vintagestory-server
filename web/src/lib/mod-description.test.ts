@@ -580,6 +580,52 @@ describe('media the page cannot load (Story 24.8, VSS-koo1, Epic 24 ADR-7)', () 
     }
   );
 
+  it.each(['href', 'xlink:href'])(
+    'removes an SVG feImage whose %s the policy refuses',
+    (attribute) => {
+      const el = parse(
+        sanitizeModDescription(
+          `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><filter id="f"><feImage ${attribute}="http://x.test/a.png"></feImage></filter><rect width="1" height="1"/></svg>`
+        )
+      );
+      expect(el.querySelector('feImage, feimage')).toBeNull();
+      expect(el.querySelector('rect')).not.toBeNull();
+    }
+  );
+
+  it('drops a source outside any media element', () => {
+    const el = parse(sanitizeModDescription('<div><source srcset="http://x.test/x.webp">t</div>'));
+    expect(el.querySelector('source')).toBeNull();
+    expect(el.querySelector('div')?.textContent).toBe('t');
+  });
+
+  it('names a media note by aria-label, as text, never as markup', () => {
+    const el = parse(
+      sanitizeModDescription(
+        '<audio aria-label="Song" src="https://x.test/a.ogg"></audio>' +
+          '<video title="&lt;b&gt;x&lt;/b&gt;" src="https://x.test/a.mp4"></video>'
+      )
+    );
+    const notes = el.querySelectorAll('[data-media-not-shown]');
+    expect(notes[0]?.textContent).toBe(`${AUDIO_NOT_SHOWN}: Song`);
+    expect(notes[1]?.textContent).toBe(`${VIDEO_NOT_SHOWN}: <b>x</b>`);
+    expect(notes[1]?.children).toHaveLength(0);
+  });
+
+  it('keeps sanitizing after a replaced video', () => {
+    const el = parse(
+      sanitizeModDescription(
+        '<video src="https://x.test/a.mp4"></video>' +
+          '<img src="http://x.test/late.png" alt="LATE"><script>alert(1)</script><p>After</p>'
+      )
+    );
+    expect(el.querySelector('[data-image-not-shown]')?.textContent).toBe(
+      `${IMAGE_NOT_SHOWN}: LATE`
+    );
+    expect(el.querySelector('script')).toBeNull();
+    expect(el.querySelector('p')?.textContent).toBe('After');
+  });
+
   it('keeps an SVG image from https', () => {
     const el = parse(
       sanitizeModDescription(

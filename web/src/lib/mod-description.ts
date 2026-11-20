@@ -20,8 +20,8 @@
  *   `srcset` instead of `src` (Story 19.3, VSS-my4c). Nothing is rewritten to `https`.
  * - Story 24.8 (VSS-koo1, Epic 24 ADR-7): a `<video>` or `<audio>` is replaced by
  *   `<span data-media-not-shown>Video not shown</span>` (the policy has no `media-src`);
- *   a `<picture>`'s `<source>`s are dropped, so its `<img>` (checked as above) is used; an
- *   SVG `<image>` from an address the policy refuses is removed (an SVG cannot hold an
+ *   every `<source>` is dropped, so a `<picture>`'s `<img>` (checked as above) is used; an
+ *   SVG `<image>` or `<feImage>` from an address the policy refuses is removed (an SVG cannot hold an
  *   HTML note); the `background` attribute is removed; an inline style declaration
  *   whose `url()` the policy refuses is removed. The policy itself is not widened.
  * - `<style>` elements are removed: DOMPurify keeps one that follows body content,
@@ -134,13 +134,18 @@ purifier.addHook('afterSanitizeAttributes', (node) => {
   if (node.namespaceURI === HTML_NAMESPACE) {
     if (node.nodeName === 'VIDEO') return replaceMedia(node, VIDEO_NOT_SHOWN);
     if (node.nodeName === 'AUDIO') return replaceMedia(node, AUDIO_NOT_SHOWN);
-    // A picture's sources would be chosen over its image; the image is checked below
-    if (node.nodeName === 'SOURCE' && node.parentElement?.nodeName === 'PICTURE') {
+    // A picture's sources would be chosen over its image, which is checked below; a
+    // source anywhere else fetches nothing, so every one is dropped (review L-1)
+    if (node.nodeName === 'SOURCE') {
       node.remove();
       return;
     }
   }
-  if (node.nodeName === 'image' && node.namespaceURI === SVG_NAMESPACE) {
+  // <feImage> loads an image as <image> does (review M-1)
+  if (
+    (node.nodeName === 'image' || node.nodeName === 'feImage') &&
+    node.namespaceURI === SVG_NAMESPACE
+  ) {
     const href = node.getAttribute('href') ?? node.getAttribute('xlink:href');
     if (!isLoadableImage(href)) {
       node.remove();
