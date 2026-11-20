@@ -4,8 +4,10 @@ inputDocuments:
   - '_bmad-output/planning-artifacts/prd.md'
   - '_bmad-output/planning-artifacts/architecture.md'
   - '_bmad-output/planning-artifacts/ux-design-specification.md'
-lastUpdated: '2026-11-19'
+lastUpdated: '2026-11-20'
 updates:
+  - date: '2026-11-20'
+    description: 'Added Epic 24 (8 stories) for Mod Management Follow-ups; FR327-FR343, with the maintainer''s five answers of the same day (VSS-2bp, VSS-uhek and VSS-koo1 folded in)'
   - date: '2026-11-19'
     description: 'Added Epic 23 (7 stories) for Config File Editing; FR309-FR326, with the maintainer''s eight answers of the same day (VSS-o8s and VSS-7z3 pulled in)'
   - date: '2026-11-19'
@@ -548,6 +550,23 @@ This document provides the complete epic and story breakdown for vintagestory-se
 | FR324 | Epic 23 | History, comparison and restore in the file browser |
 | FR325 | Epic 23 | History limits edited in the API Settings tab |
 | FR326 | Epic 23 | The README documents editing and history |
+| FR327 | Epic 24 | API tests run without a `.env` file |
+| FR328 | Epic 24 | The Vintage Story icon is the favicon |
+| FR329 | Epic 24 | Missing static files answer 404 |
+| FR330 | Epic 24 | `/assets` carries the security headers |
+| FR331 | Epic 24 | A version change with the mod's file missing is 409 |
+| FR332 | Epic 24 | Cache eviction covers every file type |
+| FR333 | Epic 24 | A removed mod's modinfo cache is removed |
+| FR334 | Epic 24 | The update check fills in a missing asset ID |
+| FR335 | Epic 24 | Mods unknown to the mod database are local mods |
+| FR336 | Epic 24 | Admin can rescan the mods folder |
+| FR337 | Epic 24 | Unused files in the mods folder are listed |
+| FR338 | Epic 24 | Admin can delete a listed unused file |
+| FR339 | Epic 24 | The Installed tab shows unused files |
+| FR340 | Epic 24 | `.cs` files, folders and mod files are never listed |
+| FR341 | Epic 24 | Installed mods can be filtered |
+| FR342 | Epic 24 | Installed filters are kept in the URL |
+| FR343 | Epic 24 | Blocked description media shows a note |
 
 ## Epic List
 
@@ -2066,7 +2085,8 @@ So that **I can monitor background task status**.
 | Epic 21: Maintainer Decisions and Web Polish | 21.1, 21.2, 21.3, 21.4, 21.5, 21.6, 21.7, 21.8 | 8 |
 | Epic 22: Server Operations and Metrics | 22.1, 22.2, 22.3, 22.4, 22.5, 22.6, 22.7, 22.8 | 8 |
 | Epic 23: Config File Editing | 23.1, 23.2, 23.3, 23.4, 23.5, 23.6, 23.7 | 7 |
-| **Total** | | **143** |
+| Epic 24: Mod Management Follow-ups | 24.1, 24.2, 24.3, 24.4, 24.5, 24.6, 24.7, 24.8 | 8 |
+| **Total** | | **151** |
 
 ---
 
@@ -8325,4 +8345,431 @@ So that **I can see what an edit changed and undo it from the web UI**.
 - [ ] The Config History group in `ApiSettingsPanel.tsx`, with unit tests (ADR-8 decision 4)
 - [ ] A `feat(web)` commit "see, compare and restore earlier versions of config files" (ADR-8 decision 6)
 - [ ] E2E in the CI set only: save a test file twice, compare, restore, check, remove it (ADR-9 decision 3)
+- [ ] `just check` green
+
+---
+
+## Epic 24: Mod Management Follow-ups
+
+**Goal:** An administrator can narrow a long installed-mods list by name, compatibility and available update. A mod copied into the mods folder by hand is picked up without restarting the API and gets its mod database link. Files in the mods folder that the manager does not use can be seen and deleted. Gaps left by Epic 19 are closed, the web UI gets its own icon, and the API tests run on a fresh clone. Seven open beads are closed.
+
+**Architecture:** `architecture/epic-24-mod-management-follow-ups.md` (ADR-1 to ADR-8, with the facts checked at `804af73f`). There is no preparation story.
+
+**Decided by the maintainer (Matt, 2026-11-20):** the scope `VSS-foq7`, `VSS-v3be`, `VSS-3tb1` and `VSS-hv60`, with `VSS-2bp` and `VSS-uhek` folded in and `VSS-koo1` pulled in. Five answers in two rounds (`sprint-change-proposal-2026-11-20-epic-24.md`, section 5):
+
+1. A hand-added mod's asset ID is filled in by the update check (ADR-1).
+2. The Installed tab gets an Admin Rescan action (ADR-4).
+3. Unused files are listed with a confirmed Delete, including archives the sync skipped (ADR-3).
+4. The installed filters are kept in the URL (ADR-6).
+5. `VSS-koo1` is pulled in: the `/assets` headers go with the favicon story, and description media gets its own story (ADR-2, ADR-7).
+
+Planner decisions not reviewed yet: the `MODS_BUSY` code and its two-way rule (ADR-4), "Restart required" after a rescan or archive delete while the game runs (ADR-4 decision 5), `.zip`-only import (ADR-3 decision 4), never overwriting a set asset ID (ADR-1 decision 2), the 404 rule's limit to paths outside the web UI's routes (ADR-2), and a loading compatibility matching only "All" (ADR-6 decision 4).
+
+**Order:** 24.1, 24.2, 24.3, 24.4, 24.5, 24.6, 24.7, 24.8.
+
+**Dependencies:**
+
+- Story 24.1 comes first, so every later story's tests run in a worktree without `.env`.
+- Story 24.5 comes after 24.3: the listing shares the sync's skip rules, and 24.3 changes the sync's removal path (ADR-5).
+- Story 24.6 comes after 24.5 and calls its routes.
+- Stories 24.2, 24.4, 24.7 and 24.8 are independent of each other. 24.4 and 24.7 both touch the Installed tab's update cell and `ModTable.tsx`, so 24.7 starts on top of 24.4.
+- Stories are run one after another. Each branch starts from the previous story's branch, each pull request targets `main`, and the merge order is the story order.
+
+**Beads:** seven in scope, each closed with an AAR by its story after merge: `VSS-uhek` in 24.1, `VSS-2bp` in 24.2 (with `VSS-koo1` item 1), `VSS-3tb1` in 24.5 (24.3 carries items 1, 3 and 4), `VSS-hv60` and `VSS-v3be` in 24.6 (24.4 and 24.5 carry their first halves), `VSS-foq7` in 24.7, `VSS-koo1` in 24.8. What planning found is in the stories (the change proposal lists it), not in new beads.
+
+**Product changes:**
+
+- New routes: `GET /mods/unused-files`, `DELETE /mods/unused-files/{name}` and `POST /mods/rescan`, all Admin only. A new error code, `MODS_BUSY` (409).
+- `PUT /mods/{slug}/version` answers 409 `MOD_FILE_MISSING` instead of 500 when the mod's file is missing.
+- The update check writes a missing asset ID to the mod state.
+- Unknown static paths with a file extension answer 404; `/assets` responses carry the security headers; `/favicon.ico` is a real file.
+- New web URL parameters on the Installed tab: `q`, `compat`, `updates`.
+- No dependency is added, no route or field is removed, and nothing is breaking.
+
+### Current State
+
+- The Installed tab can be sorted but not filtered
+- A mod copied into the mods folder by hand is picked up only when the API restarts, and has no ModDB link (asset ID 0)
+- Leftover `.tmp` and `.bak` files and archives the sync skipped are reported only in a start-up log line
+- A version change of a mod whose file is missing answers 500; cache eviction ignores release files other than `.zip` and `.cs`; a removed mod's cached `modinfo.json` stays behind
+- The browser tab shows Vite's logo; `/favicon.ico` and other missing files answer with the web page; `/assets` has no security headers
+- Description media other than images that the CSP blocks fails silently
+- `just test-api` fails on a fresh clone without `.env`
+
+### Target State
+
+- The Installed tab filters by name, compatibility and available update, on both layouts, with the filters in the URL
+- Rescan picks up a hand-added mod at once; the next update check gives it its ModDB link, or it shows as a local mod
+- Admin sees the files the manager does not use, with the reason, and deletes them one at a time after confirming; `.cs` and folder mods are never offered
+- Epic 19's mod file gaps are closed
+- The web UI has its own icon; missing files are 404; `/assets` has the security headers
+- Blocked description media shows a note
+- `just test-api` runs on a fresh clone
+
+---
+
+### Story 24.1: API Tests Run on a Fresh Clone
+
+**Sprint key:** `24-1-api-tests-run-on-a-fresh-clone`
+**Beads:** `VSS-uhek` (TOOLS-010)
+**FRs:** FR327
+
+As a **developer**,
+I want **the API tests to run on a fresh clone or a new worktree**,
+So that **I do not have to copy a `.env` file before `just test-api` works**.
+
+**Acceptance Criteria:**
+
+**Given** a worktree with no root `.env` and no `VS_API_KEY_ADMIN` in the environment
+**When** I run `just test-api`
+**Then** every test passes, with no "VS_API_KEY_ADMIN must be set" error
+
+*(Covers FR327; ADR-8)*
+
+**Given** `VS_API_KEY_ADMIN` is set in the environment (from `.env` or CI)
+**When** the tests run
+**Then** that value is used, not the placeholder
+
+*(Covers FR327)*
+
+**Tasks:**
+
+- [ ] `api/tests/conftest.py`: `os.environ.setdefault("VS_API_KEY_ADMIN", <placeholder>)` before the app is imported, next to `VS_DEBUG`, with a comment naming `VSS-uhek`
+- [ ] A test that the placeholder applies only when the variable is unset
+- [ ] README Development section: tests need no `.env`; running the app still does
+- [ ] Run `just test-api` in a worktree without `.env`; `just check` green; a `test` commit
+
+---
+
+### Story 24.2: The Web UI Has Its Own Icon, and Missing Files Are 404
+
+**Sprint key:** `24-2-web-ui-icon-and-missing-files-are-404`
+**Beads:** `VSS-2bp` (UI-075), `VSS-koo1` (API-094, item 1)
+**FRs:** FR328, FR329, FR330
+
+As an **administrator**,
+I want **the browser tab to show the Vintage Story icon and missing files to fail visibly**,
+So that **I can find the manager's tab, and a broken asset is a 404 rather than a page**.
+
+**Acceptance Criteria:**
+
+**Given** the built web UI
+**When** a browser loads it
+**Then** `index.html` links `favicon.ico`, `favicon-32.png` and `apple-touch-icon.png`, each file exists in the build, `vite.svg` is gone, and `/favicon.ico` is served with an image content type
+
+*(Covers FR328; ADR-2 decision 1)*
+
+**Given** a path outside the web UI's routes whose last segment has a file extension and that is not a file (`/missing.png`, `/favicon.svg`)
+**When** it is requested
+**Then** it answers 404 with the security headers
+
+*(Covers FR329; ADR-2 decision 2)*
+
+**Given** a web UI route, including `/game-server/mods/browse/some.mod` and a route with a trailing slash
+**When** it is requested
+**Then** it gets `index.html`, as before
+
+*(Covers FR329; ADR-2 decision 2)*
+
+**Given** a file under `/assets`
+**When** it is requested
+**Then** the response carries the headers of `frontend_security_headers(settings.csp_mode)`, `X-Content-Type-Options: nosniff` included
+
+*(Covers FR330; ADR-2 decision 3)*
+
+**Tasks:**
+
+- [ ] Generate the three icon files from `web/public/vintagestory-icon@2x.webp`, record the command in the story, commit them; remove `vite.svg`; update `index.html` (ADR-2 decision 1)
+- [ ] `_resolve_frontend_file` / `serve_spa`: the 404 rule with the list of web UI route prefixes kept next to `register_frontend`; tests for missing files, client routes and a dotted mod slug (ADR-2 decision 2)
+- [ ] The `/assets` mount sends the security headers; tests (ADR-2 decision 3)
+- [ ] Commits: `feat(web): show the Vintage Story icon in the browser tab`; `fix(api): answer 404 for missing static files instead of the web page`; `fix(api): send security headers with the web UI's assets`
+- [ ] `just check` green; the image's E2E smoke still passes
+
+---
+
+### Story 24.3: Mod File Follow-ups from Epic 19
+
+**Sprint key:** `24-3-mod-file-follow-ups-from-epic-19`
+**Beads:** `VSS-3tb1` (API-095, items 1, 3 and 4; item 2 is Story 24.5)
+**FRs:** FR331, FR332, FR333
+
+As an **administrator**,
+I want **the mod file edge cases Epic 19 left open to behave like the rest**,
+So that **a missing file gives a clear error, the cache stays within its limit and the state directory holds no stale data**.
+
+**Acceptance Criteria:**
+
+**Given** an installed mod whose own file is not in the mods directory
+**When** its version is changed
+**Then** the change is refused with 409 `MOD_FILE_MISSING` before any lookup or download, and nothing changes
+
+*(Covers FR331; ADR-5 decision 1)*
+
+**Given** a cache holding release files of several types (`.zip`, `.cs`, `.dll`, a name without an extension)
+**When** eviction runs by age or by size
+**Then** every type is counted and evicted, and an emptied file-ID directory is removed
+
+*(Covers FR332; ADR-5 decision 2)*
+
+**Given** the last entry of a mod ID is removed, by the start-up sync or by Remove
+**When** the removal is saved
+**Then** `state/mods/<slug>/` is removed; another entry with the same mod ID keeps it, and a version change keeps the old version's directory
+
+*(Covers FR333; ADR-5 decision 3)*
+
+**Tasks:**
+
+- [ ] `change_version`: the missing-file check enable and disable use, before `_prepare_version_change`; router maps it to 409; tests; a `fix(api)` commit "answer a version change of a mod whose file is missing with 409, not 500"
+- [ ] `CacheEvictionService`: every regular file in a file-ID directory; tests; a `fix(api)` commit "evict cached mod files of every type, not only .zip and .cs"
+- [ ] The modinfo cache cleanup in the sync and in `ModService.remove_mod`; a failure is logged and never fails the removal; tests; a `refactor` commit
+- [ ] `just check` green
+
+---
+
+### Story 24.4: Hand-Added Mods Get Their Mod Database Link
+
+**Sprint key:** `24-4-hand-added-mods-get-their-mod-database-link`
+**Beads:** `VSS-v3be` (API-093, first half)
+**FRs:** FR334, FR335
+
+As an **administrator**,
+I want **a mod I copied into the mods folder to be linked to its mod database page**,
+So that **it behaves like a mod installed through the manager**.
+
+**Acceptance Criteria:**
+
+**Given** an installed mod with asset ID 0 whose mod ID the mod database knows
+**When** the update check runs
+**Then** the mod's entry gets the payload's asset ID, the Installed tab links its ModDB page, and its update status is shown as for any mod
+
+*(Covers FR334; ADR-1 decision 1)*
+
+**Given** an installed mod with a non-zero asset ID, and a payload with another one
+**When** the check runs
+**Then** the stored asset ID is not changed and the difference is logged
+
+*(Covers FR334; ADR-1 decision 2)*
+
+**Given** a mod whose install or version change is running when the check reaches it
+**When** the check runs
+**Then** its asset ID is not written, the check does not fail, and the next check fills it in
+
+*(Covers FR334; ADR-1 decision 3)*
+
+**Given** a mod ID the mod database does not know
+**When** the Installed tab shows it
+**Then** its update cell reads "Local mod: not in the mod database", with no Update button and no ModDB link, and enable, disable and remove work
+
+*(Covers FR335; ADR-1 decision 4)*
+
+**Given** the mod database is unavailable
+**When** the check runs
+**Then** no asset ID changes and nothing else differs from today
+
+*(Covers FR334)*
+
+**Tasks:**
+
+- [ ] `ModService.fill_asset_id(slug, asset_id)` under `_hold`, skipping a busy mod, only when the entry's `asset_id` is 0; tests (ADR-1)
+- [ ] `ModUpdateService._check_one` passes the payload's `assetid` through the `InstalledModSource` protocol; tests with a hand-added mod, an unknown one and a busy one
+- [ ] `ModUpdateCell`: the local-mod wording; unit tests (ADR-1 decision 4)
+- [ ] A `fix(api)` commit "link mods added by hand to their mod database page after an update check"
+- [ ] `just check` green
+
+---
+
+### Story 24.5: Unused Files and Rescan in the API
+
+**Sprint key:** `24-5-unused-files-and-rescan-in-the-api`
+**Beads:** `VSS-hv60` (UI-103, API half), `VSS-v3be` (API-093, rescan), `VSS-3tb1` (API-095, closes with item 2)
+**FRs:** FR336, FR337, FR338, FR340
+
+As an **administrator**,
+I want **to list and delete files in the mods folder that the manager does not use, and to rescan the folder**,
+So that **I can clean up leftovers and pick up a mod I copied in without restarting the API**.
+
+**Acceptance Criteria:**
+
+**Given** the mods folder holds `old.zip.bak`, `x.TMP`, an archive with no readable `modinfo.json`, a second archive of an installed mod ID, a `.cs` file, a folder, a `.vsm-bak` file and installed mods
+**When** an Admin key calls `GET /mods/unused-files`
+**Then** the first four are listed with size, modified time and reason (`leftover`, `unreadable`, `duplicate_mod_id` naming the installed file), and none of the others are; a Monitor key gets 403
+
+*(Covers FR337, FR340; ADR-3)*
+
+**Given** a listed file
+**When** an Admin key calls `DELETE /mods/unused-files/{name}`
+**Then** the file is deleted and the listing no longer has it; deleting a skipped archive while the game server runs sets "Restart required"
+
+*(Covers FR338; ADR-3 decision 5, ADR-4 decision 5)*
+
+**Given** a name that is not in the listing computed for the request (a mod's own file, a `.cs` file, a folder, a `.vsm-*` file, a name with `/` or `..`, a name that no longer exists)
+**When** it is deleted
+**Then** the answer is 404 and nothing is deleted
+
+*(Covers FR338, FR340; ADR-3 decision 5)*
+
+**Given** an archive copied into the mods folder while the API runs
+**When** an Admin key calls `POST /mods/rescan`
+**Then** it is added to the mod state, the answer has the numbers added, removed and skipped, and while the game server runs a change sets "Restart required"
+
+*(Covers FR336; ADR-4 decisions 1 and 5)*
+
+**Given** an install, version change, update all or update check is running
+**When** a rescan or a delete is requested
+**Then** it is refused with 409 `MODS_BUSY`; and while a rescan or delete runs, an install, version change, update all or update check is refused with 409 `MODS_BUSY`
+
+*(Covers FR336, FR338; ADR-4 decisions 2 and 3)*
+
+**Given** a version change to a new file name that was interrupted after the rename and before the old file was deleted (`VSS-3tb1` item 2)
+**When** the listing is read
+**Then** the old archive is listed as `duplicate_mod_id` and can be deleted
+
+*(Covers FR337; ADR-3)*
+
+**Tasks:**
+
+- [ ] Move the sync's skip rules into one function the sync and the listing both use; the sync's behaviour and logs unchanged; tests (ADR-3 decision 3)
+- [ ] `ModService.list_unused_files()` and `delete_unused_file(name)`; the `MODS_BUSY` rule in both directions (ADR-3, ADR-4)
+- [ ] `ModService.rescan()`: the busy rule, `sync_state_with_disk`, "Restart required" when it changed something while the game runs; amend the sync's docstring and `sync_mod_state_at_startup`'s (ADR-4)
+- [ ] Routes `GET /mods/unused-files`, `DELETE /mods/unused-files/{name}`, `POST /mods/rescan`, Admin only, registered so they do not collide with `/{slug}`; API tests for each criterion (ADR-8)
+- [ ] Commits: `feat(api): rescan the mods folder for mods copied in by hand`; `feat(api): list and delete files in the mods folder that the manager does not use`
+- [ ] Epic 19 ADR-10 decision 1 note already added in planning; `just check` green
+
+---
+
+### Story 24.6: Rescan and Unused Files on the Installed Tab
+
+**Sprint key:** `24-6-rescan-and-unused-files-on-the-installed-tab`
+**Beads:** `VSS-hv60` (UI-103, closes), `VSS-v3be` (API-093, closes)
+**FRs:** FR336, FR339, FR340
+
+As an **administrator**,
+I want **a Rescan button and a list of unused files on the Installed tab**,
+So that **I can pick up hand-added mods and clean up the mods folder from the web UI**.
+
+**Acceptance Criteria:**
+
+**Given** an Admin key on the Installed tab
+**When** I press Rescan
+**Then** the button shows progress, a toast gives the numbers added, removed and skipped, and the mods, updates and unused-files data refresh; a `MODS_BUSY` refusal is shown as a toast saying a mod operation is running
+
+*(Covers FR336; ADR-4)*
+
+**Given** the mods folder has unused files
+**When** an Admin key opens the Installed tab
+**Then** a notice says how many files the mods folder holds that the manager does not use; expanding it lists each with name, size, age and reason
+
+*(Covers FR339; ADR-3)*
+
+**Given** the list is open
+**When** I press Delete on a file and confirm in the dialog that names it
+**Then** it is deleted and the list refreshes; Cancel deletes nothing; the notice disappears when the list is empty
+
+*(Covers FR339; ADR-3 decision 5)*
+
+**Given** a Monitor key
+**When** it opens the Installed tab
+**Then** there is no Rescan button and no unused-files notice
+
+*(Covers FR336, FR339)*
+
+**Tasks:**
+
+- [ ] Hooks for the three routes in `web/src/hooks/use-mods.ts`; query invalidation after a rescan or delete
+- [ ] The Rescan button beside "Check for updates" (`useIsAdmin`); unit tests
+- [ ] The unused-files notice and its `AlertDialog`, following `ModUpdatesNotice`; 44px targets on phones; unit tests for each state and role
+- [ ] README mods section: hand-added mods, Rescan, unused files, `.cs` and folder mods left alone (FR340)
+- [ ] E2E in the CI set only: copy an archive into the throwaway container, Rescan, see it listed; create a `.tmp` file, see it, delete it (ADR-8)
+- [ ] Commits: `feat(web): rescan the mods folder from the Installed tab`; `feat(web): see and delete unused files in the mods folder`
+- [ ] `just check` green; on the dev stack, read-only: the notice and Rescan render (manual)
+
+---
+
+### Story 24.7: Installed Mods Can Be Filtered
+
+**Sprint key:** `24-7-installed-mods-can-be-filtered`
+**Beads:** `VSS-foq7` (UI-104)
+**FRs:** FR341, FR342
+
+As an **administrator**,
+I want **to filter the installed mods by name, compatibility and available update**,
+So that **I can find a mod, or the mods that need attention, without scanning the whole list**.
+
+**Acceptance Criteria:**
+
+**Given** installed mods
+**When** I type part of a mod's name or mod ID in the search box, in any letter case
+**Then** only matching mods are shown, on the table and on the cards
+
+*(Covers FR341; ADR-6 decision 1)*
+
+**Given** the compatibility select
+**When** I choose Compatible, Not verified or Incompatible
+**Then** only mods with that status are shown; a mod whose status is still loading is shown only under All
+
+*(Covers FR341; ADR-6 decision 4)*
+
+**Given** the "Update available" toggle
+**When** I turn it on
+**Then** only mods whose update status is `update_available` are shown; "Update all" and its count are unchanged
+
+*(Covers FR341; ADR-6 decision 5)*
+
+**Given** filters are on
+**When** the list is shown
+**Then** it says "Showing N of M mods" with Clear filters; when nothing matches, the empty state names the filters and offers Clear filters
+
+*(Covers FR342)*
+
+**Given** filters are on
+**When** I reload, open the URL in a new tab, or press Back after changing a filter
+**Then** the URL's `q`, `compat` and `updates` restore the filters; typing does not add a history entry per key; an invalid value is ignored
+
+*(Covers FR342; ADR-6 decisions 2 and 3)*
+
+**Tasks:**
+
+- [ ] TanStack Table column filters on `ModTable`'s instance; the cards render the filtered row model (ADR-6 decision 1)
+- [ ] The filter bar, following BrowseTab's controls; 44px targets on phones; unit tests per filter, the combination and clear, on both layouts
+- [ ] URL state with `useSearchParams`, replacing the entry while typing; unit tests for the round trip and invalid values (ADR-6 decisions 2 and 3)
+- [ ] E2E: a filtered URL opened directly shows the filtered list
+- [ ] A `feat(web)` commit "filter installed mods by name, compatibility and available update"
+- [ ] `just check` green
+
+---
+
+### Story 24.8: Blocked Media in Mod Descriptions Shows a Note
+
+**Sprint key:** `24-8-blocked-media-in-mod-descriptions-shows-a-note`
+**Beads:** `VSS-koo1` (API-094, closes, item 2)
+**FRs:** FR343
+
+As an **administrator**,
+I want **media a mod description cannot load to show a note**,
+So that **I know something is missing instead of seeing a silent gap**.
+
+**Acceptance Criteria:**
+
+**Given** a description with `<video>`, `<audio>`, `<picture><source srcset>`, and an SVG `<image href>` from another host
+**When** the mod detail page shows it
+**Then** each is replaced with a note naming the kind of media, in the style of Story 19.3's image note
+
+*(Covers FR343; ADR-7 decision 1)*
+
+**Given** a description with a `poster` attribute, a `background` attribute or a `url()` in an inline style
+**When** it is shown
+**Then** the attribute or the declaration is removed without a note
+
+*(Covers FR343; ADR-7 decision 2)*
+
+**Given** a description with an `https:` image
+**When** it is shown
+**Then** it is unchanged, and the Content-Security-Policy is unchanged
+
+*(Covers FR343; ADR-7 decision 3)*
+
+**Tasks:**
+
+- [ ] `web/src/lib/mod-description.ts`: the note for the media elements and the attribute removals; unit tests for each element and attribute (ADR-7)
+- [ ] A `fix(web)` commit "show a note in place of video, audio and other media a mod description cannot load"
 - [ ] `just check` green

@@ -256,6 +256,16 @@ development_status:
   23-5-config-files-are-edited-in-the-file-browser: done
   23-6-config-edits-are-kept-as-history: done
   23-7-config-history-in-the-file-browser: done
+  epic-24: backlog
+  epic-24-retrospective: optional
+  24-1-api-tests-run-on-a-fresh-clone: backlog
+  24-2-web-ui-icon-and-missing-files-are-404: backlog
+  24-3-mod-file-follow-ups-from-epic-19: backlog
+  24-4-hand-added-mods-get-their-mod-database-link: backlog
+  24-5-unused-files-and-rescan-in-the-api: backlog
+  24-6-rescan-and-unused-files-on-the-installed-tab: backlog
+  24-7-installed-mods-can-be-filtered: backlog
+  24-8-blocked-media-in-mod-descriptions-shows-a-note: backlog
 # RETRO ACTION ITEMS
 # Action items from retrospectives are now tracked in beads with the RETRO label.
 # Run: bd list --label RETRO --status open

@@ -398,7 +398,7 @@ Second revision, same day: Matt decided the four observations the first revision
 
 **Decision:**
 
-1. **Called once, in the API's start-up,** after ADR-9's recovery of the manager's working files and before the game server is auto-started. It is not called per request, on a timer or from a route.
+1. **Called once, in the API's start-up,** after ADR-9's recovery of the manager's working files and before the game server is auto-started. It is not called per request, on a timer or from a route. *(Amended by Epic 24 ADR-4, 2026-11-20: the Admin rescan route `POST /mods/rescan` also runs it, under a busy rule in both directions.)*
 2. **What is added.** A regular file in the mods directory whose name ends in `.zip` or `.zip.disabled` (the existing scan), that the state does not know and whose `modinfo.json` can be read, gets a state entry: enabled unless the name ends in `.disabled`, version and mod ID from the archive, `installed_at` the time of the sync, no mod database asset ID.
 3. **What is skipped,** each with one warning naming the file and never failing start-up:
    - an archive that cannot be read or has no usable `modinfo.json`;

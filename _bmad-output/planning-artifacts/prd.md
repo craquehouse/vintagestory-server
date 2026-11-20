@@ -11,8 +11,10 @@ documentCounts:
   research: 0
   brainstorming: 1
   projectDocs: 1
-lastUpdated: '2026-11-19'
+lastUpdated: '2026-11-20'
 updates:
+  - date: '2026-11-20'
+    description: 'Added FR327-FR343 for Epic 24 (Mod Management Follow-ups), with the maintainer''s five answers of the same day (VSS-2bp, VSS-uhek and VSS-koo1 folded in)'
   - date: '2026-11-19'
     description: 'Added FR309-FR326 for Epic 23 (Config File Editing), with the maintainer''s eight answers of the same day (VSS-o8s and VSS-7z3 pulled in)'
   - date: '2026-11-19'
@@ -971,3 +973,37 @@ If trivial to implement:
 - FR324: In the file browser, an Admin key can open a file's history, compare a revision with the current text (side by side on wide screens, unified on narrow ones) and restore it while the game server is stopped
 - FR325: The API Settings tab edits the two history limits (FR322), saying that history is kept only for files saved in the file browser
 - FR326: The README's file browser section documents editing, the stopped-server rule, JSON5 and its difference from the game's reader, the history location and its limits
+
+### Epic 24: Mod Management Follow-ups
+
+#### Development and Static Files (Matt, 2026-11-20)
+
+- FR327: The API tests run on a fresh clone or a worktree without a `.env` file; a value a developer sets in `.env` still wins
+- FR328: The browser tab and the home-screen icon show the Vintage Story icon, served as `favicon.ico`, a 32px PNG and a 180px apple-touch PNG; `vite.svg` is gone
+- FR329: A request for a path outside the web UI's routes whose last segment has a file extension, and that is not a file, answers 404 instead of the web page; the web UI's own routes, including mod slugs that contain a dot, still get the page
+- FR330: Responses under `/assets` carry the web UI's security headers, `X-Content-Type-Options: nosniff` included
+
+#### Mod Files (Matt, 2026-11-20)
+
+- FR331: A version change of a mod whose own file is missing is refused with 409 `MOD_FILE_MISSING`, as enable and disable are, before any lookup or download
+- FR332: Cache eviction counts and evicts cached release files of every type, not only `.zip` and `.cs`
+- FR333: When the last entry of a mod ID is removed, by the sync or by Remove, its cached `modinfo.json` directory in the state directory is removed too
+
+#### Hand-Added Mods (Matt, 2026-11-20)
+
+- FR334: The update check fills in the mod database asset ID of an installed mod whose asset ID is 0 and that the mod database knows, so a mod copied in by hand gets its ModDB link; an asset ID that is already set is never changed
+- FR335: A mod the mod database does not know is shown as a local mod: it is listed and can be enabled, disabled and removed, has no ModDB link and gets no update offers
+- FR336: An Admin key can rescan the mods folder: the start-up sync runs again and the numbers of mods added, removed and skipped are shown; a rescan is refused while an install, version change, update all or update check runs, and those are refused while a rescan runs
+
+#### Unused Files (Matt, 2026-11-20)
+
+- FR337: An Admin key can list the files in the mods folder that the manager does not use: names ending in `.tmp` or `.bak`, archives whose `modinfo.json` cannot be read, and archives whose mod ID is already installed under another file; each with its size, modified time and reason
+- FR338: An Admin key can delete one listed file after confirming; only a regular file in the listing computed for that request can be deleted, under the same busy rule as a rescan
+- FR339: For an Admin key, the Installed tab shows a notice when unused files exist, with the list and a Delete for each file
+- FR340: `.cs` files, folders and files a mod entry or the manager's own working files use are never listed or deleted; the README says that the manager imports only `.zip` mods and leaves `.cs` and folder mods alone
+
+#### Installed Filters and Descriptions (Matt, 2026-11-20)
+
+- FR341: The Installed tab filters by name or mod ID (any part, ignoring case), by compatibility status and by "update available"; the filters combine and apply to both the table and the cards
+- FR342: The filters are kept in the URL, so a reload or a bookmark keeps them and Back restores the previous filter; with filters on, the tab says how many mods are shown and offers Clear filters, also when nothing matches
+- FR343: In a mod description, video, audio, `<source>`, SVG images and the `poster`, `background` and inline `url()` media that the Content-Security-Policy would block are replaced with a note or removed, as images are; the policy itself is not widened
