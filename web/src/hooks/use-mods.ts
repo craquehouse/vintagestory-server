@@ -315,11 +315,15 @@ export function useModsCompatibility(mods: readonly { slug: string; version: str
     if (compatibility?.status) {
       compatibilityMap.set(slug, compatibility.status);
       compatibilityDetails.set(slug, compatibility);
+    } else if (query.isError) {
+      // Story 24.7 review: a settled failure (a mod the database does not know answers
+      // 404) reads as not verified, as its badge shows, so it is no longer "loading"
+      compatibilityMap.set(slug, 'not_verified');
     }
     if (query.data?.data?.side) {
       sideMap.set(slug, query.data.data.side);
     }
-    // If query failed or no data, we don't add to map (caller can fallback)
+    // While loading there is no entry (the caller falls back and treats it as unknown)
   });
 
   // Consider loading if any query is still loading

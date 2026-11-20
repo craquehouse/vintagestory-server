@@ -12,6 +12,7 @@ import { render, screen, waitFor, fireEvent, act, within } from '@testing-librar
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router';
+import userEvent from '@testing-library/user-event';
 
 // Mock sonner toast
 vi.mock('sonner', () => ({
@@ -1054,6 +1055,25 @@ describe('InstalledTab', () => {
 
       expect(await screen.findByTestId('mod-row-carryon')).toBeInTheDocument();
       expect(screen.getByTestId('location-search')).toHaveTextContent('');
+    });
+
+    it('a compatibility choice pushes a history entry that Back undoes', async () => {
+      Element.prototype.hasPointerCapture ??= () => false;
+      Element.prototype.releasePointerCapture ??= () => {};
+      Element.prototype.scrollIntoView ??= () => {};
+      const user = userEvent.setup();
+      renderAt('/game-server/mods/installed?q=n');
+      await screen.findByTestId('mod-row-carryon');
+
+      await user.click(screen.getByRole('combobox', { name: 'Compatibility' }));
+      await user.click(await screen.findByTestId('installed-mods-filter-compat-incompatible'));
+
+      expect(screen.getByTestId('location-search')).toHaveTextContent('?q=n&compat=incompatible');
+      expect(screen.queryByTestId('mod-row-smithingplus')).not.toBeInTheDocument();
+      act(() => navigation.navigate(-1));
+
+      expect(await screen.findByTestId('mod-row-smithingplus')).toBeInTheDocument();
+      expect(screen.getByTestId('location-search')).toHaveTextContent('?q=n');
     });
 
     it('ignores invalid values', async () => {

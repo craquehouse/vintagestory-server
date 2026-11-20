@@ -55,9 +55,15 @@ export function InstalledTab() {
   // entry; the select and the switch push one, so Back restores the previous filter.
   const [searchParams, setSearchParams] = useSearchParams();
   const filters = useMemo(() => filtersFromSearchParams(searchParams), [searchParams]);
+  // The change is applied to the URL as it is when the update runs, not to this render's
+  // `filters`, so two changes in one batch both survive (Story 24.7 review)
   const setFilters = useCallback(
-    (next: InstalledModsFilters, replace: boolean) => {
-      setSearchParams((current) => filtersToSearchParams(next, current), { replace });
+    (change: Partial<InstalledModsFilters>, replace: boolean) => {
+      setSearchParams(
+        (current) =>
+          filtersToSearchParams({ ...filtersFromSearchParams(current), ...change }, current),
+        { replace }
+      );
     },
     [setSearchParams]
   );
@@ -187,9 +193,9 @@ export function InstalledTab() {
       {(installedCount > 0 || hasFilters(filters)) && (
         <InstalledModsFilterBar
           value={filters}
-          onQueryChange={(query) => setFilters({ ...filters, query }, true)}
-          onCompatChange={(compat) => setFilters({ ...filters, compat }, false)}
-          onUpdatesChange={(updates) => setFilters({ ...filters, updates }, false)}
+          onQueryChange={(query) => setFilters({ query }, true)}
+          onCompatChange={(compat) => setFilters({ compat }, false)}
+          onUpdatesChange={(updates) => setFilters({ updates }, false)}
         />
       )}
       <ModTable

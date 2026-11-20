@@ -56,7 +56,7 @@ export function InstalledModsFilterBar({
           aria-hidden="true"
         />
         <Input
-          type="search"
+          type="text"
           placeholder="Filter by name or mod ID"
           value={value.query}
           onChange={(event) => onQueryChange(event.target.value)}
@@ -68,7 +68,7 @@ export function InstalledModsFilterBar({
           <Button
             variant="ghost"
             size="sm"
-            className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 p-0 max-lg:h-9 max-lg:w-9"
+            className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 p-0 max-lg:h-11 max-lg:w-11"
             onClick={() => onQueryChange('')}
             aria-label="Clear the name filter"
             data-testid="installed-mods-filter-query-clear"

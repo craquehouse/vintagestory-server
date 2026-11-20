@@ -1268,8 +1268,10 @@ describe('useModsCompatibility', () => {
 
       // goodmod should have its status
       expect(result.current.compatibilityMap.get('goodmod')).toBe('not_verified');
-      // badmod should not be in map (lookup failed)
-      expect(result.current.compatibilityMap.has('badmod')).toBe(false);
+      // Story 24.7 review: a settled failure (404) reads as not verified, as its badge
+      // shows, so the "Not verified" filter finds it; it has no details
+      expect(result.current.compatibilityMap.get('badmod')).toBe('not_verified');
+      expect(result.current.compatibilityDetails.has('badmod')).toBe(false);
     });
 
     it('reports loading state while queries are in flight', async () => {
