@@ -41,6 +41,7 @@ import json
 import os
 import secrets
 import stat
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TypeGuard
@@ -49,6 +50,8 @@ import structlog
 
 from vintagestory_api.config import Settings
 from vintagestory_api.middleware.auth import UserRole
+from vintagestory_api.services.api_settings import ApiSettingsService
+from vintagestory_api.services.config_history import ConfigHistory
 from vintagestory_api.services.config_parse import (
     ConfigParseError,
     ParseErrorInfo,
@@ -229,13 +232,39 @@ class ConfigFilesService:
         settings: Application settings containing serverdata_dir path.
     """
 
-    def __init__(self, settings: Settings) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        history: ConfigHistory | None = None,
+        history_limits: Callable[[], tuple[int, int]] | None = None,
+    ) -> None:
         """Initialize the service with settings.
 
         Args:
             settings: Application settings with serverdata_dir.
+            history: Where saves keep the text they replace (Story 23.6); by default
+                `state_dir/config-history`, built when a save first needs it.
+            history_limits: Returns (keep_count, max_age_days) at each save; by default
+                read from the API settings.
         """
         self.settings = settings
+        self._history = history
+        self._history_limits = history_limits or self._limits_from_api_settings
+
+    @property
+    def history(self) -> ConfigHistory:
+        """The history store (Story 23.6, Epic 23 ADR-7)."""
+        if self._history is None:
+            self._history = ConfigHistory(self.settings.state_dir / "config-history")
+        return self._history
+
+    def _limits_from_api_settings(self) -> tuple[int, int]:
+        api_settings = ApiSettingsService(self.settings).get_settings()
+        return api_settings.config_history_keep_count, api_settings.config_history_max_age_days
+
+    def relative_path(self, resolved: Path) -> str:
+        """A resolved path inside the server data directory, relative to it, as POSIX."""
+        return resolved.relative_to(self.settings.serverdata_dir.resolve()).as_posix()
 
     def _safe_path(self, base_dir: Path, filename: str) -> Path:
         """Create a safe file path, preventing path traversal attacks.
@@ -555,6 +584,11 @@ class ConfigFilesService:
             raise ConfigFileNotSupportedError(filename)
         return safe_path
 
+    def target_for_history(self, filename: str) -> Path:
+        """The resolved path whose history a route reads (Story 23.6); the save's path rules,
+        the file need not exist."""
+        return self._target_for_write(filename)
+
     def check_text(self, filename: str, text: str) -> ParseErrorInfo | None:
         """Check a text against the parser rule a save of `filename` would use (Story 23.4).
 
@@ -575,7 +609,9 @@ class ConfigFilesService:
             return e.info
         return None
 
-    def save_file(self, filename: str, text: str, version: str) -> SavedConfigFile:
+    def save_file(
+        self, filename: str, text: str, version: str, saved_by: str = UserRole.ADMIN
+    ) -> SavedConfigFile:
         """Replace an existing config file's text, exactly as sent (Story 23.4, FR314).
 
         The caller holds ServerService.config_write() (the game server is stopped). Checks,
@@ -591,6 +627,8 @@ class ConfigFilesService:
             ConfigFileInvalidError: If the text does not parse.
             ConfigFileChangedError: If the file changed since `version` was read.
             ConfigFileWriteError: If the file could not be written (it is unchanged).
+            ConfigHistoryWriteError: If the replaced text could not be kept (Story 23.6);
+                the file is unchanged.
         """
         safe_path = self._target_for_write(filename)
         if not safe_path.exists():
@@ -615,7 +653,22 @@ class ConfigFilesService:
 
         if current.startswith(_UTF8_BOM) and not data.startswith(_UTF8_BOM):
             data = _UTF8_BOM + data
-        self._write_atomically(safe_path, data, filename)
+
+        # Story 23.6 (Epic 23 ADR-7 decision 4): keep the replaced text first; a save whose
+        # text cannot be kept does not go ahead, and a failed write removes the revision
+        relative = self.relative_path(safe_path)
+        revision = self.history.record(relative, current, saved_by)
+        try:
+            self._write_atomically(safe_path, data, filename)
+        except ConfigFileWriteError:
+            try:
+                self.history.remove(relative, revision.id)
+            except Exception as e:
+                logger.error(
+                    "config_history_orphan_kept", filename=filename, error_type=type(e).__name__
+                )
+            raise
+        self._prune_history(relative, filename)
 
         new_version = content_version(data)
         logger.info(
@@ -632,6 +685,40 @@ class ConfigFilesService:
             value=value,
             is_root_serverconfig=root_serverconfig,
         )
+
+    def _prune_history(self, relative: str, filename: str) -> None:
+        """Apply the history limits after a save; a failure is logged, never raised."""
+        try:
+            keep_count, max_age_days = self._history_limits()
+            self.history.prune(relative, keep_count, max_age_days)
+        except Exception as e:
+            logger.error(
+                "config_history_prune_failed", filename=filename, error_type=type(e).__name__
+            )
+
+    def restore_revision(
+        self, filename: str, revision_id: str, version: str, saved_by: str = UserRole.ADMIN
+    ) -> SavedConfigFile:
+        """Save an earlier version of a file over it (Story 23.6, Epic 23 ADR-7 decision 6).
+
+        The same path as a save: the current text is kept as a new revision first, and
+        every rule of a save applies to the revision's text. A revision that is not UTF-8
+        or does not parse under the file's rule cannot be restored.
+
+        Raises:
+            RevisionInvalidError, RevisionNotFoundError: For the revision id.
+            ConfigFileInvalidError: If the revision's text cannot be saved.
+            The errors of save_file.
+        """
+        safe_path = self._target_for_write(filename)
+        _, data = self.history.read(self.relative_path(safe_path), revision_id)
+        try:
+            text = data.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            raise ConfigFileInvalidError(
+                ParseErrorInfo("The earlier version is not UTF-8 text", None, None)
+            )
+        return self.save_file(filename, text, version, saved_by)
 
     def _write_atomically(self, path: Path, data: bytes, filename: str) -> None:
         """Write `data` over `path` through a temporary file in the same directory.

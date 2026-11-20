@@ -1955,7 +1955,11 @@ class TestOtherConfigPathsWithAPassword:
             "/api/v1alpha1/config/files/serverconfig.json",
             "/api/v1alpha1/config/files/ModConfig/copy.json",
         ]
-        admin_only_routes = ["/api/v1alpha1/config/api"]
+        # Story 23.6: config file history is Admin only
+        admin_only_routes = [
+            "/api/v1alpha1/config/api",
+            "/api/v1alpha1/config/history/serverconfig.json",
+        ]
 
         for path in monitor_routes:
             response = client.get(path, headers={"X-API-Key": TEST_MONITOR_KEY})
@@ -1978,6 +1982,7 @@ class TestOtherConfigPathsWithAPassword:
             "/api/v1alpha1/config/directories",
             "/api/v1alpha1/config/files",
             "/api/v1alpha1/config/files/{filename}",
+            "/api/v1alpha1/config/history/{filename}",
         }
 
         # Review L2: the OpenAPI paths leave out routes with include_in_schema=False, so
@@ -1995,6 +2000,7 @@ class TestOtherConfigPathsWithAPassword:
             "/config/directories",
             "/config/files",
             "/config/files/{filename:path}",
+            "/config/history/{filename:path}",
         }
         assert all(
             route.include_in_schema for route in config_router.routes if isinstance(route, APIRoute)

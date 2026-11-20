@@ -27,6 +27,10 @@ Config Files (6.5):
   Story 23.4)
 - PUT /config/files/{filename} - Save an existing config file's text while the game
   server is stopped (Admin only; Story 23.4)
+- GET /config/history/{filename} - List a file's earlier versions, or read one with
+  ?revision= (Admin only; Story 23.6)
+- POST /config/history/{filename}/restore - Restore an earlier version (Admin only;
+  Story 23.6)
 
 Story 19.1 (FR208): roles other than Admin list and read the root of the server data
 directory and ModConfig only; any other directory is 403 FORBIDDEN for the three routes,
@@ -43,7 +47,7 @@ from functools import partial
 from typing import Annotated, Any
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Path, Response
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response
 from pydantic import BaseModel, Field
 
 from vintagestory_api.jobs import apply_setting
@@ -69,6 +73,12 @@ from vintagestory_api.services.config_files import (
     ConfigFileTooLargeError,
     ConfigFileWriteError,
     ConfigPathInvalidError,
+)
+from vintagestory_api.services.config_history import (
+    ConfigHistoryWriteError,
+    Revision,
+    RevisionInvalidError,
+    RevisionNotFoundError,
 )
 from vintagestory_api.services.game_config import (
     GameConfigService,
@@ -696,6 +706,57 @@ def _too_large(e: ConfigFileTooLargeError) -> HTTPException:
     )
 
 
+def _save_error(e: Exception, filename: str) -> Exception:
+    """The HTTP answer for a refused save or restore (Stories 23.4, 23.6); anything else
+    is returned as is, to be raised unchanged."""
+    if isinstance(e, GameServerNotStoppedError):
+        if e.reason == "running":
+            code = ErrorCode.CONFIG_FILE_SERVER_RUNNING
+            message = "Stop the game server to save config files"
+        else:
+            code = ErrorCode.CONFIG_FILE_SERVER_BUSY
+            message = (
+                "The game server is starting, stopping or being installed; "
+                "try again when it is stopped"
+            )
+        logger.info("config_file_save_refused", filename=filename, reason=e.reason)
+        return HTTPException(
+            status_code=409, detail={"code": code, "message": message}, headers=NO_STORE
+        )
+    if isinstance(
+        e, (ConfigPathInvalidError, ConfigDirectoryForbiddenError, ConfigFileNotSupportedError)
+    ):
+        return _path_error(e)
+    if isinstance(e, ConfigFileTooLargeError):
+        return _too_large(e)
+    simple: list[tuple[type[Exception], int, str]] = [
+        (ConfigFileNotFoundError, 404, ErrorCode.CONFIG_FILE_NOT_FOUND),
+        (ConfigFileChangedError, 409, ErrorCode.CONFIG_FILE_CHANGED),
+        (ConfigFileWriteError, 500, ErrorCode.CONFIG_FILE_WRITE_FAILED),
+        (ConfigFileReadError, 500, ErrorCode.INTERNAL_ERROR),
+        (ConfigHistoryWriteError, 500, ErrorCode.CONFIG_HISTORY_WRITE_FAILED),
+        (RevisionInvalidError, 400, ErrorCode.CONFIG_REVISION_INVALID),
+        (RevisionNotFoundError, 404, ErrorCode.CONFIG_REVISION_NOT_FOUND),
+    ]
+    for error_type, status, code in simple:
+        if isinstance(e, error_type):
+            message = getattr(e, "message", str(e))
+            return HTTPException(
+                status_code=status, detail={"code": code, "message": message}, headers=NO_STORE
+            )
+    if isinstance(e, ConfigFileInvalidError):
+        return HTTPException(
+            status_code=422,
+            detail={
+                "code": ErrorCode.CONFIG_FILE_INVALID,
+                "message": e.message,
+                "parse_error": e.info.to_dict(),
+            },
+            headers=NO_STORE,
+        )
+    return e
+
+
 @router.post("/files/validate", response_model=ApiResponse, summary="Check a config file text")
 async def validate_config_file_text(
     body: ConfigTextCheckRequest,
@@ -769,7 +830,8 @@ async def save_config_file(
             stop, restart, install or uninstall is in progress) or CONFIG_FILE_CHANGED
             (the file changed since it was read); 413 CONFIG_FILE_TOO_LARGE; 422
             CONFIG_FILE_INVALID with parse_error; 500 CONFIG_FILE_WRITE_FAILED (the file is
-            unchanged) or INTERNAL_ERROR (it could not be read).
+            unchanged), CONFIG_HISTORY_WRITE_FAILED (the replaced text could not be kept, the
+            file is unchanged; Story 23.6) or INTERNAL_ERROR (it could not be read).
     """
     response.headers.update(NO_STORE)
     try:
@@ -777,60 +839,112 @@ async def save_config_file(
             saved = service.save_file(filename, body.text, body.version)
             if saved.is_root_serverconfig:
                 server_service.drop_pending_edits_changed_by_save(saved.previous_bytes, saved.value)
-    except GameServerNotStoppedError as e:
-        if e.reason == "running":
-            code = ErrorCode.CONFIG_FILE_SERVER_RUNNING
-            message = "Stop the game server to save config files"
-        else:
-            code = ErrorCode.CONFIG_FILE_SERVER_BUSY
-            message = (
-                "The game server is starting, stopping or being installed; "
-                "try again when it is stopped"
+    except Exception as e:
+        raise _save_error(e, filename)
+    return ApiResponse(status="ok", data={"filename": saved.filename, "version": saved.version})
+
+
+# ==============================================================================
+# Config file history (Story 23.6, FR321-FR323, Epic 23 ADR-7)
+# ==============================================================================
+
+
+class RevisionRestoreRequest(BaseModel):
+    """Body of POST /config/history/{filename}/restore."""
+
+    # No length rule here: the service refuses any id that is not of the revision form
+    # with 400 CONFIG_REVISION_INVALID (Story 23.6 review M1)
+    revision: str
+    version: str = Field(pattern=VERSION_PATTERN)
+
+
+def _revision_dict(revision: Revision) -> dict[str, object]:
+    return revision.model_dump(mode="json")
+
+
+@router.get("/history/{filename:path}", response_model=ApiResponse, summary="Config file history")
+async def read_config_history(
+    filename: Annotated[
+        str, Path(description="Path of the config file", min_length=1, max_length=255)
+    ],
+    _: RequireAdmin,
+    response: Response,
+    revision: Annotated[str | None, Query()] = None,
+    service: ConfigFilesService = Depends(get_config_files_service),
+) -> ApiResponse:
+    """List a config file's earlier versions, or read one (Story 23.6, Admin only).
+
+    Earlier versions are kept for saves made through the API (PUT /config/files/{path}
+    and restores), newest first; a file with none, existing or not, has an empty list.
+    With `revision`, the answer is that version's text (UTF-8, a byte order mark
+    dropped, an undecodable byte replaced). The response is never cached.
+
+    Returns:
+        ApiResponse with data: filename and revisions [{id, saved_at, saved_by, size,
+        sha256}]; or, with `revision`, filename, revision and text.
+
+    Raises:
+        HTTPException: 400 CONFIG_PATH_INVALID, CONFIG_FILE_NOT_SUPPORTED or
+            CONFIG_REVISION_INVALID; 403 for a key that is not Admin; 404
+            CONFIG_REVISION_NOT_FOUND.
+    """
+    response.headers.update(NO_STORE)
+    try:
+        relative = service.relative_path(service.target_for_history(filename))
+        if revision is None:
+            revisions = service.history.list(relative)
+            return ApiResponse(
+                status="ok",
+                data={"filename": filename, "revisions": [_revision_dict(r) for r in revisions]},
             )
-        logger.info("config_file_save_refused", filename=filename, reason=e.reason)
-        raise HTTPException(
-            status_code=409, detail={"code": code, "message": message}, headers=NO_STORE
-        )
-    except (
-        ConfigPathInvalidError,
-        ConfigDirectoryForbiddenError,
-        ConfigFileNotSupportedError,
-    ) as e:
-        raise _path_error(e)
-    except ConfigFileNotFoundError as e:
-        raise HTTPException(
-            status_code=404,
-            detail={"code": ErrorCode.CONFIG_FILE_NOT_FOUND, "message": e.message},
-            headers=NO_STORE,
-        )
-    except ConfigFileTooLargeError as e:
-        raise _too_large(e)
-    except ConfigFileInvalidError as e:
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "code": ErrorCode.CONFIG_FILE_INVALID,
-                "message": e.message,
-                "parse_error": e.info.to_dict(),
-            },
-            headers=NO_STORE,
-        )
-    except ConfigFileChangedError as e:
-        raise HTTPException(
-            status_code=409,
-            detail={"code": ErrorCode.CONFIG_FILE_CHANGED, "message": e.message},
-            headers=NO_STORE,
-        )
-    except ConfigFileWriteError as e:
-        raise HTTPException(
-            status_code=500,
-            detail={"code": ErrorCode.CONFIG_FILE_WRITE_FAILED, "message": e.message},
-            headers=NO_STORE,
-        )
-    except ConfigFileReadError as e:
-        raise HTTPException(
-            status_code=500,
-            detail={"code": ErrorCode.INTERNAL_ERROR, "message": e.message},
-            headers=NO_STORE,
-        )
+        found, data = service.history.read(relative, revision)
+    except Exception as e:
+        raise _save_error(e, filename)
+    return ApiResponse(
+        status="ok",
+        data={
+            "filename": filename,
+            "revision": _revision_dict(found),
+            "text": data.decode("utf-8-sig", errors="replace"),
+        },
+    )
+
+
+@router.post(
+    "/history/{filename:path}/restore",
+    response_model=ApiResponse,
+    summary="Restore an earlier version of a config file",
+)
+async def restore_config_revision(
+    filename: Annotated[
+        str, Path(description="Path of the config file", min_length=1, max_length=255)
+    ],
+    body: RevisionRestoreRequest,
+    _: RequireAdmin,
+    response: Response,
+    service: ConfigFilesService = Depends(get_config_files_service),
+    server_service: ServerService = Depends(get_server_service),
+) -> ApiResponse:
+    """Save an earlier version of a config file over it (Story 23.6, Admin only).
+
+    Every rule of PUT /config/files/{path} applies (the game server stopped, the
+    version check, the parser rule, the size, the pending-edit drop for
+    serverconfig.json), and the current text is kept as a new earlier version first.
+    The response is never cached.
+
+    Returns:
+        ApiResponse with data: filename and version (the SHA-256 of the bytes written).
+
+    Raises:
+        HTTPException: The save's errors, and 400 CONFIG_REVISION_INVALID or 404
+            CONFIG_REVISION_NOT_FOUND for the revision.
+    """
+    response.headers.update(NO_STORE)
+    try:
+        async with server_service.config_write():
+            saved = service.restore_revision(filename, body.revision, body.version)
+            if saved.is_root_serverconfig:
+                server_service.drop_pending_edits_changed_by_save(saved.previous_bytes, saved.value)
+    except Exception as e:
+        raise _save_error(e, filename)
     return ApiResponse(status="ok", data={"filename": saved.filename, "version": saved.version})
