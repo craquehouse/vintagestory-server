@@ -45,7 +45,7 @@ class TestWithoutFrontend:
 
 
 class TestWithFrontend:
-    @pytest.mark.parametrize("path", DOC_PATHS)
+    @pytest.mark.parametrize("path", ["/docs", "/redoc"])
     def test_debug_off_answers_with_the_web_ui_page(self, tmp_path: Path, path: str) -> None:
         client = make_client(tmp_path, debug=False, frontend=True)
 
@@ -55,6 +55,16 @@ class TestWithFrontend:
         assert response.content == INDEX
         assert "content-security-policy" in response.headers
         assert response.headers["x-frame-options"] == "DENY"
+
+    def test_debug_off_schema_is_a_missing_file(self, tmp_path: Path) -> None:
+        """/openapi.json names a file, so without the schema it is 404 (Epic 24 ADR-2)."""
+        client = make_client(tmp_path, debug=False, frontend=True)
+
+        response = client.get("/openapi.json")
+
+        assert response.status_code == 404
+        assert response.content != INDEX
+        assert "content-security-policy" in response.headers
 
     def test_debug_on_serves_the_docs_without_the_policy(self, tmp_path: Path) -> None:
         client = make_client(tmp_path, debug=True, frontend=True)

@@ -76,9 +76,9 @@ The maintainer named the scope: `VSS-foq7` (filter the installed mods), `VSS-v3b
 
 **Decision:**
 
-1. **Icons.** `favicon.ico` (16, 32 and 48 px), `favicon-32.png` and `apple-touch-icon.png` (180 px) are generated once from `vintagestory-icon@2x.webp` and committed to `web/public/`. The command is recorded in Story 24.2. `vite.svg` is removed. No build step is added.
+1. **Icons.** `favicon.ico` (16, 32 and 48 px), `favicon-32.png` and `apple-touch-icon.png` (180 px) are generated once and committed to `web/public/`. `vite.svg` is removed. No build step is added. *(As implemented in Story 24.2: cut from the tree in `assets/vintagestory-logobanner.png`, about 200px tall, because `vintagestory-icon@2x.webp` is only 48px; the command is in the story.)*
 2. **404 for missing files.** `serve_spa` answers 404 (with the security headers) when the path is not a file, its last segment has a file extension, and its first segment is not one of the web UI's route prefixes. The prefixes (`game-server`, `config`, `mods` and the others in `App.tsx`) are kept in one list next to `register_frontend`, with a test that each top-level route of `App.tsx` is in it. Every other path still gets `index.html`, so `/game-server/mods/browse/some.mod` loads the page.
-3. **`/assets` headers.** The `/assets` mount sends `frontend_security_headers(settings.csp_mode)`, through a small wrapper around `StaticFiles` that adds the headers to its responses. The CSP itself does not change.
+3. **`/assets` headers.** The `/assets` mount sends the headers that apply to files, `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer` (`FILE_SECURITY_HEADERS`, which `frontend_security_headers` also starts from), in every CSP mode, through a small `StaticFiles` subclass. A policy and `X-Frame-Options` apply to documents, so `/assets` still gets neither (Epic 19 ADR-6 decision 1). The CSP itself does not change. *(Refined in Story 24.2 from "the mount sends `frontend_security_headers(settings.csp_mode)`".)*
 
 ## ADR-3: What Counts as an Unused File
 

@@ -9,9 +9,11 @@ from urllib.parse import urlsplit
 import structlog
 from fastapi import APIRouter, Depends, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.types import Scope
 
 from vintagestory_api import __version__
 from vintagestory_api.config import (
@@ -269,12 +271,27 @@ CONTENT_SECURITY_POLICY = "; ".join(
 )
 
 
+FILE_SECURITY_HEADERS: dict[str, str] = {
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+}
+"""Headers every web UI response carries, files under /assets included (Epic 24 ADR-2).
+
+The policy and X-Frame-Options apply to documents, so only pages add them."""
+
+WEB_ROUTE_PREFIXES: tuple[str, ...] = ("game-server", "config", "mods")
+"""First path segments of the web UI's own routes (web/src/App.tsx).
+
+A path under them always gets the page, even with a dot in its last segment (a mod slug
+such as `carrycapacity.v2`). A test checks the list against App.tsx (Epic 24 ADR-2)."""
+
+
 def frontend_security_headers(csp_mode: str) -> dict[str, str]:
     """Return the security headers of a web UI page for a validated VS_CSP_MODE.
 
     X-Frame-Options follows the policy, so report-only and off also allow framing.
     """
-    headers = {"X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer"}
+    headers = dict(FILE_SECURITY_HEADERS)
     if csp_mode == "enforce":
         return {
             "Content-Security-Policy": CONTENT_SECURITY_POLICY,
@@ -300,11 +317,14 @@ def runtime_config_script(api_key: str) -> str:
     return f"window.__VSM_CONFIG__ = {config};\n"
 
 
-def _resolve_frontend_file(static_root: Path, requested: str) -> Path:
-    """Return the file to serve for a request path, or index.html for client-side routing.
+def _resolve_frontend_file(static_root: Path, requested: str) -> Path | None:
+    """Return the file to serve for a request path, index.html, or None for a 404.
 
     The request path is untrusted and may be absolute or contain traversal segments, so a
-    file is served only if its real path is inside static_root.
+    file is served only if its real path is inside static_root. A path that is not a file
+    gets index.html for client-side routing, unless it asks for a missing file (Epic 24
+    ADR-2): its last segment has a file extension and its first segment is not one of the
+    web UI's routes. Then it is None, so a missing asset or icon fails visibly.
     """
     index = static_root / "index.html"
     try:
@@ -313,7 +333,43 @@ def _resolve_frontend_file(static_root: Path, requested: str) -> Path:
         return index
     if candidate.is_relative_to(static_root) and candidate.is_file():
         return candidate
+    if _asks_for_a_missing_file(requested):
+        return None
     return index
+
+
+def _asks_for_a_missing_file(requested: str) -> bool:
+    """True when a path outside the web UI's routes names a file (has an extension)."""
+    segments = [segment for segment in requested.split("/") if segment]
+    # React Router matches routes ignoring case, so the prefixes are compared that way
+    if not segments or segments[0].lower() in WEB_ROUTE_PREFIXES:
+        return False
+    return Path(segments[-1]).suffix != ""
+
+
+class _StaticFilesWithHeaders(StaticFiles):
+    """StaticFiles that adds fixed headers to every response, errors included.
+
+    StaticFiles raises HTTPException for a missing file (404) or another method (405);
+    that would escape the mount and be rendered without the headers, so it is rendered
+    here (Story 24.2 review).
+    """
+
+    def __init__(self, *, directory: Path, headers: dict[str, str]) -> None:
+        super().__init__(directory=directory)
+        self._headers = headers
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        try:
+            response = await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            return PlainTextResponse(
+                str(exc.detail),
+                status_code=exc.status_code,
+                headers={**(exc.headers or {}), **self._headers},
+            )
+        response.headers.update(self._headers)
+        return response
 
 
 def register_frontend(target: FastAPI, static_dir: Path, settings: Settings) -> None:
@@ -324,10 +380,15 @@ def register_frontend(target: FastAPI, static_dir: Path, settings: Settings) -> 
     """
     static_root = static_dir.resolve()
 
-    # Mount assets directory for JS, CSS, and other static files
+    # Mount assets directory for JS, CSS, and other static files, with the headers that
+    # apply to files (Epic 24 ADR-2 decision 3)
     assets_dir = static_dir / "assets"
     if assets_dir.exists():
-        target.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+        target.mount(
+            "/assets",
+            _StaticFilesWithHeaders(directory=assets_dir, headers=FILE_SECURITY_HEADERS),
+            name="assets",
+        )
 
     # Runtime web configuration (Epic 15 ADR-5), registered before the SPA fallback so it
     # wins over the placeholder config.js in the build. Unauthenticated by design: the
@@ -352,11 +413,12 @@ def register_frontend(target: FastAPI, static_dir: Path, settings: Settings) -> 
     # SPA fallback - serve index.html for all non-API, non-health routes, with the
     # Content-Security-Policy and the other security headers (Epic 19 ADR-6)
     @target.get("/{full_path:path}")
-    async def serve_spa(full_path: str) -> FileResponse:
+    async def serve_spa(full_path: str) -> Response:
         """Serve static files or fall back to index.html for client-side routing."""
-        return FileResponse(
-            _resolve_frontend_file(static_root, full_path), headers=security_headers
-        )
+        resolved = _resolve_frontend_file(static_root, full_path)
+        if resolved is None:
+            return Response(status_code=404, headers=security_headers)
+        return FileResponse(resolved, headers=security_headers)
 
 
 def create_app(settings: Settings, static_dir: Path = STATIC_DIR) -> FastAPI:
@@ -367,7 +429,8 @@ def create_app(settings: Settings, static_dir: Path = STATIC_DIR) -> FastAPI:
         version=__version__,
         lifespan=lifespan_for(settings),
         # The API documentation and schema only in debug mode (Epic 19 ADR-7). Without
-        # them, these paths reach the web UI's page in the image, and 404 otherwise
+        # them, /docs and /redoc reach the web UI's page in the image, and 404 otherwise;
+        # /openapi.json names a missing file, so it is 404 (Epic 24 ADR-2)
         docs_url="/docs" if settings.debug else None,
         redoc_url="/redoc" if settings.debug else None,
         openapi_url="/openapi.json" if settings.debug else None,
