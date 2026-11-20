@@ -311,6 +311,28 @@ async def delete_unused_file(
     return ApiResponse(status="ok", data=result.model_dump(mode="json"))
 
 
+@router.post("/rescan", response_model=ApiResponse, summary="Rescan the mods folder")
+async def rescan_mods(
+    _: RequireAdmin,
+    service: ModService = Depends(get_mod_service),
+    update_service: ModUpdateService = Depends(get_mod_update_service),
+) -> ApiResponse:
+    """Pick up mods copied into the mods folder, and drop entries whose file is gone.
+
+    Admin only (Story 24.5, Epic 24 ADR-4). Runs the start-up sync again. The handler is
+    `async` with no `await`, so it runs on the event loop and nothing interleaves with it.
+
+    Raises:
+        HTTPException: 409 MODS_BUSY while an install, version change, update all or
+            update check runs.
+    """
+    try:
+        result = service.rescan(other_operation_running=update_service.is_running)
+    except ModsBusyError as e:
+        raise _mods_busy_error(e) from None
+    return ApiResponse(status="ok", data=result.model_dump(mode="json"))
+
+
 @router.get("/browse", response_model=ApiResponse, summary="Browse available mods")
 async def browse_mods(
     _: RequireAuth,

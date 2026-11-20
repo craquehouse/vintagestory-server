@@ -359,6 +359,16 @@ class UnusedFileDeleteResult(BaseModel):
     """Whether a server restart is required (a skipped archive deleted while it runs)."""
 
 
+class RescanResult(BaseModel):
+    """Result of rescanning the mods directory (Story 24.5, Epic 24 ADR-4)."""
+
+    added: int
+    removed: int
+    skipped: int
+    pending_restart: bool
+    """Whether a server restart is required (entries changed while it runs)."""
+
+
 class ModBrowseItem(BaseModel):
     """Single mod item in the browse list.
 

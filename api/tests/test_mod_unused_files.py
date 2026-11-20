@@ -236,18 +236,26 @@ class TestDelete:
 class TestBusyRule:
     """AC 5 (FR336, FR338; ADR-4 decisions 2 and 3)."""
 
-    def test_delete_is_refused_while_a_mods_lock_is_held(self, service: ModService) -> None:
+    def test_rescan_and_delete_are_refused_while_a_mods_lock_is_held(
+        self, service: ModService
+    ) -> None:
         (service.state_manager.mods_dir / "x.tmp").write_bytes(b"x")
 
         with service._hold("carryon"):
+            with pytest.raises(ModsBusyError):
+                service.rescan()
             with pytest.raises(ModsBusyError):
                 service.delete_unused_file("x.tmp")
 
         assert (service.state_manager.mods_dir / "x.tmp").exists()
 
-    def test_delete_is_refused_while_another_operation_runs(self, service: ModService) -> None:
+    def test_rescan_and_delete_are_refused_while_another_operation_runs(
+        self, service: ModService
+    ) -> None:
         (service.state_manager.mods_dir / "x.tmp").write_bytes(b"x")
 
+        with pytest.raises(ModsBusyError):
+            service.rescan(other_operation_running=True)
         with pytest.raises(ModsBusyError):
             service.delete_unused_file("x.tmp", other_operation_running=True)
 
@@ -267,6 +275,35 @@ class TestBusyRule:
         async with update_service._apply_lock:
             assert update_service.is_running is True
         assert update_service.is_running is False
+
+
+class TestRescan:
+    """AC 4 (FR336; ADR-4 decisions 1 and 5)."""
+
+    def test_adds_a_copied_in_archive(self, service: ModService) -> None:
+        archive(service.state_manager.mods_dir / "new.zip", "newmod")
+
+        result = service.rescan()
+
+        assert (result.added, result.removed, result.skipped) == (1, 0, 0)
+        assert result.pending_restart is False
+        assert service.state_manager.get_mod_by_slug("newmod") is not None
+
+    def test_a_change_while_the_server_runs_requires_a_restart(self, service: ModService) -> None:
+        archive(service.state_manager.mods_dir / "new.zip", "newmod")
+        service.set_server_running(True)
+
+        assert service.rescan().pending_restart is True
+        assert service.restart_state.pending_restart is True
+
+    def test_no_change_needs_no_restart(self, service: ModService) -> None:
+        install(service, "a.zip", "moda")
+        service.set_server_running(True)
+
+        result = service.rescan()
+
+        assert (result.added, result.removed, result.pending_restart) == (0, 0, False)
+        assert service.restart_state.pending_restart is False
 
 
 class TestRoutes:
@@ -350,13 +387,29 @@ class TestRoutes:
         assert response.status_code in (404, 405)
         assert service.state_manager.state_file.is_file()
 
+    def test_rescan(self, client: TestClient, service: ModService) -> None:
+        archive(service.state_manager.mods_dir / "new.zip", "newmod")
+
+        response = client.post(f"{MODS}/rescan", headers=ADMIN)
+
+        assert response.status_code == 200
+        assert response.json()["data"] == {
+            "added": 1,
+            "removed": 0,
+            "skipped": 0,
+            "pending_restart": False,
+        }
+        listed = client.get(MODS, headers=ADMIN).json()["data"]
+        assert [mod["slug"] for mod in listed["mods"]] == ["newmod"]
+
     def test_busy_is_409(self, client: TestClient, service: ModService) -> None:
         (service.state_manager.mods_dir / "x.tmp").write_bytes(b"x")
 
         with service._hold("carryon"):
+            rescan = client.post(f"{MODS}/rescan", headers=ADMIN)
             delete = client.delete(f"{MODS}/unused-files/x.tmp", headers=ADMIN)
 
-        for response in (delete,):
+        for response in (rescan, delete):
             assert response.status_code == 409
             assert response.json()["detail"]["code"] == "MODS_BUSY"
 
@@ -365,6 +418,7 @@ class TestRoutes:
         [
             ("get", "/unused-files"),
             ("delete", "/unused-files/x.tmp"),
+            ("post", "/rescan"),
         ],
     )
     def test_monitor_is_refused(

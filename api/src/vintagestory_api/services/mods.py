@@ -27,6 +27,7 @@ from vintagestory_api.models.mods import (
     ModRelease,
     ModState,
     RemoveResult,
+    RescanResult,
     UnusedFileDeleteResult,
     UnusedFileInfo,
 )
@@ -160,8 +161,9 @@ def sync_mod_state_at_startup() -> None:
     """Bring the mod state in line with the mods directory, once, at start-up (ADR-10).
 
     Runs before any request is served, any job is registered and the game server is
-    auto-started, so it needs no mod lock; it must never be called from a route, a job
-    or a thread. Any failure is logged and start-up continues.
+    auto-started, so it needs no mod lock. The one other caller is `ModService.rescan`
+    (Epic 24 ADR-4), which refuses while a mod operation runs; the sync must never be
+    called from a job or a thread. Any failure is logged and start-up continues.
     """
     try:
         get_mod_service().state_manager.sync_state_with_disk()
@@ -539,6 +541,43 @@ class ModService:
             self._restart_state.require_restart(f"{item.name} was deleted from the mods folder")
             pending_restart = True
         return UnusedFileDeleteResult(name=item.name, pending_restart=pending_restart)
+
+    def rescan(self, *, other_operation_running: bool = False) -> RescanResult:
+        """Bring the mod state in line with the mods directory now (Epic 24 ADR-4).
+
+        Runs the start-up sync (Epic 19 ADR-10) without its start-up recovery of the
+        manager's working files. Synchronous after the busy check: no install, version
+        change, update all or check can start while it runs, and enable, disable and
+        remove cannot interleave with it. While the game server runs, a rescan that added
+        or removed an entry sets "Restart required".
+
+        Args:
+            other_operation_running: An update check or update all is running.
+
+        Raises:
+            ModsBusyError: A mod operation is running.
+        """
+        self._refuse_while_mods_busy(other_operation_running)
+        summary = self._state_manager.sync_state_with_disk()
+        pending_restart = False
+        if (summary.added or summary.removed) and self._server_running:
+            self._restart_state.require_restart(
+                f"Mods folder rescanned: {summary.added} added, {summary.removed} removed"
+            )
+            pending_restart = True
+        logger.info(
+            "mod_rescan_complete",
+            added=summary.added,
+            removed=summary.removed,
+            skipped=summary.skipped,
+            pending_restart=pending_restart,
+        )
+        return RescanResult(
+            added=summary.added,
+            removed=summary.removed,
+            skipped=summary.skipped,
+            pending_restart=pending_restart,
+        )
 
     def _refuse_while_mods_busy(self, other_operation_running: bool) -> None:
         """Raise ModsBusyError while any mod's lock is held or the caller says so."""

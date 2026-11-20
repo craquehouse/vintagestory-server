@@ -565,7 +565,8 @@ class ModStateManager:
     def sync_state_with_disk(self) -> ModSyncSummary:
         """Bring the state in line with the mods directory (Epic 19 ADR-10).
 
-        Meant to be called once, at start-up, before any mod operation can run: it
+        Called once at start-up, before any mod operation can run, and by the Admin
+        rescan (`ModService.rescan`, Epic 24 ADR-4), which refuses while one runs: it
         changes the state without a mod lock.
 
         - Removed: an entry whose own file name is not in one listing of the mods

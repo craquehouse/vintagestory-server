@@ -244,12 +244,18 @@ class TestPrepareModFilesSync:
 
 
 class TestStartUpOnly:
-    def test_no_route_runs_the_sync(self) -> None:
-        """AC 10: it runs only at start-up."""
-        paths = [getattr(route, "path", "") for route in app.routes]
+    def test_only_the_rescan_route_runs_the_sync(self) -> None:
+        """Story 19.5 AC 10, amended by Epic 24 ADR-4: start-up, and the Admin rescan.
 
-        assert paths
-        assert [path for path in paths if "sync" in path.lower()] == []
+        `app.routes` holds the included routers without their paths, so the schema's
+        paths are read: they list every route.
+        """
+        paths = list(app.openapi()["paths"])
+
+        assert "/api/v1alpha1/mods" in paths
+        assert [p for p in paths if "sync" in p.lower() or "scan" in p.lower()] == [
+            "/api/v1alpha1/mods/rescan"
+        ]
 
     def test_entering_the_app_in_a_test_does_not_sync_the_data_directory(
         self, monkeypatch: pytest.MonkeyPatch
