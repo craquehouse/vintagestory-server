@@ -1068,6 +1068,8 @@ class ModService:
             ModOperationInProgressError: An install or version change is running for this mod.
             ModFileConflictError: The release's file name, or its .disabled form, is taken
                 in the mods directory or the mod state, ignoring case (Epic 19 ADR-8).
+            ModFileMissingError: The mod's own file is no longer in the mods directory
+                (Epic 24 ADR-5), checked before any lookup.
             ModVersionChangeFailedError: Placing the file or saving state failed.
             ModReleaseNotDownloadableError: The target release has no downloadable file.
             See `_prepare_version_change` for lookup, confirmation and validation errors.
@@ -1086,6 +1088,10 @@ class ModService:
                     changed=False,
                     pending_restart=False,
                 )
+
+            # Before any lookup or download, as enable and disable check (Epic 24 ADR-5)
+            if not (self._state_manager.mods_dir / state.filename).is_file():
+                raise ModFileMissingError(slug, state.filename, operation="change the version of")
 
             prepared = await self._prepare_version_change(slug, version, confirm=confirm)
             filename = self._apply_version_change(state, prepared)

@@ -258,6 +258,43 @@ class TestOwnFileMissing:
         assert (result.enabled, result.pending_restart) == (True, False)
         assert snapshot(service) == before
 
+    @respx.mock
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("how", ["deleted", "dangling-symlink"])
+    async def test_a_version_change_is_refused_before_any_lookup(
+        self, tmp_path: Path, how: str
+    ) -> None:
+        """Story 24.3 (FR331, Epic 24 ADR-5 decision 1): 409, not a 500 after a download."""
+        service = make_service(tmp_path)
+        service.set_server_running(True)
+        install_existing(service, "moda", "1.0.0", "Foo.zip")
+        lose_own_file(service, "Foo.zip", how, tmp_path)
+        before = snapshot(service)
+
+        with pytest.raises(ModFileMissingError) as raised:
+            await service.change_version("moda", "2.0.0")
+
+        assert raised.value.operation == "change the version of"
+        assert str(raised.value) == (
+            "Cannot change the version of 'moda': its file Foo.zip is no longer in the mods "
+            "directory. Remove the mod and install it again."
+        )
+        assert respx.calls.call_count == 0
+        assert snapshot(service) == before
+        assert service.restart_state.pending_restart is False
+
+    @pytest.mark.asyncio
+    async def test_a_version_change_to_the_installed_version_still_succeeds(
+        self, tmp_path: Path
+    ) -> None:
+        """Changing to the installed version changes nothing, so it needs no file."""
+        service = make_service(tmp_path)
+        install_existing(service, "moda", "1.0.0", "Foo.zip").unlink()
+
+        result = await service.change_version("moda", "1.0.0")
+
+        assert result.changed is False
+
     @pytest.mark.parametrize("enabled", [True, False], ids=["enabled", "disabled"])
     def test_the_mod_can_still_be_removed(self, tmp_path: Path, enabled: bool) -> None:
         service = make_service(tmp_path)
