@@ -1,6 +1,6 @@
 # Story 24.1: API Tests Run on a Fresh Clone
 
-Status: review
+Status: done
 
 <!-- Implements FR327, Epic 24 ADR-8 decision 2. Bead: VSS-uhek (TOOLS-010), closed by this story after merge. Branch story/24-1-api-tests-run-on-a-fresh-clone from main at 804af73f, carrying the Epic 24 planning commit (967cd4a6). Test tooling only: no product change, no release note. -->
 
@@ -51,7 +51,7 @@ so that **I do not have to copy a `.env` file before `just test-api` works**.
 
 ### The code today (verified at 804af73f)
 
-- `Settings.ensure_directories` raises `ValueError("VS_API_KEY_ADMIN must be set ...")` (`api/src/vintagestory_api/config.py:290`); the app module builds its settings at import, so a missing key fails collection of every test module that imports the app (19 collection errors with `env -u VS_API_KEY_ADMIN`).
+- `Settings.ensure_data_directories` raises `ValueError("VS_API_KEY_ADMIN must be set ...")` (`api/src/vintagestory_api/config.py:290`). It is called only in the lifespan (`main.py:169`); importing the app succeeds without the key. So the tests and fixtures that enter the lifespan (`with TestClient(app)`) fail: 7 failures and 80 errors with the key unset. *(Corrected in review: an earlier draft said the settings fail at import with 19 collection errors; those came from a run that collected `tests/e2e`, which `just test-api` ignores.)*
 - Locally the key comes from the root `.env` through `.mise.toml` (`env_file = ".env"`); CI sets `VS_API_KEY_ADMIN: ci-placeholder-key` (`.github/workflows/ci.yml:25`).
 - `api/tests/conftest.py:8-16` already adjusts the environment before importing the app (`VS_DEBUG`, `VS_MOD_DB_URL`, `VS_LOG_LEVEL`).
 - `TEST_ADMIN_KEY` in `conftest.py` is the key the tests send; tests that need a specific admin key set it through their own settings, so the placeholder only has to be non-empty.
@@ -69,7 +69,7 @@ Claude Opus 5.5 (claude-opus-5-5), as the epic's controller.
 ### Debug Log References
 
 - Red, at 967cd4a6 with `env -u VS_API_KEY_ADMIN VS_DATA_DIR=../dev .venv/bin/python -m pytest --ignore=tests/e2e` (the `just test-api` command without mise, so no `.env`): 7 failed, 3923 passed, 80 errors (the bead's numbers).
-- Green, same command after Task 1: 4010 passed.
+- Green, same command after Task 1: 4010 passed in that run; 4009 at the story's head (the reviewer's runs and `just check` both give 4009; the one-test difference did not reproduce).
 - `just check` (2026-11-20): API 4009 passed, web 3859 passed (147 files), 0 skipped; Pyright 0/0; lints and script tests green.
 - `just changelog`: no entry from this story.
 
@@ -86,7 +86,17 @@ Claude Opus 5.5 (claude-opus-5-5), as the epic's controller.
 - `_bmad-output/implementation-artifacts/24-1-api-tests-run-on-a-fresh-clone.md` (this file)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode. Verdict: approve with changes. 0 HIGH, one MEDIUM, three LOW, all fixed:
+
+1. **MEDIUM: the Dev Notes misstated the failure.** The app imports without the key; only the lifespan (`ensure_data_directories`) raises, so the failures were test and fixture errors, not 19 collection errors. Fixed in the Dev Notes.
+2. **LOW: 4010 vs 4009 in the Debug Log.** Annotated; 4009 at the head.
+3. **LOW: the subprocess `timeout=60` could never fire** under pytest-timeout's 10 s. Now 8 s.
+4. **LOW: the API tests leave empty `dev/` directories on a fresh clone.** The README says so (git ignores them).
+
 ## Change Log
 
 - 2026-11-20: Story 24.1 created (ready-for-dev).
 - 2026-11-20: Implemented (dev-story): Tasks 1 to 3; status review.
+- 2026-11-20: Code review (GLM-5.3-Flash via opencode): approve with changes; 0 HIGH, 1 MEDIUM, 3 LOW, all fixed (see "Review"). Status done.
