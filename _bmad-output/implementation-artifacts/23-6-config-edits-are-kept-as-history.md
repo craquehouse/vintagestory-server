@@ -1,6 +1,6 @@
 # Story 23.6: Config Edits Are Kept as History
 
-Status: review
+Status: done
 
 <!-- Implements FR321, FR322, FR323, FR326 (history part), Epic 23 ADR-7, ADR-9. Bead: VSS-hb4d (API-098), first half (Story 23.7 closes it). Branch story/23-6-config-edits-are-kept-as-history, stacked on story/23-5-config-files-are-edited-in-the-file-browser at f55b09c6 (23.5 in review); the PR targets main and merges after 23.5's. API and README only. Line references verified at f55b09c6. -->
 
@@ -165,7 +165,22 @@ Claude Opus 5.5 (claude-opus-5-5), as the epic's controller.
 - `_bmad-output/implementation-artifacts/23-6-config-edits-are-kept-as-history.md` (this file)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode. First verdict: changes requested (0 HIGH, three MEDIUM, four LOW); all addressed in b23ea09d; re-check verdict: approve.
+
+1. **MEDIUM M1: an empty or overlong revision id got FastAPI's 422, and the Admin 403 had no `Cache-Control: no-store`.** Fixed: no length rule on the id (the service's form check answers 400 `CONFIG_REVISION_INVALID`); `require_admin`'s 403 is `no-store` for every Admin-only route.
+2. **MEDIUM M2: history files did not follow the save's write recipe** (default mode, no directory fsync), so a revision of a 0600 `serverconfig.json` could be world-readable. Fixed: files 0600 (exclusive create, fsync), leaf directories 0700, directory fsync after each create, replace and prune.
+3. **MEDIUM M3: entries whose file is gone were listed** (Task 1.1 said skipped and logged). Fixed: skipped, `config_history_entries_missing`.
+4. **LOW L1: a failing cleanup inside `record` escaped as a raw `OSError`.** Fixed.
+5. **LOW L2: an orphan `<id>.json` from an interrupted record could block later saves.** Fixed: such a file makes the id taken.
+6. **LOW L3: the PUT docstring missed `CONFIG_HISTORY_WRITE_FAILED`.** Fixed.
+7. **LOW L4: a restore drops a BOM when the file has none now.** Documented in the README (the save's rule).
+
+Re-check observations, no change: only the leaf history directory is 0700 (its parents keep the default; the files are 0600); and a fresh clone needs `api/.env` with `VS_API_KEY_ADMIN` for the lifespan tests (outside this epic: filed as a bead).
+
 ## Change Log
 
 - 2026-11-19: Story 23.6 created (ready-for-dev).
 - 2026-11-19: Implemented (dev-story): Tasks 1 to 6; status review.
+- 2026-11-19: Code review (GLM-5.3-Flash via opencode): changes requested (three MEDIUM, four LOW); fixed in b23ea09d; re-check approve (see "Review"). Status done.

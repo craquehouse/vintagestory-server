@@ -254,7 +254,7 @@ development_status:
   23-3-game-settings-are-read-only-for-monitor-keys: done
   23-4-config-files-can-be-saved-through-the-api: done
   23-5-config-files-are-edited-in-the-file-browser: done
-  23-6-config-edits-are-kept-as-history: review
+  23-6-config-edits-are-kept-as-history: done
   23-7-config-history-in-the-file-browser: done
 # RETRO ACTION ITEMS
 # Action items from retrospectives are now tracked in beads with the RETRO label.
