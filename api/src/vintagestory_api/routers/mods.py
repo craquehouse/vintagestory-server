@@ -45,9 +45,12 @@ from vintagestory_api.services.mods import (
     ModFileMissingError,
     ModNotFoundError,
     ModOperationInProgressError,
+    ModsBusyError,
     ModService,
     ModValidationError,
     ModVersionChangeFailedError,
+    UnusedFileDeleteFailedError,
+    UnusedFileNotFoundError,
     get_mod_service,
 )
 
@@ -247,6 +250,65 @@ def _api_mod_to_browse_item(
             else None
         ),
     )
+
+
+def _mods_busy_error(error: ModsBusyError) -> HTTPException:
+    return HTTPException(
+        status_code=409, detail={"code": ErrorCode.MODS_BUSY, "message": str(error)}
+    )
+
+
+@router.get(
+    "/unused-files", response_model=ApiResponse, summary="List unused files in the mods folder"
+)
+async def list_unused_files(
+    _: RequireAdmin,
+    service: ModService = Depends(get_mod_service),
+) -> ApiResponse:
+    """List the files in the mods folder that the manager does not use (Admin only).
+
+    Story 24.5 (Epic 24 ADR-3): `.tmp` and `.bak` leftovers, archives without a readable
+    modinfo.json, and archives of a mod ID installed under another file. `.cs` files,
+    folders and mods' own files are never listed.
+    """
+    files = service.list_unused_files()
+    return ApiResponse(
+        status="ok", data={"files": [item.model_dump(mode="json") for item in files]}
+    )
+
+
+@router.delete("/unused-files/{name}", response_model=ApiResponse, summary="Delete an unused file")
+async def delete_unused_file(
+    name: Annotated[str, Path(min_length=1, max_length=255, description="File name")],
+    _: RequireAdmin,
+    service: ModService = Depends(get_mod_service),
+    update_service: ModUpdateService = Depends(get_mod_update_service),
+) -> ApiResponse:
+    """Delete one file of the unused-file listing (Admin only, Story 24.5).
+
+    Only a file in the listing computed for this request can be deleted.
+
+    Raises:
+        HTTPException: 404 UNUSED_FILE_NOT_FOUND if the name is not in the listing.
+        HTTPException: 409 MODS_BUSY while an install, version change, update all or
+            update check runs (Epic 24 ADR-4).
+        HTTPException: 500 UNUSED_FILE_DELETE_FAILED if the file could not be deleted.
+    """
+    try:
+        result = service.delete_unused_file(name, other_operation_running=update_service.is_running)
+    except ModsBusyError as e:
+        raise _mods_busy_error(e) from None
+    except UnusedFileNotFoundError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": ErrorCode.UNUSED_FILE_NOT_FOUND, "message": str(e)},
+        ) from None
+    except UnusedFileDeleteFailedError as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"code": ErrorCode.UNUSED_FILE_DELETE_FAILED, "message": str(e)},
+        ) from None
+    return ApiResponse(status="ok", data=result.model_dump(mode="json"))
 
 
 @router.get("/browse", response_model=ApiResponse, summary="Browse available mods")

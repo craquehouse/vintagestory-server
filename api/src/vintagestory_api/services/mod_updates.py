@@ -342,6 +342,11 @@ class ModUpdateService:
         self._apply_lock = asyncio.Lock()
 
     @property
+    def is_running(self) -> bool:
+        """Whether an update check or update all is running (Epic 24 ADR-4)."""
+        return self._check_lock.locked() or self._apply_lock.locked()
+
+    @property
     def store(self) -> ModUpdateStore:
         return self._store
 
