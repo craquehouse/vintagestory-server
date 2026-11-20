@@ -29,7 +29,7 @@ import {
 } from '@/hooks/use-config-files';
 import { useServerStatus } from '@/hooks/use-server-status';
 import { queryKeys } from '@/api/query-keys';
-import { clearDraft, getDraft } from './config-drafts';
+import { clearDraft, dropStaleDraft, getDraft } from './config-drafts';
 import { ConfigFileEditor, EditFileButton, ServerNotStoppedNote } from './ConfigFileEditor';
 import { ConfirmDialog } from './ConfirmDialog';
 
@@ -214,7 +214,10 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
           disabled={!serverStopped}
           resume={getDraft(selectedPath, readVersion) !== undefined}
           describedBy={serverStopped ? undefined : serverNoteId}
-          onClick={() => setEditBase({ text: readText, version: readVersion })}
+          onClick={() => {
+            dropStaleDraft(selectedPath, readVersion);
+            setEditBase({ text: readText, version: readVersion });
+          }}
         />
       </div>
     ) : null;

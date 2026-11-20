@@ -22,6 +22,9 @@ import { cn } from '@/lib/utils';
 import { clearDraft, setDraft } from './config-drafts';
 import { ConfirmDialog } from './ConfirmDialog';
 
+/** An inline text button with a 44px target on phones (Story 23.5 review L-4). */
+const INLINE_BUTTON = 'min-h-11 px-1 underline underline-offset-2 md:min-h-0 md:px-0';
+
 export const SERVER_NOT_STOPPED_TEXT =
   'Stop the game server to edit files: the game can overwrite changes made while it runs.';
 
@@ -110,7 +113,12 @@ export function ConfigFileEditor({
   const [confirmReload, setConfirmReload] = useState(false);
   const editor = useRef<CodeViewHandle>(null);
   const save = useSaveConfigFile();
-  const { check, isPending } = useConfigTextCheck(path, text, true);
+  const {
+    check,
+    isPending,
+    error: checkError,
+    retry: retryCheck,
+  } = useConfigTextCheck(path, text, true);
   const dirty = text !== initialText;
 
   useEffect(() => {
@@ -218,6 +226,19 @@ export function ConfigFileEditor({
         <div role="status" aria-live="polite" data-testid="config-editor-status">
           {isPending ? (
             <span className="text-muted-foreground">Checking...</span>
+          ) : checkError && !savedParseError ? (
+            <span className="flex flex-wrap items-center gap-1 text-destructive">
+              <AlertCircle className="h-4 w-4" aria-hidden="true" />
+              The text could not be checked: {checkError.message}
+              <button
+                type="button"
+                className={INLINE_BUTTON}
+                onClick={retryCheck}
+                data-testid="config-editor-recheck"
+              >
+                Check again
+              </button>
+            </span>
           ) : parseError ? (
             <span className="flex flex-wrap items-center gap-1 text-destructive">
               <AlertCircle className="h-4 w-4" aria-hidden="true" />
@@ -225,7 +246,7 @@ export function ConfigFileEditor({
               {errorPosition && parseError.line !== null && parseError.column !== null && (
                 <button
                   type="button"
-                  className="underline underline-offset-2"
+                  className={INLINE_BUTTON}
                   onClick={() => editor.current?.goTo(parseError.line!, parseError.column!)}
                   data-testid="config-editor-goto"
                 >
@@ -246,7 +267,7 @@ export function ConfigFileEditor({
             The file changed on disk since you opened it.{' '}
             <button
               type="button"
-              className="underline underline-offset-2"
+              className={INLINE_BUTTON}
               onClick={() => setConfirmReload(true)}
               data-testid="config-editor-reload"
             >

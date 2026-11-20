@@ -303,4 +303,31 @@ describe('ConfigFileEditor (Story 23.5)', () => {
     window.dispatchEvent(dirty);
     expect(dirty.defaultPrevented).toBe(true);
   });
+
+  // Story 23.5 review M-1
+  it('shows a failed check and checks again on request', async () => {
+    let fail = true;
+    stubApi({
+      validate: () =>
+        fail
+          ? { status: 500, body: { detail: { code: 'INTERNAL_ERROR', message: 'API restarting' } } }
+          : valid(),
+    });
+    setup({ draft: '{"a": 2}' });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('config-editor-status')).toHaveTextContent(
+        'The text could not be checked: API restarting'
+      )
+    );
+    expect(screen.getByTestId('config-editor-save')).toBeDisabled();
+
+    fail = false;
+    fireEvent.click(screen.getByTestId('config-editor-recheck'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('config-editor-status')).toHaveTextContent('Valid')
+    );
+    expect(screen.getByTestId('config-editor-save')).toBeEnabled();
+  });
 });
