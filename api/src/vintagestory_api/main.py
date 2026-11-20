@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.types import Scope
 
 from vintagestory_api import __version__
 from vintagestory_api.config import (
@@ -344,6 +345,19 @@ def _asks_for_a_missing_file(requested: str) -> bool:
     return Path(segments[-1]).suffix != ""
 
 
+class _StaticFilesWithHeaders(StaticFiles):
+    """StaticFiles that adds fixed headers to the files it serves."""
+
+    def __init__(self, *, directory: Path, headers: dict[str, str]) -> None:
+        super().__init__(directory=directory)
+        self._headers = headers
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        response = await super().get_response(path, scope)
+        response.headers.update(self._headers)
+        return response
+
+
 def register_frontend(target: FastAPI, static_dir: Path, settings: Settings) -> None:
     """Serve the built frontend from static_dir on the given app, with the given settings.
 
@@ -352,10 +366,15 @@ def register_frontend(target: FastAPI, static_dir: Path, settings: Settings) -> 
     """
     static_root = static_dir.resolve()
 
-    # Mount assets directory for JS, CSS, and other static files
+    # Mount assets directory for JS, CSS, and other static files, with the headers that
+    # apply to files (Epic 24 ADR-2 decision 3)
     assets_dir = static_dir / "assets"
     if assets_dir.exists():
-        target.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+        target.mount(
+            "/assets",
+            _StaticFilesWithHeaders(directory=assets_dir, headers=FILE_SECURITY_HEADERS),
+            name="assets",
+        )
 
     # Runtime web configuration (Epic 15 ADR-5), registered before the SPA fallback so it
     # wins over the placeholder config.js in the build. Unauthenticated by design: the

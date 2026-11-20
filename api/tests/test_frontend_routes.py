@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 
 from vintagestory_api.config import Settings
 from vintagestory_api.main import (
+    FILE_SECURITY_HEADERS,
     WEB_ROUTE_PREFIXES,
     frontend_security_headers,
     register_frontend,
@@ -315,6 +316,16 @@ class TestSecurityHeaders:
         assert response.headers["cache-control"] == "no-store"
         assert response.headers["cross-origin-resource-policy"] == "same-origin"
         assert response.headers["x-content-type-options"] == "nosniff"
+
+    @pytest.mark.parametrize("mode", ["enforce", "report-only", "off"])
+    def test_assets_carry_the_file_headers(self, static_dir: Path, mode: str) -> None:
+        """nosniff and Referrer-Policy apply to files too (FR330, VSS-koo1 item 1)."""
+        response = self._client(static_dir, mode).get("/assets/main.js")
+
+        assert response.status_code == 200
+        assert response.headers["x-content-type-options"] == "nosniff"
+        assert response.headers["referrer-policy"] == "no-referrer"
+        assert {k: response.headers[k] for k in FILE_SECURITY_HEADERS} == FILE_SECURITY_HEADERS
 
     def test_assets_have_no_policy(self, static_dir: Path) -> None:
         response = self._client(static_dir, "enforce").get("/assets/main.js")
