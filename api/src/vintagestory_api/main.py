@@ -9,8 +9,9 @@ from urllib.parse import urlsplit
 import structlog
 from fastapi import APIRouter, Depends, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.types import Scope
 
@@ -340,20 +341,33 @@ def _resolve_frontend_file(static_root: Path, requested: str) -> Path | None:
 def _asks_for_a_missing_file(requested: str) -> bool:
     """True when a path outside the web UI's routes names a file (has an extension)."""
     segments = [segment for segment in requested.split("/") if segment]
-    if not segments or segments[0] in WEB_ROUTE_PREFIXES:
+    # React Router matches routes ignoring case, so the prefixes are compared that way
+    if not segments or segments[0].lower() in WEB_ROUTE_PREFIXES:
         return False
     return Path(segments[-1]).suffix != ""
 
 
 class _StaticFilesWithHeaders(StaticFiles):
-    """StaticFiles that adds fixed headers to the files it serves."""
+    """StaticFiles that adds fixed headers to every response, errors included.
+
+    StaticFiles raises HTTPException for a missing file (404) or another method (405);
+    that would escape the mount and be rendered without the headers, so it is rendered
+    here (Story 24.2 review).
+    """
 
     def __init__(self, *, directory: Path, headers: dict[str, str]) -> None:
         super().__init__(directory=directory)
         self._headers = headers
 
     async def get_response(self, path: str, scope: Scope) -> Response:
-        response = await super().get_response(path, scope)
+        try:
+            response = await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            return PlainTextResponse(
+                str(exc.detail),
+                status_code=exc.status_code,
+                headers={**(exc.headers or {}), **self._headers},
+            )
         response.headers.update(self._headers)
         return response
 

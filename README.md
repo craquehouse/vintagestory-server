@@ -228,7 +228,7 @@ just semgrep        # Static security scan (needs the network; not part of just 
 
 CI runs the same scan on every pull request and fails only on findings the pull request adds; `main`'s findings are under Security > Code scanning.
 
-The API and web tests need no `.env` file: the API tests use a placeholder admin key when `VS_API_KEY_ADMIN` is not set, so a fresh clone or a new worktree can run `just test` at once. Running the app (`just dev-api`, `just docker start`) still needs `.env`.
+The API and web tests need no `.env` file: the API tests use a placeholder admin key when `VS_API_KEY_ADMIN` is not set, so a fresh clone or a new worktree can run `just test` at once (the API tests leave empty `dev/` directories behind, which git ignores). Running the app (`just dev-api`, `just docker start`) still needs `.env`.
 
 ### End-to-end tests
 
