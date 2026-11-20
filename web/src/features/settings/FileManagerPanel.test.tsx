@@ -1942,4 +1942,72 @@ describe('FileManagerPanel', () => {
       expect(screen.queryByTestId('file-manager-admin-note')).not.toBeInTheDocument();
     });
   });
+
+  // Story 23.1 (FR310, AC 6, 7)
+  describe('a file that cannot be parsed', () => {
+    it('shows the warning and the text from the read', async () => {
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/config/files/broken.json')) {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                status: 'ok',
+                data: {
+                  filename: 'broken.json',
+                  content: { _raw: '{ oops', _parse_error: 'Unexpected' },
+                  parse_error: { message: 'Unexpected', line: 1, column: 3 },
+                  text: '{ oops',
+                  version: 'v1',
+                },
+              }),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve({ status: 'ok', data: { files: ['broken.json'] } }),
+        };
+      });
+
+      render(<FileManagerPanel />, { wrapper: createWrapper(createTestQueryClient()) });
+      await waitFor(() => expect(screen.getByTestId('file-list')).toBeInTheDocument());
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-broken.json'));
+      });
+
+      await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'This file could not be parsed: Unexpected (line 1, column 3)'
+      );
+      expect(screen.getByTestId('file-viewer-raw').textContent).toBe('{ oops');
+    });
+
+    it('shows keys with underscores as they are in the file', async () => {
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/config/files/mod.json')) {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                status: 'ok',
+                data: { filename: 'mod.json', content: { spawn_rate: 2 }, parse_error: null },
+              }),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve({ status: 'ok', data: { files: ['mod.json'] } }),
+        };
+      });
+
+      render(<FileManagerPanel />, { wrapper: createWrapper(createTestQueryClient()) });
+      await waitFor(() => expect(screen.getByTestId('file-list')).toBeInTheDocument());
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-mod.json'));
+      });
+
+      await waitFor(() => expect(screen.getByTestId('file-viewer-content')).toBeInTheDocument());
+      expect(screen.getByTestId('file-viewer-content').textContent).toContain('"spawn_rate"');
+    });
+  });
 });

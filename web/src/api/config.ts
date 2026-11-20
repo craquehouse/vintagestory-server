@@ -18,6 +18,7 @@ import type {
   ApiSettingValue,
   ModUpdateWebhookUpdateData,
   ConfigDirectoryListData,
+  ConfigParseError,
   ConfigFileListData,
   ConfigFileContentData,
 } from './types';
@@ -217,18 +218,52 @@ export async function fetchConfigFiles(
   return apiClient<ApiResponse<ConfigFileListData>>(`${API_PREFIX}/files${params}`);
 }
 
+/** The read's data as the API sends it (snake_case, Story 23.1). */
+interface RawConfigFileContentData {
+  filename?: unknown;
+  content?: unknown;
+  parse_error?: unknown;
+  text?: unknown;
+  version?: unknown;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function toParseError(value: unknown): ConfigParseError | null {
+  if (!isRecord(value) || typeof value.message !== 'string') return null;
+  const position = (n: unknown) => (typeof n === 'number' ? n : null);
+  return { message: value.message, line: position(value.line), column: position(value.column) };
+}
+
 /**
  * Fetch the content of a specific configuration file.
  *
+ * The response is read without the client's key transform, so the keys inside the
+ * file's content stay as they are in the file (Story 23.1, Epic 23 ADR-2 decision 5);
+ * the read's own keys are mapped here.
+ *
  * @param filename - Name of the config file (e.g., 'serverconfig.json')
- * @returns File content as parsed JSON
+ * @returns File content as parsed JSON, the parse error, and (Admin only) its text and version
  *
  * Accessible to both Admin and Monitor roles.
  */
 export async function fetchConfigFileContent(
   filename: string
 ): Promise<ApiResponse<ConfigFileContentData>> {
-  return apiClient<ApiResponse<ConfigFileContentData>>(
-    `${API_PREFIX}/files/${encodeURIComponent(filename)}`
+  const raw = await apiClient<ApiResponse<RawConfigFileContentData>>(
+    `${API_PREFIX}/files/${encodeURIComponent(filename)}`,
+    { transformResponse: false }
   );
+  // A 200 without a data object is mapped to an empty read, not a TypeError (Story 23.1 review)
+  const source: RawConfigFileContentData = isRecord(raw.data) ? raw.data : {};
+  const data: ConfigFileContentData = {
+    filename: typeof source.filename === 'string' ? source.filename : filename,
+    content: source.content,
+    parseError: toParseError(source.parse_error),
+  };
+  if (typeof source.text === 'string') data.text = source.text;
+  if (typeof source.version === 'string') data.version = source.version;
+  return { status: raw.status, data };
 }

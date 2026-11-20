@@ -293,6 +293,30 @@ describe('apiClient', () => {
     });
   });
 
+  describe('transformResponse: false (Story 23.1)', () => {
+    it('returns the response keys untouched', async () => {
+      const body = { status: 'ok', data: { parse_error: null, content: { spawn_rate: 1 } } };
+      const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(body) });
+      globalThis.fetch = mockFetch;
+
+      const result = await apiClient('/test', { transformResponse: false });
+
+      expect(result).toEqual(body);
+    });
+
+    it('does not pass the option to fetch', async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValue({ ok: true, json: () => Promise.resolve({ status: 'ok', data: {} }) });
+      globalThis.fetch = mockFetch;
+
+      await apiClient('/test', { transformResponse: false });
+
+      const init = mockFetch.mock.calls[0][1] as Record<string, unknown>;
+      expect(init).not.toHaveProperty('transformResponse');
+    });
+  });
+
   describe('request body transformation', () => {
     it('transforms camelCase request body to snake_case', async () => {
       const mockFetch = vi.fn().mockResolvedValue({

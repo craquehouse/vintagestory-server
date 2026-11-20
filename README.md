@@ -152,6 +152,14 @@ services:
         max-file: "5"
 ```
 
+### Config files
+
+**Settings → File Manager** shows the `.json` files in the server's data directory (`serverdata`). An Admin key sees every folder. A Monitor key sees the top level and `ModConfig`, with secrets such as passwords replaced by `[redacted]`.
+
+Files are read as [JSON5](https://json5.org/), the relaxed JSON that the game's own reader also accepts: `//` and `/* */` comments, trailing commas, single-quoted strings and unquoted keys. JSON5 and the game's reader differ in small ways, so a file the viewer reads may still be refused by the game or a mod. Check the server log after changing a file.
+
+A file that cannot be read shows the parser's message with the line and column of the error. An Admin key also sees the file's text below it.
+
 ### Metrics
 
 `GET /metrics` serves the game server's metrics and the manager's own in the Prometheus text format. Values are read at each scrape, so it works with metrics collection turned off in API Settings.

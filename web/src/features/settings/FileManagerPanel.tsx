@@ -189,6 +189,8 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
             error={contentError?.message ?? null}
             wordWrap={wordWrap}
             onWordWrapChange={setWordWrap}
+            parseError={contentData?.data?.parseError ?? null}
+            text={contentData?.data?.text}
             className="h-full"
           />
         </div>

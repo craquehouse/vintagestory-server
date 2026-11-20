@@ -9,14 +9,16 @@
  * Story 6.6: File Manager UI - AC: 2, 3, 4
  * Story 9.6: JSON Syntax Colorization - AC: 1, 2, 3, 4
  * Polish UI-022: Word wrap support
+ * Story 23.1: a file that cannot be parsed shows a warning and, for Admin, its text
  */
 
 import type { ReactNode } from 'react';
-import { AlertCircle, FileText, WrapText } from 'lucide-react';
+import { AlertCircle, AlertTriangle, FileText, WrapText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { highlightJson, isJsonFile } from '@/lib/json-highlighter';
+import type { ConfigParseError } from '@/api/types';
 
 /**
  * Props for the FileViewer component.
@@ -47,9 +49,27 @@ export interface FileViewerProps {
    */
   onWordWrapChange?: (enabled: boolean) => void;
   /**
+   * Why the file did not parse (Story 23.1). When set, the warning and the text are
+   * shown instead of `content`.
+   */
+  parseError?: ConfigParseError | null;
+  /**
+   * The file's text, which only an Admin key receives (Story 23.1).
+   */
+  text?: string;
+  /**
    * Additional CSS class names.
    */
   className?: string;
+}
+
+/** The warning's text: the message, and the position when it is known. */
+function parseErrorText(parseError: ConfigParseError): string {
+  const position =
+    parseError.line !== null && parseError.column !== null
+      ? ` (line ${parseError.line}, column ${parseError.column})`
+      : '';
+  return `This file could not be parsed: ${parseError.message}${position}`;
 }
 
 /**
@@ -68,6 +88,8 @@ export function FileViewer({
   error = null,
   wordWrap = false,
   onWordWrapChange,
+  parseError = null,
+  text,
   className,
 }: FileViewerProps) {
   // Loading state
@@ -111,17 +133,52 @@ export function FileViewer({
     );
   }
 
-  // Content display
-  // Apply JSON syntax highlighting for .json files, plain text otherwise
-  const isJson = isJsonFile(filename);
+  const preClass = cn(
+    'font-mono text-sm',
+    wordWrap ? 'whitespace-pre-wrap break-words' : 'whitespace-pre overflow-x-auto'
+  );
 
-  // Safely serialize content - handles non-serializable data gracefully
-  let renderedContent: ReactNode;
-  try {
-    renderedContent = isJson ? highlightJson(content) : JSON.stringify(content, null, 2);
-  } catch {
-    // Fallback for non-serializable content (circular refs, functions, etc.)
-    renderedContent = String(content);
+  let body: ReactNode;
+  if (parseError) {
+    // Story 23.1 (Epic 23 ADR-2 decision 3): the warning, then the text for Admin
+    body = (
+      <>
+        <div
+          role="alert"
+          className="mb-4 flex items-start gap-2 rounded-md border border-warning/20 bg-warning/10 p-3 text-sm text-warning"
+          data-testid="file-viewer-parse-error"
+        >
+          <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+          <span>{parseErrorText(parseError)}</span>
+        </div>
+        {typeof text === 'string' ? (
+          <pre className={preClass} data-testid="file-viewer-raw">
+            {text}
+          </pre>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            The text of a file that cannot be parsed is shown only to an Admin key.
+          </p>
+        )}
+      </>
+    );
+  } else {
+    // Apply JSON syntax highlighting for .json files, plain text otherwise
+    const isJson = isJsonFile(filename);
+
+    // Safely serialize content - handles non-serializable data gracefully
+    let renderedContent: ReactNode;
+    try {
+      renderedContent = isJson ? highlightJson(content) : JSON.stringify(content, null, 2);
+    } catch {
+      // Fallback for non-serializable content (circular refs, functions, etc.)
+      renderedContent = String(content);
+    }
+    body = (
+      <pre className={preClass} data-testid="file-viewer-content">
+        {renderedContent}
+      </pre>
+    );
   }
 
   return (
@@ -141,17 +198,7 @@ export function FileViewer({
           </Button>
         )}
       </div>
-      <div className="flex-1 overflow-auto p-4">
-        <pre
-          className={cn(
-            'font-mono text-sm',
-            wordWrap ? 'whitespace-pre-wrap break-words' : 'whitespace-pre overflow-x-auto'
-          )}
-          data-testid="file-viewer-content"
-        >
-          {renderedContent}
-        </pre>
-      </div>
+      <div className="flex-1 overflow-auto p-4">{body}</div>
     </div>
   );
 }

@@ -583,4 +583,95 @@ describe('FileViewer', () => {
       });
     });
   });
+
+  // Story 23.1 (FR310, Epic 23 ADR-2 decision 3)
+  describe('a file that cannot be parsed', () => {
+    const rawContent = { _raw: '{\n  "a": 1\n  "b": 2\n}', _parse_error: 'Expected comma' };
+    const parseError = { message: 'Expected comma or U+007d, found U+0022', line: 3, column: 3 };
+
+    it('shows the warning with the line and column', () => {
+      render(
+        <FileViewer
+          filename="broken.json"
+          content={rawContent}
+          parseError={parseError}
+          text={rawContent._raw}
+        />
+      );
+
+      const alert = screen.getByRole('alert');
+      expect(alert).toHaveTextContent(
+        'This file could not be parsed: Expected comma or U+007d, found U+0022 (line 3, column 3)'
+      );
+    });
+
+    it('shows the warning without a position when it is unknown', () => {
+      render(
+        <FileViewer
+          filename="deep.json"
+          content={rawContent}
+          parseError={{ message: 'Nested more than 200 levels deep', line: null, column: null }}
+          text="[[]]"
+        />
+      );
+
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        /^This file could not be parsed: Nested more than 200 levels deep$/
+      );
+    });
+
+    it('shows the text to an Admin key, without highlighting', () => {
+      render(
+        <FileViewer
+          filename="broken.json"
+          content={rawContent}
+          parseError={parseError}
+          text={rawContent._raw}
+        />
+      );
+
+      const raw = screen.getByTestId('file-viewer-raw');
+      expect(raw.textContent).toBe(rawContent._raw);
+      expect(raw.querySelector('.json-key')).toBeNull();
+      expect(screen.queryByTestId('file-viewer-content')).not.toBeInTheDocument();
+    });
+
+    it('tells a key without the text that only an Admin key sees it', () => {
+      render(
+        <FileViewer
+          filename="broken.json"
+          content={{ _raw: '[redacted]', _parse_error: 'x' }}
+          parseError={parseError}
+        />
+      );
+
+      expect(
+        screen.getByText('The text of a file that cannot be parsed is shown only to an Admin key.')
+      ).toBeInTheDocument();
+      expect(screen.queryByTestId('file-viewer-raw')).not.toBeInTheDocument();
+      expect(screen.queryByText('[redacted]')).not.toBeInTheDocument();
+    });
+
+    it('wraps the text when word wrap is on', () => {
+      render(
+        <FileViewer
+          filename="broken.json"
+          content={rawContent}
+          parseError={parseError}
+          text={rawContent._raw}
+          wordWrap
+          onWordWrapChange={() => {}}
+        />
+      );
+
+      expect(screen.getByTestId('file-viewer-raw')).toHaveClass('whitespace-pre-wrap');
+    });
+
+    it('shows the parsed content as before when parseError is null', () => {
+      render(<FileViewer filename="ok.json" content={{ a: 1 }} parseError={null} text="{a: 1}" />);
+
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(screen.getByTestId('file-viewer-content').textContent).toContain('"a"');
+    });
+  });
 });

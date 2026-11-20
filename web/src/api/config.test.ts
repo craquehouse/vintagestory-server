@@ -23,7 +23,6 @@ import type {
   ApiSettingUpdateData,
   ConfigDirectoryListData,
   ConfigFileListData,
-  ConfigFileContentData,
 } from './types';
 
 // Mock the API client
@@ -529,7 +528,7 @@ describe('api/config', () => {
 
   describe('fetchConfigFileContent', () => {
     it('calls correct endpoint with encoded filename', async () => {
-      const mockResponse: ApiResponse<ConfigFileContentData> = {
+      const mockResponse = {
         status: 'ok',
         data: {
           filename: 'serverconfig.json',
@@ -541,7 +540,9 @@ describe('api/config', () => {
 
       const result = await fetchConfigFileContent('serverconfig.json');
 
-      expect(apiClient).toHaveBeenCalledWith('/api/v1alpha1/config/files/serverconfig.json');
+      expect(apiClient).toHaveBeenCalledWith('/api/v1alpha1/config/files/serverconfig.json', {
+        transformResponse: false,
+      });
       expect(result.data.content).toEqual({
         ServerName: 'My Server',
         Port: 42420,
@@ -549,7 +550,7 @@ describe('api/config', () => {
     });
 
     it('encodes special characters in filename', async () => {
-      const mockResponse: ApiResponse<ConfigFileContentData> = {
+      const mockResponse = {
         status: 'ok',
         data: { filename: 'file with spaces.json', content: {} },
       };
@@ -559,12 +560,13 @@ describe('api/config', () => {
       await fetchConfigFileContent('file with spaces.json');
 
       expect(apiClient).toHaveBeenCalledWith(
-        '/api/v1alpha1/config/files/file%20with%20spaces.json'
+        '/api/v1alpha1/config/files/file%20with%20spaces.json',
+        { transformResponse: false }
       );
     });
 
     it('encodes slashes in filename', async () => {
-      const mockResponse: ApiResponse<ConfigFileContentData> = {
+      const mockResponse = {
         status: 'ok',
         data: { filename: 'path/to/file.json', content: {} },
       };
@@ -573,11 +575,13 @@ describe('api/config', () => {
 
       await fetchConfigFileContent('path/to/file.json');
 
-      expect(apiClient).toHaveBeenCalledWith('/api/v1alpha1/config/files/path%2Fto%2Ffile.json');
+      expect(apiClient).toHaveBeenCalledWith('/api/v1alpha1/config/files/path%2Fto%2Ffile.json', {
+        transformResponse: false,
+      });
     });
 
     it('returns parsed JSON content', async () => {
-      const mockResponse: ApiResponse<ConfigFileContentData> = {
+      const mockResponse = {
         status: 'ok',
         data: {
           filename: 'config.json',
@@ -604,6 +608,71 @@ describe('api/config', () => {
       vi.mocked(apiClient).mockRejectedValue(new Error('File not found'));
 
       await expect(fetchConfigFileContent('nonexistent.json')).rejects.toThrow('File not found');
+    });
+
+    // Story 23.1: content keys are the file's own; the envelope keys are mapped here
+    it('keeps keys with underscores inside content (AC 6)', async () => {
+      vi.mocked(apiClient).mockResolvedValue({
+        status: 'ok',
+        data: {
+          filename: 'ModConfig/x.json',
+          content: { spawn_rate: 1, _comment: 'c', nested: { max_count: 2 } },
+          parse_error: null,
+        },
+      });
+
+      const result = await fetchConfigFileContent('ModConfig/x.json');
+
+      expect(result.data.content).toEqual({
+        spawn_rate: 1,
+        _comment: 'c',
+        nested: { max_count: 2 },
+      });
+      expect(result.data.parseError).toBeNull();
+    });
+
+    it('maps parse_error, text and version (AC 4)', async () => {
+      vi.mocked(apiClient).mockResolvedValue({
+        status: 'ok',
+        data: {
+          filename: 'x.json',
+          content: { _raw: '{', _parse_error: 'Unclosed' },
+          parse_error: { message: 'Unclosed', line: 1, column: 1 },
+          text: '{',
+          version: 'abc',
+        },
+      });
+
+      const result = await fetchConfigFileContent('x.json');
+
+      expect(result.data).toEqual({
+        filename: 'x.json',
+        content: { _raw: '{', _parse_error: 'Unclosed' },
+        parseError: { message: 'Unclosed', line: 1, column: 1 },
+        text: '{',
+        version: 'abc',
+      });
+    });
+
+    it('maps a response without a data object to an empty read (review LOW-1)', async () => {
+      vi.mocked(apiClient).mockResolvedValue({ status: 'ok', data: null });
+
+      const result = await fetchConfigFileContent('x.json');
+
+      expect(result.data).toEqual({ filename: 'x.json', content: undefined, parseError: null });
+    });
+
+    it('treats a missing parse_error as null and drops a text that is not a string', async () => {
+      vi.mocked(apiClient).mockResolvedValue({
+        status: 'ok',
+        data: { filename: 'x.json', content: {}, text: 5 },
+      });
+
+      const result = await fetchConfigFileContent('x.json');
+
+      expect(result.data.parseError).toBeNull();
+      expect(result.data).not.toHaveProperty('text');
+      expect(result.data).not.toHaveProperty('version');
     });
   });
 
