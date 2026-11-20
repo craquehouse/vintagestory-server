@@ -6,6 +6,7 @@
  * as a tooltip. Story 17.4: a mod with no stored update data (`not_checked`) says
  * "Not checked yet" rather than "Unknown".
  * Story 18.4: the Update button wraps under the version when the column is narrow.
+ * Story 24.4: a mod the mod database does not know (`not_in_database`) is a "Local mod".
  */
 
 import { Loader2 } from 'lucide-react';
@@ -14,7 +15,8 @@ import type { ModUpdateStatus, ModUpdateUnknownReason } from '@/api/types';
 
 const UNKNOWN_REASONS: Record<ModUpdateUnknownReason, string> = {
   not_checked: 'Use "Check for updates" to look it up now.',
-  not_in_database: 'Not found in the mod database.',
+  not_in_database:
+    'Not in the mod database: it has no mod database page and gets no update offers.',
   installed_release_not_listed: 'The installed version is not listed in the mod database.',
   version_unparsable: 'The installed version could not be compared with newer releases.',
 };
@@ -107,7 +109,13 @@ export function ModUpdateCell({
     case 'unknown':
       return (
         <StatusLabel
-          label={status.reason === 'not_checked' ? 'Not checked yet' : 'Unknown'}
+          label={
+            status.reason === 'not_checked'
+              ? 'Not checked yet'
+              : status.reason === 'not_in_database'
+                ? 'Local mod'
+                : 'Unknown'
+          }
           title={withError(
             (status.reason && UNKNOWN_REASONS[status.reason]) || 'Update status is unknown.',
             status

@@ -52,6 +52,7 @@ import {
   ModCompatibility,
   ModEnableToggle,
   ModNameLink,
+  isLocalMod,
   ModRemoveButton,
   type ModTableRow,
 } from '@/components/InstalledModParts';
@@ -284,7 +285,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
               onClick={() => column.toggleSorting()}
             />
           ),
-          cell: ({ row }) => <ModNameLink mod={row.original} />,
+          cell: ({ row }) => <ModNameLink mod={row.original} local={isLocalMod(row.original)} />,
           // Story 18.4: long names (and slugs without spaces) wrap so the table fits at 1024px
           meta: { className: 'min-w-32 whitespace-normal wrap-anywhere' },
           sortFn: (rowA, rowB) => {
