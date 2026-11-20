@@ -20,7 +20,8 @@ def _admin_key_after_conftest(environ: dict[str, str]) -> str:
         env=environ,
         capture_output=True,
         text=True,
-        timeout=60,
+        # Under pytest-timeout's 10 s (pyproject.toml), so this guard can fire first
+        timeout=8,
         check=False,
     )
     assert result.returncode == 0, result.stderr

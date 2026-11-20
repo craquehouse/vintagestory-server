@@ -67,7 +67,7 @@ The maintainer named the scope: `VSS-foq7` (filter the installed mods), `VSS-v3b
 
 1. **Where.** `ModUpdateService._check_one` passes the payload's `assetid` to `ModService.fill_asset_id(slug, asset_id)` through the `InstalledModSource` protocol, after a successful lookup that found the mod. Nothing is looked up at start-up.
 2. **Only when missing.** The entry is written only when its `asset_id` is 0 and the payload's is positive. A non-zero stored asset ID that differs from the payload's is left alone and logged (`mod_asset_id_differs`).
-3. **Under the mod's lock.** `fill_asset_id` takes the mod's lock with `_hold`. A busy mod is skipped without an error and filled in at the next check. The state is saved with its atomic write; a failed save is logged and does not fail the check.
+3. **Under the mod's lock.** `fill_asset_id` takes the mod's lock with `_hold`. A busy mod is skipped without an error and filled in at the next check. The state is saved with its atomic write; a failed save is logged and does not fail the check. *(As implemented in Story 24.4: like enable and disable, it takes no lock. It is synchronous, so it reads `_busy` and writes with no `await` between; a busy mod is skipped. Mod IDs are matched lower-cased, as the lock compares them.)*
 4. **Local mods.** No new field. The `not_in_database` reason is shown as "Local mod: not in the mod database", with no Update button and no ModDB link. Enable, disable and remove are unchanged.
 
 ## ADR-2: Static File Serving
