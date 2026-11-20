@@ -14,6 +14,10 @@ os.environ["VS_DEBUG"] = "true"
 os.environ.pop("VS_MOD_DB_URL", None)
 # Nor may a developer's VS_LOG_LEVEL change any test's result (Epic 21 ADR-4)
 os.environ.pop("VS_LOG_LEVEL", None)
+# The app refuses to start without an admin key. Locally it comes from .env and in CI from
+# the workflow; a fresh clone or worktree has neither, so the tests set a placeholder. A
+# key that is already set is kept (VSS-uhek, Epic 24 ADR-8 decision 2)
+os.environ.setdefault("VS_API_KEY_ADMIN", "test-placeholder-admin-key")
 
 import pytest
 import structlog
