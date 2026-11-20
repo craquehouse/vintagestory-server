@@ -247,7 +247,7 @@ development_status:
   22-6-restart-and-cleanup-settings-in-the-ui: done
   22-7-restart-required-settings-survive-a-live-change: done
   22-8-container-stop-saves-the-world: done
-  epic-23: in-progress
+  epic-23: done
   epic-23-retrospective: optional
   23-1-configs-with-comments-can-be-viewed: done
   23-2-file-browser-paths-are-lists-of-names: done
@@ -256,7 +256,7 @@ development_status:
   23-5-config-files-are-edited-in-the-file-browser: done
   23-6-config-edits-are-kept-as-history: done
   23-7-config-history-in-the-file-browser: done
-  epic-24: in-progress
+  epic-24: done
   epic-24-retrospective: optional
   24-1-api-tests-run-on-a-fresh-clone: done
   24-2-web-ui-icon-and-missing-files-are-404: done
