@@ -511,7 +511,8 @@ class ModService:
 
         The listing is computed for this call, so only a file in it now can be deleted:
         never a mod's file, a `.cs` file, a folder or the manager's working files.
-        Synchronous after the busy check, so no mod operation can start meanwhile.
+        Synchronous after the busy check, so no mod operation can start meanwhile. If it
+        ever becomes `async` or moves to a thread, it must hold every mod's lock.
         Deleting a skipped archive while the game server runs sets "Restart required".
 
         Args:
@@ -548,7 +549,8 @@ class ModService:
         Runs the start-up sync (Epic 19 ADR-10) without its start-up recovery of the
         manager's working files. Synchronous after the busy check: no install, version
         change, update all or check can start while it runs, and enable, disable and
-        remove cannot interleave with it. While the game server runs, a rescan that added
+        remove cannot interleave with it. If it ever becomes `async` or moves to a
+        thread, it must hold every mod's lock. While the game server runs, a rescan that added
         or removed an entry sets "Restart required".
 
         Args:

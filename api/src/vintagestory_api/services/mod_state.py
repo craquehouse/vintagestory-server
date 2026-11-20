@@ -704,7 +704,10 @@ class ModStateManager:
             logger.warning("mod_unused_files_unlistable", path=str(mods_dir), error=str(e))
             return []
         entry_names = {name.casefold() for name in self._state}
-        by_mod_id = self._mod_id_index()
+        # Only entries whose file is here: an entry whose file was deleted by hand (until
+        # the next rescan) must not make the only copy of its mod read as a duplicate
+        # (Story 24.5 review M1). The sync gets the same by removing such entries first.
+        by_mod_id = self._mod_id_index(present={path.name for path in paths})
         unused: list[UnusedFile] = []
         for path in paths:
             name = path.name
@@ -740,11 +743,15 @@ class ModStateManager:
         """Whether the sync and the scan treat this name as a mod archive."""
         return name.endswith(".zip") or name.endswith(".zip.disabled")
 
-    def _mod_id_index(self) -> dict[str, str]:
-        """Each installed mod ID, lower-cased (as ModService._lock_key), to its file."""
+    def _mod_id_index(self, present: set[str] | None = None) -> dict[str, str]:
+        """Each installed mod ID, lower-cased (as ModService._lock_key), to its file.
+
+        With `present`, only entries whose file name is in it are indexed.
+        """
         by_mod_id: dict[str, str] = {}
         for filename in sorted(self._state):
-            by_mod_id.setdefault(self._state[filename].slug.lower(), filename)
+            if present is None or filename in present:
+                by_mod_id.setdefault(self._state[filename].slug.lower(), filename)
         return by_mod_id
 
     def _classify_new_archive(
