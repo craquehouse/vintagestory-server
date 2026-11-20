@@ -2,6 +2,8 @@
 
 import hashlib
 import json
+import os
+import stat
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -197,3 +199,57 @@ class TestPrune:
 
         assert history.prune("x.json", keep_count=20, max_age_days=0) == []
         assert len(history.list("x.json")) == 3
+
+
+class TestReviewFixes:
+    """Story 23.6 review: M2 (modes), M3 (missing files), L1 (cleanup), L2 (orphans)."""
+
+    def test_files_are_readable_by_the_manager_only(
+        self, history: ConfigHistory, root: Path
+    ) -> None:
+        revision = history.record("serverconfig.json", b'{"Password": "x"}', "admin")
+
+        directory = root / "serverconfig.json"
+        assert stat.S_IMODE((directory / f"{revision.id}.json").stat().st_mode) == 0o600
+        assert stat.S_IMODE((directory / "index.json").stat().st_mode) == 0o600
+
+    def test_a_listed_revision_whose_file_is_gone_is_not_listed(
+        self, history: ConfigHistory, root: Path, clock: Clock
+    ) -> None:
+        first = history.record("x.json", b"1", "admin")
+        clock.now += timedelta(seconds=1)
+        second = history.record("x.json", b"2", "admin")
+        (root / "x.json" / f"{first.id}.json").unlink()
+
+        assert [r.id for r in history.list("x.json")] == [second.id]
+
+    def test_a_failed_cleanup_still_raises_the_history_error(
+        self, history: ConfigHistory, root: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        real_replace = os.replace
+
+        def fail_index(src: object, dst: object) -> None:
+            if str(dst).endswith("index.json"):
+                raise OSError(30, "Read-only file system")
+            real_replace(str(src), str(dst))
+
+        def fail_unlink(self: Path, missing_ok: bool = False) -> None:
+            raise OSError(30, "Read-only file system")
+
+        monkeypatch.setattr(os, "replace", fail_index)
+        monkeypatch.setattr(Path, "unlink", fail_unlink)
+
+        with pytest.raises(ConfigHistoryWriteError):
+            history.record("x.json", b"1", "admin")
+
+    def test_an_orphan_file_from_an_interrupted_record_does_not_block_a_save(
+        self, history: ConfigHistory, root: Path
+    ) -> None:
+        directory = root / "x.json"
+        directory.mkdir(parents=True)
+        (directory / "20261119T120000123456Z.json").write_bytes(b"orphan")
+
+        revision = history.record("x.json", b"new", "admin")
+
+        assert revision.id == "20261119T120000123456Z-2"
+        assert history.read("x.json", revision.id)[1] == b"new"

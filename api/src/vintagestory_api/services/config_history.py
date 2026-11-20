@@ -80,18 +80,45 @@ class RevisionIndex(BaseModel):
     revisions: list[Revision] = Field(default_factory=list[Revision])
 
 
+_FILE_MODE = 0o600
+"""History files hold config text (secrets included): readable by the manager only
+(Story 23.6 review M2)."""
+
+
+def _create_file(path: Path, data: bytes) -> None:
+    """Create `path` exclusively with mode 0600 and write `data` durably."""
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, _FILE_MODE)
+    try:
+        view = memoryview(data)
+        while view:
+            view = view[os.write(fd, view) :]
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def _sync_directory(directory: Path) -> None:
+    """Make a create, replace or delete in `directory` durable; a failure is logged."""
+    try:
+        fd = os.open(directory, os.O_RDONLY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+    except OSError as e:
+        logger.warning("config_history_directory_not_synced", errno=e.errno)
+
+
 def _write_atomically(path: Path, data: bytes) -> None:
     """Write through a temporary file in the same directory, then replace."""
     temp = path.parent / f".{path.name}.{secrets.token_hex(6)}.tmp"
     try:
-        with temp.open("xb") as handle:
-            handle.write(data)
-            handle.flush()
-            os.fsync(handle.fileno())
+        _create_file(temp, data)
         os.replace(temp, path)
     except OSError:
         temp.unlink(missing_ok=True)
         raise
+    _sync_directory(path.parent)
 
 
 class ConfigHistory:
@@ -132,11 +159,12 @@ class ConfigHistory:
             directory / INDEX_FILENAME, index.model_dump_json(indent=2).encode("utf-8")
         )
 
-    def _new_id(self, index: RevisionIndex) -> str:
+    def _new_id(self, directory: Path, index: RevisionIndex) -> str:
         base = self._now().astimezone(UTC).strftime("%Y%m%dT%H%M%S%fZ")
         taken = {revision.id for revision in index.revisions}
         candidate, suffix = base, 1
-        while candidate in taken:
+        # A file left by an interrupted record is taken too (Story 23.6 review L2)
+        while candidate in taken or (directory / f"{candidate}.json").exists():
             suffix += 1
             candidate = f"{base}-{suffix}"
         return candidate
@@ -152,24 +180,25 @@ class ConfigHistory:
             raise ConfigHistoryWriteError(relative)
         revision_path: Path | None = None
         try:
-            directory.mkdir(parents=True, exist_ok=True)
+            directory.mkdir(parents=True, exist_ok=True, mode=0o700)
             index = self._load(directory)
             revision = Revision(
-                id=self._new_id(index),
+                id=self._new_id(directory, index),
                 saved_at=self._now(),
                 saved_by=saved_by,
                 size=len(data),
                 sha256=hashlib.sha256(data).hexdigest(),
             )
             revision_path = directory / f"{revision.id}.json"
-            with revision_path.open("xb") as handle:
-                handle.write(data)
-                handle.flush()
-                os.fsync(handle.fileno())
+            _create_file(revision_path, data)
             self._save(directory, RevisionIndex(revisions=[revision, *index.revisions]))
         except OSError as e:
             if revision_path is not None:
-                revision_path.unlink(missing_ok=True)
+                try:
+                    revision_path.unlink(missing_ok=True)
+                except OSError:
+                    # The refusal must still be ConfigHistoryWriteError (review L1)
+                    logger.error("config_history_orphan_kept", relative=relative)
             logger.error(
                 "config_history_write_failed",
                 relative=relative,
@@ -185,7 +214,16 @@ class ConfigHistory:
         directory = self._directory(relative)
         if directory is None or not directory.is_dir():
             return []
-        return self._load(directory).revisions
+        revisions = self._load(directory).revisions
+        # An entry whose file is gone (an interrupted prune) is skipped (review M3)
+        present = [r for r in revisions if (directory / f"{r.id}.json").is_file()]
+        if len(present) != len(revisions):
+            logger.warning(
+                "config_history_entries_missing",
+                relative=relative,
+                missing=len(revisions) - len(present),
+            )
+        return present
 
     def _find(self, relative: str, revision_id: str) -> tuple[Path, RevisionIndex, Revision]:
         if not REVISION_ID.fullmatch(revision_id):
@@ -240,5 +278,6 @@ class ConfigHistory:
         self._save(directory, RevisionIndex(revisions=kept))
         for revision_id in removed:
             (directory / f"{revision_id}.json").unlink(missing_ok=True)
+        _sync_directory(directory)
         logger.info("config_history_pruned", relative=relative, removed=len(removed))
         return removed

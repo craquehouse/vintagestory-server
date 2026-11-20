@@ -16,15 +16,19 @@ export interface ConfigDraft {
 
 const drafts = new Map<string, ConfigDraft>();
 
-/** The draft for a file, if it was made from this version (another version drops it). */
+/** The draft for a file, if it was made from this version. Pure: safe during render. */
 export function getDraft(path: string, version: string | undefined): ConfigDraft | undefined {
   const draft = drafts.get(path);
-  if (!draft) return undefined;
-  if (draft.version !== version) {
-    drafts.delete(path);
-    return undefined;
-  }
-  return draft;
+  return draft && draft.version === version ? draft : undefined;
+}
+
+/**
+ * Forget a draft made from another version of the file (Story 23.5 review L-6: eviction
+ * happens when an edit starts, not during render).
+ */
+export function dropStaleDraft(path: string, version: string): void {
+  const draft = drafts.get(path);
+  if (draft && draft.version !== version) drafts.delete(path);
 }
 
 export function setDraft(path: string, draft: ConfigDraft): void {
