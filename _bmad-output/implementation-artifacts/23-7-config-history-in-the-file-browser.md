@@ -1,6 +1,6 @@
 # Story 23.7: Config History in the File Browser
 
-Status: review
+Status: done
 
 <!-- Implements FR324, FR325, Epic 23 ADR-8, ADR-9. Bead: VSS-hb4d (API-098), closed by this story after merge (23.6 carried its API half). Branch story/23-7-config-history-in-the-file-browser, stacked on story/23-6-config-edits-are-kept-as-history at 37a8ff38 (23.6 in review); the PR targets main and merges after 23.6's. Web, plus one API test's list of the web's defaults and bounds. Line references verified at 37a8ff38. -->
 
@@ -24,7 +24,7 @@ so that **I can see what an edit changed and undo it from the web UI**.
 
 3. **Given** the game server is stopped
    **When** I press Restore on a revision and confirm ("Replace the current file with the version from {time}? The current text is kept in the history.")
-   **Then** `POST /config/history/{path}/restore` is sent with the read's version; on 200 a toast says "Restored {path}", the history and the read refresh and the panel closes. A 409/422 refusal is shown with the API's message. While the server is not stopped Restore is disabled with Story 23.5's line; while the editor has unsaved changes History is disabled ("Save or cancel your changes first")
+   **Then** `POST /config/history/{path}/restore` is sent with the read's version; on 200 a toast says "Restored {path}", the history and the read refresh and the panel closes. A 409/422 refusal is shown with the API's message. While the server is not stopped Restore is disabled with Story 23.5's line; while the editor is open History cannot be opened (the editor replaces the viewer and its History button; amended after review, see Completion Notes "Deviation"); a restore refused because the file changed on disk offers "Reload the file" (review M-1)
    *(FR324; ADR-8 decision 3)*
 
 4. **Given** the API Settings tab
@@ -130,7 +130,21 @@ Claude Opus 5.5 (claude-opus-5-5), as the epic's controller.
 - `_bmad-output/implementation-artifacts/23-7-config-history-in-the-file-browser.md` (this file)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode. Verdict: approve. 0 HIGH, one MEDIUM, five LOW:
+
+1. **MEDIUM: a restore refused with 409 `CONFIG_FILE_CHANGED` had no recovery** (ADR-8 decision 3 asks for a save's handling: Reload); a retry sent the same stale version. Fixed: "Reload the file" refetches the read; tested.
+2. **LOW: AC 3 still described a disabled History button.** Fixed: AC 3 amended to what holds (the editor replaces the viewer while open).
+3. **LOW: RevisionCompare's word wrap, prop change and unmount were untested.** Fixed: two tests.
+4. **LOW: the disabled Restore did not name the server note.** Fixed: `aria-describedby`.
+5. **LOW: the relative-time test assumed an English default locale.** Fixed: `relativeTime` takes a locale; the test pins `en`.
+6. **LOW: the E2E cleanup could replace the test's failure.** Fixed in both editor and history specs (cleanup errors are logged).
+
+Also fixed without a finding: a refused restore was reported twice (the panel's message and the global mutation toast), as Story 23.5's save was.
+
 ## Change Log
 
 - 2026-11-19: Story 23.7 created (ready-for-dev).
 - 2026-11-19: Implemented (dev-story): Tasks 1 to 6; status review.
+- 2026-11-19: Code review (GLM-5.3-Flash via opencode): approve; 0 HIGH, one MEDIUM fixed (Reload after a stale restore), five LOW fixed (see "Review"). `just check`: API 4007, web 3859 passed. Status done.
