@@ -127,7 +127,7 @@ The maintainer named the scope: `VSS-foq7` (filter the installed mods), `VSS-v3b
 
 **Decision:**
 
-1. **One filtered row model.** The filters are TanStack Table column filters on `ModTable`'s existing table instance. The cards render the same filtered, sorted rows, so both layouts agree.
+1. **One filtered row model.** The table and the cards render the same filtered, sorted rows, so both layouts agree. *(As implemented in Story 24.7: the rows are filtered before they reach `ModTable`'s table instance (`matchesFilters` in `web/src/lib/installed-mods-filters.ts`), instead of adding TanStack Table v9's column-filter feature. The table sorts what is left, and both layouts read its row model.)*
 2. **URL parameters.** `q` (text), `compat` (`compatible`, `not_verified` or `incompatible`) and `updates=1`, read and written with `useSearchParams` as `BrowseTab` does. Sorting stays in preferences.
 3. **History.** Typing in the search box replaces the history entry. Changing the select or the toggle pushes one. Invalid values are ignored and dropped from the URL on the next change.
 4. **Loading compatibility.** A row whose compatibility has not loaded matches only "All", so it never appears under "Not verified" by mistake.
