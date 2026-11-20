@@ -186,3 +186,58 @@ class TestUpdateCheckFillsTheAssetId:
 
         assert summary.failed == 1
         assert asset_id(mod_service, "carryon") == 0
+
+
+class TestReviewFollowUps:
+    """Story 24.4 review: two entries of one mod ID, a failing fill, the log."""
+
+    def test_two_entries_of_one_mod_id_are_left_alone(self, mod_service: ModService) -> None:
+        hand_added(mod_service, modid="carryon", version="1.0.0")
+        hand_added(mod_service, modid="carryon", version="2.0.0")
+        # The sync skips the second archive as a duplicate; make the state hold both
+        state = mod_service.state_manager.get_mod_by_slug("carryon")
+        assert state is not None
+        mod_service.state_manager.set_mod_state(
+            "carryon_2.0.0.zip", state.model_copy(update={"filename": "carryon_2.0.0.zip"})
+        )
+
+        assert mod_service.fill_asset_id("carryon", CARRYON_ASSET_ID) is False
+        assert {s.asset_id for s in mod_service.state_manager.list_mods()} == {0}
+
+    def test_a_failed_save_is_not_logged_as_filled(
+        self,
+        mod_service: ModService,
+        monkeypatch: pytest.MonkeyPatch,
+        captured_logs: StringIO,
+    ) -> None:
+        hand_added(mod_service)
+
+        def refuse() -> None:
+            raise OSError("read-only file system")
+
+        monkeypatch.setattr(mod_service.state_manager, "save", refuse)
+        mod_service.fill_asset_id("carryon", CARRYON_ASSET_ID)
+
+        assert "mod_asset_id_filled" not in captured_logs.getvalue()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_a_fill_that_raises_does_not_fail_the_check(
+        self,
+        mod_service: ModService,
+        update_service: ModUpdateService,
+        monkeypatch: pytest.MonkeyPatch,
+        captured_logs: StringIO,
+    ) -> None:
+        hand_added(mod_service)
+        respx.get(MOD_URL).mock(return_value=Response(200, json=carryon()))
+
+        def boom(slug: str, asset_id: int) -> bool:
+            raise RuntimeError("unexpected")
+
+        monkeypatch.setattr(mod_service, "fill_asset_id", boom)
+
+        summary = await update_service.check()
+
+        assert summary.failed == 0
+        assert "mod_asset_id_fill_failed" in captured_logs.getvalue()

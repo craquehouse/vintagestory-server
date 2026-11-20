@@ -511,7 +511,8 @@ class ModService:
 
         The listing is computed for this call, so only a file in it now can be deleted:
         never a mod's file, a `.cs` file, a folder or the manager's working files.
-        Synchronous after the busy check, so no mod operation can start meanwhile.
+        Synchronous after the busy check, so no mod operation can start meanwhile. If it
+        ever becomes `async` or moves to a thread, it must hold every mod's lock.
         Deleting a skipped archive while the game server runs sets "Restart required".
 
         Args:
@@ -548,7 +549,8 @@ class ModService:
         Runs the start-up sync (Epic 19 ADR-10) without its start-up recovery of the
         manager's working files. Synchronous after the busy check: no install, version
         change, update all or check can start while it runs, and enable, disable and
-        remove cannot interleave with it. While the game server runs, a rescan that added
+        remove cannot interleave with it. If it ever becomes `async` or moves to a
+        thread, it must hold every mod's lock. While the game server runs, a rescan that added
         or removed an entry sets "Restart required".
 
         Args:
@@ -589,24 +591,27 @@ class ModService:
 
         Called by the update check after a lookup found the mod, so a mod copied into the
         mods directory by hand (asset ID 0) gets its mod database link. The mod ID is
-        matched ignoring case, as the mod's lock is. Nothing is written when the asset ID
-        is not positive, the mod is not installed, its asset ID is already set (a
-        different one is logged) or an install or version change holds its lock (the
-        next check fills it in). A failed save is logged; the asset ID stays in memory.
+        matched lower-cased, as the mod's lock and the sync compare it. Nothing is
+        written when the asset ID is not positive, no entry or two entries match, its
+        asset ID is already set (a different one is logged) or an install or version
+        change holds its lock (the next check fills it in). A failed save is logged; the
+        asset ID stays in memory.
 
-        Synchronous, so nothing can run between the lock check and the write.
+        Like enable and disable, it takes no lock: it is synchronous, so nothing can run
+        between its `_busy` check and its write. If it ever becomes `async` or moves to a
+        thread, it must hold the lock with `_hold`.
 
         Returns:
             True when the asset ID was written.
         """
         if asset_id <= 0 or self._lock_key(slug) in self._busy:
             return False
-        key = slug.casefold()
+        key = self._lock_key(slug)
         entries = [
             (filename, state)
             for filename in self._state_manager.filenames()
             if (state := self._state_manager.get_mod(filename)) is not None
-            and state.slug.casefold() == key
+            and self._lock_key(state.slug) == key
         ]
         if len(entries) != 1:
             return False
@@ -625,6 +630,7 @@ class ModService:
             self._state_manager.save()
         except OSError as e:
             logger.warning("mod_asset_id_not_saved", slug=state.slug, error=str(e))
+            return True
         logger.info("mod_asset_id_filled", slug=state.slug, asset_id=asset_id)
         return True
 

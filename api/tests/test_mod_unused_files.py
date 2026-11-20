@@ -24,6 +24,7 @@ from vintagestory_api.services.mod_updates import (
 from vintagestory_api.services.mods import (
     ModsBusyError,
     ModService,
+    UnusedFileDeleteFailedError,
     UnusedFileNotFoundError,
     get_mod_service,
 )
@@ -155,6 +156,48 @@ class TestListing:
 
         assert summary.skipped == len(listed_archives) == 2
         assert summary.added == 1
+
+
+class TestReviewFollowUps:
+    """Story 24.5 review: a stale entry, a failed delete, the restart rule per reason."""
+
+    def test_an_entry_whose_file_is_gone_does_not_make_the_only_copy_a_duplicate(
+        self, service: ModService
+    ) -> None:
+        """M1: until a rescan, the state can name a file deleted by hand."""
+        install(service, "moda_2.0.0.zip", "moda").unlink()
+        archive(service.state_manager.mods_dir / "moda_1.0.0.zip", "moda")
+
+        assert names(service) == {}
+        with pytest.raises(UnusedFileNotFoundError):
+            service.delete_unused_file("moda_1.0.0.zip")
+        assert (service.state_manager.mods_dir / "moda_1.0.0.zip").exists()
+        # The rescan adopts it
+        assert service.rescan().added == 1
+
+    def test_a_delete_that_fails_raises_and_keeps_the_file(
+        self, service: ModService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        path = service.state_manager.mods_dir / "x.tmp"
+        path.write_bytes(b"x")
+
+        def refuse(self: Path, missing_ok: bool = False) -> None:
+            raise PermissionError(13, "Permission denied", str(self))
+
+        monkeypatch.setattr(Path, "unlink", refuse)
+
+        with pytest.raises(UnusedFileDeleteFailedError):
+            service.delete_unused_file("x.tmp")
+        monkeypatch.undo()
+        assert path.exists()
+
+    def test_deleting_an_unreadable_archive_while_the_server_runs_requires_a_restart(
+        self, service: ModService
+    ) -> None:
+        (service.state_manager.mods_dir / "broken.zip").write_bytes(b"not a zip")
+        service.set_server_running(True)
+
+        assert service.delete_unused_file("broken.zip").pending_restart is True
 
 
 class TestDelete:
@@ -401,6 +444,21 @@ class TestRoutes:
         }
         listed = client.get(MODS, headers=ADMIN).json()["data"]
         assert [mod["slug"] for mod in listed["mods"]] == ["newmod"]
+
+    def test_a_delete_that_fails_is_500(
+        self, client: TestClient, service: ModService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        (service.state_manager.mods_dir / "x.tmp").write_bytes(b"x")
+
+        def refuse(self: Path, missing_ok: bool = False) -> None:
+            raise PermissionError(13, "Permission denied", str(self))
+
+        monkeypatch.setattr(Path, "unlink", refuse)
+        response = client.delete(f"{MODS}/unused-files/x.tmp", headers=ADMIN)
+        monkeypatch.undo()
+
+        assert response.status_code == 500
+        assert response.json()["detail"]["code"] == "UNUSED_FILE_DELETE_FAILED"
 
     def test_busy_is_409(self, client: TestClient, service: ModService) -> None:
         (service.state_manager.mods_dir / "x.tmp").write_bytes(b"x")
