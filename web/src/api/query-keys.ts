@@ -38,6 +38,8 @@ export const queryKeys = {
     // Story 14.3: update status. '@' cannot appear in a mod ID, so this key
     // cannot collide with detail(slug).
     updateStatus: ['mods', '@updates'] as const,
+    // Story 24.6: Admin only; under 'mods', so a mods invalidation refreshes it
+    unusedFiles: ['mods', '@unused-files'] as const,
   },
   server: {
     status: ['server', 'status'] as const,

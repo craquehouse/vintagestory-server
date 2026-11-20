@@ -21,6 +21,9 @@ import type {
   ModUpdateCheckData,
   ModVersionChangeData,
   ModUpdateAllData,
+  ModRescanData,
+  UnusedFileDeleteData,
+  UnusedFilesData,
 } from './types';
 
 const API_PREFIX = '/api/v1alpha1/mods';
@@ -253,4 +256,35 @@ export async function applyAllModUpdates(): Promise<ApiResponse<ModUpdateAllData
   return apiClient<ApiResponse<ModUpdateAllData>>(`${API_PREFIX}/updates/apply-all`, {
     method: 'POST',
   });
+}
+
+/**
+ * List the files in the mods folder the manager does not use (Story 24.5).
+ *
+ * `.tmp` and `.bak` leftovers, unreadable archives and second archives of an installed
+ * mod. Requires Admin role.
+ */
+export async function fetchUnusedFiles(): Promise<ApiResponse<UnusedFilesData>> {
+  return apiClient<ApiResponse<UnusedFilesData>>(`${API_PREFIX}/unused-files`);
+}
+
+/**
+ * Delete one file of the unused-file listing (Story 24.5).
+ *
+ * Fails with 404 UNUSED_FILE_NOT_FOUND when the file is no longer listed, and 409
+ * MODS_BUSY while a mod operation runs. Requires Admin role.
+ */
+export async function deleteUnusedFile(name: string): Promise<ApiResponse<UnusedFileDeleteData>> {
+  return apiClient<ApiResponse<UnusedFileDeleteData>>(
+    `${API_PREFIX}/unused-files/${encodeURIComponent(name)}`,
+    { method: 'DELETE' }
+  );
+}
+
+/**
+ * Rescan the mods folder: add mods copied in by hand, drop entries whose file is gone
+ * (Story 24.5). Fails with 409 MODS_BUSY while a mod operation runs. Requires Admin role.
+ */
+export async function rescanMods(): Promise<ApiResponse<ModRescanData>> {
+  return apiClient<ApiResponse<ModRescanData>>(`${API_PREFIX}/rescan`, { method: 'POST' });
 }

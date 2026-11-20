@@ -13,6 +13,9 @@ import {
   checkModUpdates,
   changeModVersion,
   applyAllModUpdates,
+  fetchUnusedFiles,
+  deleteUnusedFile,
+  rescanMods,
 } from './mods';
 import type {
   ApiResponse,
@@ -1167,5 +1170,80 @@ describe('mod update API', () => {
     expect(options.method).toBe('POST');
     expect(result.data.results[0].fromVersion).toBe('1.14.1');
     expect(result.data.pendingRestart).toBe(true);
+  });
+});
+
+describe('unused files and rescan (Story 24.6)', () => {
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    import.meta.env.VITE_API_KEY = 'test-api-key';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  function mockOk(body: unknown) {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(body) });
+    globalThis.fetch = mockFetch;
+    return mockFetch;
+  }
+
+  it('fetchUnusedFiles reads the listing in camelCase', async () => {
+    const mockFetch = mockOk({
+      status: 'ok',
+      data: {
+        files: [
+          {
+            name: 'a.zip',
+            size_bytes: 10,
+            modified_at: '2026-11-01T00:00:00Z',
+            reason: 'duplicate_mod_id',
+            installed_as: 'b.zip',
+          },
+        ],
+      },
+    });
+
+    const result = await fetchUnusedFiles();
+
+    expect(mockFetch.mock.calls[0][0]).toBe('http://localhost:8080/api/v1alpha1/mods/unused-files');
+    expect(result.data.files[0]).toEqual({
+      name: 'a.zip',
+      sizeBytes: 10,
+      modifiedAt: '2026-11-01T00:00:00Z',
+      reason: 'duplicate_mod_id',
+      installedAs: 'b.zip',
+    });
+  });
+
+  it('deleteUnusedFile sends DELETE with the name encoded', async () => {
+    const mockFetch = mockOk({
+      status: 'ok',
+      data: { name: 'my file#1.bak', pending_restart: false },
+    });
+
+    await deleteUnusedFile('my file#1.bak');
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toBe('http://localhost:8080/api/v1alpha1/mods/unused-files/my%20file%231.bak');
+    expect(options.method).toBe('DELETE');
+  });
+
+  it('rescanMods posts and reads the summary', async () => {
+    const mockFetch = mockOk({
+      status: 'ok',
+      data: { added: 1, removed: 0, skipped: 2, pending_restart: true },
+    });
+
+    const result = await rescanMods();
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toBe('http://localhost:8080/api/v1alpha1/mods/rescan');
+    expect(options.method).toBe('POST');
+    expect(result.data).toEqual({ added: 1, removed: 0, skipped: 2, pendingRestart: true });
   });
 });
