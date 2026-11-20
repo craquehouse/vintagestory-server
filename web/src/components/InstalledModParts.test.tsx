@@ -55,6 +55,15 @@ describe('InstalledModParts (Story 16.5)', () => {
       expect(link).toHaveAttribute('href', 'https://mods.vintagestory.at/playercorpse');
       expect(screen.getAllByText('playercorpse')).toHaveLength(1);
     });
+
+    // Story 24.4 (FR335): a local mod has no mod database page to link to
+    it('shows a local mod without a link', () => {
+      render(<ModNameLink mod={mod({ assetId: 0 })} local />);
+
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+      expect(screen.getByTestId('mod-name-playercorpse')).toHaveTextContent('Player Corpse');
+      expect(screen.getByText('playercorpse')).toBeInTheDocument();
+    });
   });
 
   describe('ModCompatibility', () => {

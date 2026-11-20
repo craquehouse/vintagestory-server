@@ -85,7 +85,6 @@ describe('ModUpdateCell', () => {
   });
 
   it.each([
-    ['not_in_database', 'Not found in the mod database.'],
     ['installed_release_not_listed', 'The installed version is not listed in the mod database.'],
     ['version_unparsable', 'The installed version could not be compared with newer releases.'],
   ] as const)('shows Unknown with the %s reason as tooltip', (reason, text) => {
@@ -95,6 +94,20 @@ describe('ModUpdateCell', () => {
     expect(label).toHaveTextContent('Unknown');
     expect(label).not.toHaveTextContent(/^Not checked yet/);
     expect(label).toHaveAttribute('title', text);
+  });
+
+  // Story 24.4 (FR335, Epic 24 ADR-1 decision 4)
+  it('shows a mod the mod database does not know as a local mod', () => {
+    render(<ModUpdateCell status={item({ status: 'unknown', reason: 'not_in_database' })} />);
+
+    const label = screen.getByTestId('mod-update-carryon');
+    expect(label).toHaveTextContent(/^Local mod/);
+    expect(label).not.toHaveTextContent('Unknown');
+    expect(label).toHaveAttribute(
+      'title',
+      'Not in the mod database: it has no mod database page and gets no update offers.'
+    );
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('shows Unknown when no reason is given', () => {
@@ -140,7 +153,9 @@ describe('ModUpdateCell', () => {
   it('gives screen readers the reason as text, not only as a tooltip', () => {
     render(<ModUpdateCell status={item({ status: 'unknown', reason: 'not_in_database' })} />);
 
-    const reason = screen.getByText('Not found in the mod database.');
+    const reason = screen.getByText(
+      'Not in the mod database: it has no mod database page and gets no update offers.'
+    );
     expect(reason).toHaveClass('sr-only');
     expect(screen.getByTestId('mod-update-carryon')).toContainElement(reason);
   });

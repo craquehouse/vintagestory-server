@@ -457,6 +457,54 @@ class ModService:
         finally:
             self._busy.discard(key)
 
+    def fill_asset_id(self, slug: str, asset_id: int) -> bool:
+        """Store a mod's mod database asset ID if it has none yet (Epic 24 ADR-1).
+
+        Called by the update check after a lookup found the mod, so a mod copied into the
+        mods directory by hand (asset ID 0) gets its mod database link. The mod ID is
+        matched lower-cased, as the mod's lock and the sync compare it. Nothing is
+        written when the asset ID is not positive, no entry or two entries match, its
+        asset ID is already set (a different one is logged) or an install or version
+        change holds its lock (the next check fills it in). A failed save is logged; the
+        asset ID stays in memory.
+
+        Like enable and disable, it takes no lock: it is synchronous, so nothing can run
+        between its `_busy` check and its write. If it ever becomes `async` or moves to a
+        thread, it must hold the lock with `_hold`.
+
+        Returns:
+            True when the asset ID was written.
+        """
+        if asset_id <= 0 or self._lock_key(slug) in self._busy:
+            return False
+        key = self._lock_key(slug)
+        entries = [
+            (filename, state)
+            for filename in self._state_manager.filenames()
+            if (state := self._state_manager.get_mod(filename)) is not None
+            and self._lock_key(state.slug) == key
+        ]
+        if len(entries) != 1:
+            return False
+        filename, state = entries[0]
+        if state.asset_id != 0:
+            if state.asset_id != asset_id:
+                logger.warning(
+                    "mod_asset_id_differs",
+                    slug=state.slug,
+                    stored=state.asset_id,
+                    mod_database=asset_id,
+                )
+            return False
+        self._state_manager.set_mod_state(filename, state.model_copy(update={"asset_id": asset_id}))
+        try:
+            self._state_manager.save()
+        except OSError as e:
+            logger.warning("mod_asset_id_not_saved", slug=state.slug, error=str(e))
+            return True
+        logger.info("mod_asset_id_filled", slug=state.slug, asset_id=asset_id)
+        return True
+
     @property
     def busy_mod_ids(self) -> frozenset[str]:
         """Lock keys of the mods an install or version change is running for (read-only)."""

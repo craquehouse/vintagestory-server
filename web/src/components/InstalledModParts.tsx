@@ -28,14 +28,32 @@ export interface ModTableRow extends ModInfo {
   updateStatus?: ModUpdateStatus;
 }
 
+/** Whether the mod database does not know this mod (Story 24.4, FR335). */
+export function isLocalMod(mod: ModTableRow): boolean {
+  return mod.updateStatus?.reason === 'not_in_database';
+}
+
 function modDatabaseUrl(mod: ModInfo): string {
   return mod.assetId > 0
     ? `https://mods.vintagestory.at/show/mod/${mod.assetId}`
     : `https://mods.vintagestory.at/${mod.slug}`;
 }
 
-/** Mod name linking to its mod database page, with the slug under it when a name exists. */
-export function ModNameLink({ mod }: { mod: ModInfo }) {
+/**
+ * Mod name linking to its mod database page, with the slug under it when a name exists.
+ * A local mod (one the mod database does not know, Story 24.4) has no page: plain text.
+ */
+export function ModNameLink({ mod, local = false }: { mod: ModInfo; local?: boolean }) {
+  if (local) {
+    return (
+      <div>
+        <div className="font-medium" data-testid={`mod-name-${mod.slug}`}>
+          {mod.name || mod.slug}
+        </div>
+        {mod.name && <div className="text-sm text-muted-foreground">{mod.slug}</div>}
+      </div>
+    );
+  }
   return (
     <div>
       <div className="font-medium">

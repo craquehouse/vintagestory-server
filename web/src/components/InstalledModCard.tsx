@@ -14,6 +14,7 @@ import {
   ModCompatibility,
   ModEnableToggle,
   ModNameLink,
+  isLocalMod,
   ModRemoveButton,
   type ModTableRow,
 } from '@/components/InstalledModParts';
@@ -46,7 +47,7 @@ export function InstalledModCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 break-words">
-          <ModNameLink mod={mod} />
+          <ModNameLink mod={mod} local={isLocalMod(mod)} />
         </div>
         {/* The label makes the whole 44px area toggle the switch */}
         <label className="flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-end gap-2 text-sm text-muted-foreground">

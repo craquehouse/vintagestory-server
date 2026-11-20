@@ -53,6 +53,9 @@ class FakeModSource:
             for slug, version in self.mods
         ]
 
+    def fill_asset_id(self, slug: str, asset_id: int) -> bool:
+        return False
+
 
 def record(slug: str, *releases: tuple[str, str]) -> StoredModRecord:
     """Releases as (version, tag), newest first."""
