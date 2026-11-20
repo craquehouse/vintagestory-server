@@ -98,7 +98,12 @@ test.describe('Config file editor (Story 23.5)', () => {
 
       expect(await page.evaluate(() => window.__editorCspViolations)).toEqual([]);
     } finally {
-      dockerExec(['rm', '-f', file]);
+      // Cleanup must not hide the test's own failure (Story 23.7 review L-5)
+      try {
+        dockerExec(['rm', '-f', file]);
+      } catch (error) {
+        console.warn(`could not remove ${file}: ${String(error)}`);
+      }
     }
   });
 

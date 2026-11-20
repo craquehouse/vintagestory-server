@@ -39,6 +39,30 @@ describe('RevisionCompare (Story 23.7)', () => {
     expect(container.querySelector('.cm-deletedChunk')).not.toBeNull();
   });
 
+  it('wraps lines when asked (review L-2)', () => {
+    const { container, rerender } = render(
+      <RevisionCompare original={ORIGINAL} current={CURRENT} split={false} />
+    );
+    expect(container.querySelector('.cm-lineWrapping')).toBeNull();
+
+    rerender(<RevisionCompare original={ORIGINAL} current={CURRENT} split={false} wordWrap />);
+
+    expect(container.querySelector('.cm-lineWrapping')).not.toBeNull();
+  });
+
+  it('shows a new current text (a refetch) and destroys the views on unmount', () => {
+    const { container, rerender, unmount } = render(
+      <RevisionCompare original={ORIGINAL} current={CURRENT} split />
+    );
+
+    rerender(<RevisionCompare original={ORIGINAL} current={'{"a": 9}'} split />);
+    expect(views(container)[1].state.doc.toString()).toBe('{"a": 9}');
+    expect(views(container)).toHaveLength(2);
+
+    unmount();
+    expect(container.querySelector('.cm-editor')).toBeNull();
+  });
+
   it('switches between the layouts', () => {
     const { container, rerender } = render(
       <RevisionCompare original={ORIGINAL} current={CURRENT} split />

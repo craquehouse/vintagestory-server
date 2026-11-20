@@ -200,6 +200,8 @@ export function useRestoreConfigRevision() {
   return useMutation({
     mutationFn: ({ path, revision, version }: RestoreConfigRevisionVariables) =>
       restoreConfigRevision(path, revision, version),
+    // The history panel shows every refusal itself: no global toast (Story 23.7 review)
+    onError: () => {},
     onSuccess: async (_data, { path }) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: historyKey(path) }),

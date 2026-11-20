@@ -90,6 +90,11 @@ test('an Admin key compares an earlier version and restores it', async ({ page, 
     const body: { data: { text: string } } = await read.json();
     expect(body.data.text).toBe(FIRST);
   } finally {
-    dockerExec(['rm', '-f', file]);
+    // Cleanup must not hide the test's own failure (Story 23.7 review L-5)
+    try {
+      dockerExec(['rm', '-f', file]);
+    } catch (error) {
+      console.warn(`could not remove ${file}: ${String(error)}`);
+    }
   }
 });

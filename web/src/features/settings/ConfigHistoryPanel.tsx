@@ -8,7 +8,10 @@
  * current text is kept as a new earlier version.
  */
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { ApiError } from '@/api/errors';
+import { queryKeys } from '@/api/query-keys';
 import { toast } from 'sonner';
 import { ArrowLeft, History, RotateCcw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -34,10 +37,10 @@ const RELATIVE_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['second', 1],
 ];
 
-/** "3 hours ago", in the browser's language. */
-export function relativeTime(iso: string, now: number = Date.now()): string {
+/** "3 hours ago", in the browser's language (or `locale`, for tests). */
+export function relativeTime(iso: string, now: number = Date.now(), locale?: string): string {
   const seconds = Math.round((new Date(iso).getTime() - now) / 1000);
-  const format = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+  const format = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
   for (const [unit, size] of RELATIVE_UNITS) {
     if (Math.abs(seconds) >= size || unit === 'second') {
       return format.format(Math.round(seconds / size), unit);
@@ -79,6 +82,10 @@ export function ConfigHistoryPanel({
   const [showAlone, setShowAlone] = useState(false);
   const [confirmRestore, setConfirmRestore] = useState(false);
   const [restoreError, setRestoreError] = useState<string | null>(null);
+  // Story 23.7 review M-1: a version refused as changed on disk can be reloaded and retried
+  const [restoreChanged, setRestoreChanged] = useState(false);
+  const queryClient = useQueryClient();
+  const serverNoteId = useId();
   const wide = useMediaQuery('(min-width: 768px)');
   const history = useConfigHistory(path, true);
   const revision = useConfigRevision(path, chosen?.id ?? null);
@@ -91,11 +98,13 @@ export function ConfigHistoryPanel({
     if (!chosen) return;
     setConfirmRestore(false);
     setRestoreError(null);
+    setRestoreChanged(false);
     try {
       await restore.mutateAsync({ path, revision: chosen.id, version: currentVersion });
       toast.success(`Restored ${displayPath}`);
       onClose();
     } catch (error) {
+      setRestoreChanged(error instanceof ApiError && error.code === 'CONFIG_FILE_CHANGED');
       setRestoreError(error instanceof Error ? error.message : 'The version could not be restored');
     }
   };
@@ -194,6 +203,7 @@ export function ConfigHistoryPanel({
                 size="sm"
                 className="min-h-11 md:min-h-8"
                 disabled={!serverStopped || revisionText === undefined || restore.isPending}
+                aria-describedby={serverStopped ? undefined : serverNoteId}
                 onClick={() => setConfirmRestore(true)}
                 data-testid="config-history-restore"
               >
@@ -204,7 +214,7 @@ export function ConfigHistoryPanel({
           </div>
           {!serverStopped && (
             <div className="border-b px-4 py-1.5">
-              <ServerNotStoppedNote />
+              <ServerNotStoppedNote id={serverNoteId} />
             </div>
           )}
           {restoreError && (
@@ -213,6 +223,25 @@ export function ConfigHistoryPanel({
               data-testid="config-history-error"
             >
               {restoreError}
+              {restoreChanged && (
+                <>
+                  {' '}
+                  <button
+                    type="button"
+                    className="min-h-11 px-1 underline underline-offset-2 md:min-h-0 md:px-0"
+                    onClick={() => {
+                      setRestoreError(null);
+                      setRestoreChanged(false);
+                      void queryClient.invalidateQueries({
+                        queryKey: queryKeys.config.file(path.join('/')),
+                      });
+                    }}
+                    data-testid="config-history-reload"
+                  >
+                    Reload the file
+                  </button>
+                </>
+              )}
             </p>
           )}
           <div className="min-h-0 flex-1">

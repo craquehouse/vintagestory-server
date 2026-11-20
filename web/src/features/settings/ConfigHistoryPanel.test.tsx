@@ -192,6 +192,10 @@ describe('ConfigHistoryPanel (Story 23.7)', () => {
       'The file changed on disk'
     );
     expect(onClose).not.toHaveBeenCalled();
+
+    // Review M-1: reload the file, then the restore can be tried again
+    fireEvent.click(screen.getByTestId('config-history-reload'));
+    expect(screen.queryByTestId('config-history-error')).not.toBeInTheDocument();
   });
 
   it('disables Restore and says why while the server is not stopped', async () => {
@@ -202,7 +206,11 @@ describe('ConfigHistoryPanel (Story 23.7)', () => {
 
     await waitFor(() => expect(screen.getByTestId('compare-original')).toBeInTheDocument());
     expect(screen.getByTestId('config-history-restore')).toBeDisabled();
-    expect(screen.getByTestId('config-editor-server-note')).toBeInTheDocument();
+    const note = screen.getByTestId('config-editor-server-note');
+    expect(screen.getByTestId('config-history-restore')).toHaveAttribute(
+      'aria-describedby',
+      note.id
+    );
   });
 
   it('closes', async () => {
@@ -218,8 +226,9 @@ describe('ConfigHistoryPanel (Story 23.7)', () => {
 describe('relativeTime and formatSize', () => {
   it('describes a time relative to now', () => {
     const now = Date.parse('2026-11-19T12:00:00Z');
-    expect(relativeTime('2026-11-19T09:00:00Z', now)).toMatch(/3 hours ago/);
-    expect(relativeTime('2026-11-18T12:00:00Z', now)).toMatch(/yesterday|1 day ago/);
+    // The locale is pinned so the test does not depend on the machine's (review L-4)
+    expect(relativeTime('2026-11-19T09:00:00Z', now, 'en')).toBe('3 hours ago');
+    expect(relativeTime('2026-11-18T12:00:00Z', now, 'en')).toBe('yesterday');
   });
 
   it('formats sizes', () => {
