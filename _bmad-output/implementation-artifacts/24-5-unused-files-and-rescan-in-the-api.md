@@ -1,6 +1,6 @@
 # Story 24.5: Unused Files and Rescan in the API
 
-Status: review
+Status: done
 
 <!-- Implements FR336, FR337, FR338, FR340, Epic 24 ADR-3, ADR-4. Beads: VSS-hv60 (UI-103, API half; closes in 24.6), VSS-v3be (API-093, rescan; closes in 24.6), VSS-3tb1 (API-095, item 2; closes with this story after merge). Branch story/24-5-unused-files-and-rescan-in-the-api, stacked on story/24-4-hand-added-mods-get-their-mod-database-link at 6289058c (24.4 in review); the PR targets main and merges after 24.4's. API only. -->
 
@@ -105,6 +105,16 @@ Claude Opus 5.5 (claude-opus-5-5), as the epic's controller.
 - `_bmad-output/implementation-artifacts/24-5-unused-files-and-rescan-in-the-api.md` (this file)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode. Verdict: approve with changes. 0 HIGH, one MEDIUM, three LOW, all fixed:
+
+1. **MEDIUM: `duplicate_mod_id` came from the state without checking the entry's file.** A mod file deleted by hand while the API ran left a stale entry until the next rescan, so a second archive of that mod (now its only copy) was listed, and deletable, as a duplicate of a file that is gone. The listing now indexes only entries whose file is in the listing; such an archive is not listed and the next rescan adopts it. Test.
+2. **LOW: the 500 `UNUSED_FILE_DELETE_FAILED` path was untested.** Service and route tests.
+3. **LOW: the restart rule was tested for `duplicate_mod_id` only.** An `unreadable` archive deleted while the server runs is tested too.
+4. **LOW: the no-`await` invariant had no warning.** `delete_unused_file` and `rescan` carry the codebase's "if it ever becomes async ..." line.
+
 ## Change Log
 
 - 2026-11-20: Story 24.5 created and implemented (dev-story): Tasks 1 to 3; status review.
+- 2026-11-20: Code review (GLM-5.3-Flash via opencode): approve with changes; 0 HIGH, 1 MEDIUM, 3 LOW, all fixed (see "Review"). Status done.
