@@ -16,6 +16,8 @@
  * only a key that is not Admin receives) shows whether it is set instead of a field.
  * Story 17.6: a boolean with no value is shown at the game's `default` when the API
  * sends one (the secret branch above stays first; a secret never has a default).
+ * Story 23.3: only an Admin key can change settings, so for any other key (and while the
+ * role is loading or unknown) every field is disabled, with a note saying why.
  */
 
 import { AlertCircle } from 'lucide-react';
@@ -28,6 +30,7 @@ import { useGameConfig, useUpdateGameSetting } from '@/hooks/use-game-config';
 import { validators, type SettingValue, type Validator } from '@/hooks/use-setting-field';
 import type { GameSetting, SettingType } from '@/api/types';
 import { PAGE_CONTENT_WIDTH } from '@/components/layout/content-width';
+import { useIsAdmin } from '@/api/hooks/use-auth-me';
 
 /**
  * Setting definition with display metadata.
@@ -151,6 +154,9 @@ const NETWORK_SETTINGS: SettingDefinition[] = [
   },
 ];
 
+/** The read-only note's id, which disabled fields name in aria-describedby (Story 23.3). */
+const READ_ONLY_NOTE_ID = 'game-config-read-only-note';
+
 /**
  * Props for the GameConfigPanel component.
  */
@@ -170,6 +176,14 @@ export interface GameConfigPanelProps {
 export function GameConfigPanel({ className }: GameConfigPanelProps) {
   const { data, isLoading, error } = useGameConfig();
   const updateMutation = useUpdateGameSetting();
+  // Story 23.3 (Epic 23 ADR-6): saving is Admin-only in the API, so the fields are too
+  const { isAdmin, isKnown, isError: roleError } = useIsAdmin();
+  const readOnlyNote =
+    isKnown && !isAdmin
+      ? 'Only an Admin key can change settings.'
+      : roleError
+        ? "Could not check this key's role; settings cannot be changed until it loads."
+        : null;
 
   // Handle save with toast notification
   const handleSave = async (params: { key: string; value: string | number | boolean }) => {
@@ -262,6 +276,8 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
         description={def.description}
         masked={def.masked}
         gameDefault={setting.default}
+        disabled={!isAdmin}
+        disabledReasonId={readOnlyNote ? READ_ONLY_NOTE_ID : undefined}
         onSave={handleSave}
       />
     );
@@ -298,6 +314,16 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
   return (
     <div className={className} data-testid="game-config-panel">
       <div className={`${PAGE_CONTENT_WIDTH} space-y-4`} data-testid="game-config-layout">
+        {readOnlyNote && (
+          <p
+            id={READ_ONLY_NOTE_ID}
+            role="note"
+            className="text-sm text-muted-foreground"
+            data-testid="game-config-read-only-note"
+          >
+            {readOnlyNote}
+          </p>
+        )}
         {renderGroup(
           'Server Info',
           'Basic server identification',

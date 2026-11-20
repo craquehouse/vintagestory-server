@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
-import { useAuthMe } from './use-auth-me';
+import { useAuthMe, useIsAdmin } from './use-auth-me';
 import { UnauthorizedError, ForbiddenError } from '../errors';
 
 // Create a fresh QueryClient for each test
@@ -236,5 +236,64 @@ describe('useAuthMe', () => {
       const role = result.current.data?.data.role;
       expect(role).toBe('admin');
     });
+  });
+});
+
+// Story 23.3 (Epic 23 ADR-6 decision 3)
+describe('useIsAdmin', () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  function respond(role: string) {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ status: 'ok', data: { role } }),
+    });
+  }
+
+  it('is Admin for the admin role', async () => {
+    respond('admin');
+    const { result } = renderHook(() => useIsAdmin(), {
+      wrapper: createWrapper(createTestQueryClient()),
+    });
+
+    await waitFor(() => expect(result.current.isKnown).toBe(true));
+    expect(result.current).toEqual({ isAdmin: true, isKnown: true, isError: false });
+  });
+
+  it('is not Admin for the monitor role', async () => {
+    respond('monitor');
+    const { result } = renderHook(() => useIsAdmin(), {
+      wrapper: createWrapper(createTestQueryClient()),
+    });
+
+    await waitFor(() => expect(result.current.isKnown).toBe(true));
+    expect(result.current).toEqual({ isAdmin: false, isKnown: true, isError: false });
+  });
+
+  it('is neither known nor Admin while loading', () => {
+    globalThis.fetch = vi.fn().mockReturnValue(new Promise(() => {}));
+    const { result } = renderHook(() => useIsAdmin(), {
+      wrapper: createWrapper(createTestQueryClient()),
+    });
+
+    expect(result.current).toEqual({ isAdmin: false, isKnown: false, isError: false });
+  });
+
+  it('reports an error when the role cannot be loaded', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: () => Promise.resolve({ detail: { code: 'INTERNAL_ERROR', message: 'boom' } }),
+    });
+    const { result } = renderHook(() => useIsAdmin(), {
+      wrapper: createWrapper(createTestQueryClient()),
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current).toEqual({ isAdmin: false, isKnown: false, isError: true });
   });
 });

@@ -57,6 +57,17 @@ export interface SettingFieldProps {
   envManaged?: boolean;
 
   /**
+   * Read-only for this key, e.g. a Monitor key (Story 23.3). Unlike envManaged, no badge.
+   */
+  disabled?: boolean;
+
+  /**
+   * The id of an element that says why the field is disabled, added to the control's
+   * aria-describedby while disabled (Story 23.3 review: the Game Settings read-only note).
+   */
+  disabledReasonId?: string;
+
+  /**
    * Environment variable name (shown in badge).
    */
   envVar?: string;
@@ -108,6 +119,8 @@ export function SettingField({
   type,
   validate,
   envManaged = false,
+  disabled = false,
+  disabledReasonId,
   envVar,
   description,
   onSave,
@@ -129,13 +142,13 @@ export function SettingField({
     settingType: type,
     validate,
     onSave,
-    disabled: envManaged,
+    disabled: envManaged || disabled,
     // Story 17.6 review: a switch that failed to save goes back to the stored state
     // (for a setting with no value, the default or "Not set"); typed text is kept
     revertOnError: type === 'bool',
   });
 
-  const isDisabled = envManaged || field.isPending;
+  const isDisabled = envManaged || disabled || field.isPending;
   const isNumber = type === 'int' || type === 'float';
 
   // Story 17.6: a boolean with no value whose switch has not been moved from the
@@ -151,6 +164,10 @@ export function SettingField({
       ? 'Not set'
       : `${gameDefault ? 'Enabled' : 'Disabled'} (default)`;
 
+  // Story 23.3 review: a disabled control also names the note that says why
+  const withReason = (ids: string | undefined) =>
+    [ids, disabled ? disabledReasonId : undefined].filter(Boolean).join(' ') || undefined;
+
   // Props shared by the plain and masked text inputs, so the two cannot drift apart
   const sharedInputProps = {
     id: settingKey,
@@ -158,11 +175,9 @@ export function SettingField({
     onBlur: field.onBlur,
     onKeyDown: field.onKeyDown,
     disabled: isDisabled,
-    'aria-describedby': field.error
-      ? `${settingKey}-error`
-      : description
-        ? `${settingKey}-desc`
-        : undefined,
+    'aria-describedby': withReason(
+      field.error ? `${settingKey}-error` : description ? `${settingKey}-desc` : undefined
+    ),
     'aria-invalid': !!field.error,
   };
   const errorInputClass = field.error && 'border-destructive focus-visible:ring-destructive';
@@ -201,9 +216,9 @@ export function SettingField({
             disabled={isDisabled}
             // Story 17.6 review: the state ("Enabled (default)", "Not set") is announced
             // with the switch, before the description
-            aria-describedby={
+            aria-describedby={withReason(
               description ? `${settingKey}-state ${settingKey}-desc` : `${settingKey}-state`
-            }
+            )}
           />
           <span
             id={`${settingKey}-state`}
