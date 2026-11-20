@@ -21,6 +21,8 @@ import type {
   ConfigDirectoryListData,
   ConfigParseError,
   ConfigFileSaveData,
+  ConfigHistoryData,
+  ConfigRevisionData,
   ConfigTextCheck,
   ConfigFileListData,
   ConfigFileContentData,
@@ -129,6 +131,14 @@ export const MIN_RESTART_GAP_MINUTES = 16;
 export const MAX_BACKUP_KEEP_COUNT = 1000;
 
 /**
+ * The API's bounds for the config history limits (`MAX_CONFIG_HISTORY_KEEP_COUNT` and
+ * `MAX_CONFIG_HISTORY_AGE_DAYS` in `api/src/vintagestory_api/services/api_settings.py`;
+ * pinned by `TestWebDefaults`). Story 23.7.
+ */
+export const MAX_CONFIG_HISTORY_KEEP_COUNT = 200;
+export const MAX_CONFIG_HISTORY_AGE_DAYS = 3650;
+
+/**
  * The API's default for each setting the API Settings tab shows (Story 22.5, Epic 22
  * ADR-11 decision 4): the tab's fallback when a value is missing, and the value an
  * interval's On switch saves when the page has seen no earlier value for it. Keys are the
@@ -145,6 +155,8 @@ export const API_SETTING_DEFAULTS = {
   metrics_collection_interval: 10,
   scheduled_restart_times: [],
   backup_keep_count: 0,
+  config_history_keep_count: 20,
+  config_history_max_age_days: 0,
 } as const;
 
 /**
@@ -353,4 +365,46 @@ export async function checkConfigText(
 export function parseErrorFromApiError(error: unknown): ConfigParseError | null {
   if (!(error instanceof ApiError) || error.code !== 'CONFIG_FILE_INVALID') return null;
   return toParseError(error.details?.parse_error);
+}
+
+// ===== Config file history (Story 23.7; API: Story 23.6, Epic 23 ADR-7) =====
+
+const HISTORY_PREFIX = `${API_PREFIX}/history`;
+
+/** A config file's earlier versions, newest first (Admin). */
+export async function fetchConfigHistory(
+  path: readonly string[]
+): Promise<ApiResponse<ConfigHistoryData>> {
+  const filename = toConfigPath(path);
+  return apiClient<ApiResponse<ConfigHistoryData>>(
+    `${HISTORY_PREFIX}/${encodeURIComponent(filename)}`
+  );
+}
+
+/** One earlier version of a config file and its text (Admin). */
+export async function fetchConfigRevision(
+  path: readonly string[],
+  revision: string
+): Promise<ApiResponse<ConfigRevisionData>> {
+  const filename = toConfigPath(path);
+  return apiClient<ApiResponse<ConfigRevisionData>>(
+    `${HISTORY_PREFIX}/${encodeURIComponent(filename)}?revision=${encodeURIComponent(revision)}`
+  );
+}
+
+/**
+ * Save an earlier version of a config file over it (Admin; the game server stopped).
+ *
+ * @param version - The version of the file as it is now (from the read)
+ */
+export async function restoreConfigRevision(
+  path: readonly string[],
+  revision: string,
+  version: string
+): Promise<ApiResponse<ConfigFileSaveData>> {
+  const filename = toConfigPath(path);
+  return apiClient<ApiResponse<ConfigFileSaveData>>(
+    `${HISTORY_PREFIX}/${encodeURIComponent(filename)}/restore`,
+    { method: 'POST', body: { revision, version } }
+  );
 }

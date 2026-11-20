@@ -11,6 +11,9 @@ import {
   saveConfigFile,
   checkConfigText,
   parseErrorFromApiError,
+  fetchConfigHistory,
+  fetchConfigRevision,
+  restoreConfigRevision,
   InvalidConfigPathError,
   API_SETTING_DEFAULTS,
   INTERVAL_API_SETTINGS,
@@ -270,6 +273,8 @@ describe('api/config', () => {
             modUpdateWebhookConfigured: false,
             scheduledRestartTimes: [],
             backupKeepCount: 0,
+            configHistoryKeepCount: 20,
+            configHistoryMaxAgeDays: 0,
           },
         },
       };
@@ -296,6 +301,8 @@ describe('api/config', () => {
             modUpdateWebhookConfigured: false,
             scheduledRestartTimes: [],
             backupKeepCount: 0,
+            configHistoryKeepCount: 20,
+            configHistoryMaxAgeDays: 0,
           },
         },
       };
@@ -716,11 +723,13 @@ describe('updateApiSetting secret keys (Story 14.6)', () => {
 
 describe('API_SETTING_DEFAULTS (Story 22.5)', () => {
   // Story 22.6 adds the restart times and the backup limit (was "exactly the six")
-  it('has exactly the eight settings the API Settings tab shows', () => {
+  it('has exactly the ten settings the API Settings tab shows (Story 23.7: two more)', () => {
     expect(Object.keys(API_SETTING_DEFAULTS).sort()).toEqual([
       'auto_start_server',
       'backup_keep_count',
       'block_env_managed_settings',
+      'config_history_keep_count',
+      'config_history_max_age_days',
       'enforce_env_on_restart',
       'metrics_collection_interval',
       'mod_list_refresh_interval',
@@ -889,5 +898,45 @@ describe('parseErrorFromApiError', () => {
   it('is null for other errors', () => {
     expect(parseErrorFromApiError(new ApiError('CONFIG_FILE_CHANGED', 'x', 409))).toBeNull();
     expect(parseErrorFromApiError(new Error('x'))).toBeNull();
+  });
+});
+
+// Story 23.7: config file history
+describe('config file history', () => {
+  beforeEach(() => {
+    vi.mocked(apiClient).mockReset();
+    vi.mocked(apiClient).mockResolvedValue({ status: 'ok', data: {} });
+  });
+
+  it('lists the history', async () => {
+    await fetchConfigHistory(['ModConfig', 'x.json']);
+
+    expect(apiClient).toHaveBeenCalledWith('/api/v1alpha1/config/history/ModConfig%2Fx.json');
+  });
+
+  it('reads a revision', async () => {
+    await fetchConfigRevision(['x.json'], '20261119T120000000000Z-2');
+
+    expect(apiClient).toHaveBeenCalledWith(
+      '/api/v1alpha1/config/history/x.json?revision=20261119T120000000000Z-2'
+    );
+  });
+
+  it('restores a revision with the version', async () => {
+    await restoreConfigRevision(['x.json'], 'r1', 'v1');
+
+    expect(apiClient).toHaveBeenCalledWith('/api/v1alpha1/config/history/x.json/restore', {
+      method: 'POST',
+      body: { revision: 'r1', version: 'v1' },
+    });
+  });
+
+  it.each([
+    ['list', () => fetchConfigHistory(['..'])],
+    ['read', () => fetchConfigRevision([''], 'r')],
+    ['restore', () => restoreConfigRevision(['a/b'], 'r', 'v')],
+  ])('%s refuses an invalid name without a request', async (_name, call) => {
+    await expect(call()).rejects.toThrow(InvalidConfigPathError);
+    expect(apiClient).not.toHaveBeenCalled();
   });
 });

@@ -323,6 +323,10 @@ export interface ApiSettingsData {
     scheduledRestartTimes: string[];
     /** Story 22.6: newest backup files kept; 0: keep all */
     backupKeepCount: number;
+    /** Story 23.7: earlier versions kept per config file (1 to 200) */
+    configHistoryKeepCount: number;
+    /** Story 23.7: days an earlier version is kept; 0: any age */
+    configHistoryMaxAgeDays: number;
   };
 }
 
@@ -371,6 +375,30 @@ export interface ConfigParseError {
   message: string;
   line: number | null;
   column: number | null;
+}
+
+/** An earlier version of a config file (Story 23.7; API: Story 23.6). */
+export interface ConfigRevision {
+  id: string;
+  /** ISO 8601, UTC */
+  savedAt: string;
+  savedBy: string;
+  /** Bytes */
+  size: number;
+  sha256: string;
+}
+
+/** A config file's earlier versions, newest first (Story 23.7). */
+export interface ConfigHistoryData {
+  filename: string;
+  revisions: ConfigRevision[];
+}
+
+/** One earlier version and its text (Story 23.7). */
+export interface ConfigRevisionData {
+  filename: string;
+  revision: ConfigRevision;
+  text: string;
 }
 
 /** A config file save's answer (Story 23.5). */

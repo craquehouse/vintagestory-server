@@ -16,6 +16,9 @@ import {
   fetchConfigFiles,
   fetchConfigFileContent,
   saveConfigFile,
+  fetchConfigHistory,
+  fetchConfigRevision,
+  restoreConfigRevision,
 } from '@/api/config';
 
 /**
@@ -158,4 +161,52 @@ export function useConfigTextCheck(path: readonly string[] | null, text: string,
     error: failed ? query.error : null,
     retry: () => void query.refetch(),
   };
+}
+
+/** Query key of a config file's history (Story 23.7). */
+function historyKey(path: readonly string[]) {
+  return ['config', 'history', path.join('/')] as const;
+}
+
+/** A config file's earlier versions (Story 23.7); only when `enabled`. */
+export function useConfigHistory(path: readonly string[] | null, enabled: boolean) {
+  return useQuery({
+    queryKey: historyKey(path ?? []),
+    queryFn: () => fetchConfigHistory(path ?? []),
+    enabled: enabled && path !== null && path.length > 0,
+  });
+}
+
+/** One earlier version's text (Story 23.7); revisions never change, so it is kept. */
+export function useConfigRevision(path: readonly string[] | null, revision: string | null) {
+  return useQuery({
+    queryKey: [...historyKey(path ?? []), 'revision', revision ?? ''] as const,
+    queryFn: () => fetchConfigRevision(path ?? [], revision ?? ''),
+    enabled: path !== null && path.length > 0 && revision !== null,
+    staleTime: Infinity,
+  });
+}
+
+/** Variables of a restore. */
+export interface RestoreConfigRevisionVariables {
+  path: readonly string[];
+  revision: string;
+  version: string;
+}
+
+/** Restore an earlier version (Story 23.7); refetches the history and the read. */
+export function useRestoreConfigRevision() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ path, revision, version }: RestoreConfigRevisionVariables) =>
+      restoreConfigRevision(path, revision, version),
+    // The history panel shows every refusal itself: no global toast (Story 23.7 review)
+    onError: () => {},
+    onSuccess: async (_data, { path }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: historyKey(path) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.config.file(path.join('/')) }),
+      ]);
+    },
+  });
 }

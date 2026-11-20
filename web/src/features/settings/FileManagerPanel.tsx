@@ -32,6 +32,9 @@ import { queryKeys } from '@/api/query-keys';
 import { clearDraft, dropStaleDraft, getDraft } from './config-drafts';
 import { ConfigFileEditor, EditFileButton, ServerNotStoppedNote } from './ConfigFileEditor';
 import { ConfirmDialog } from './ConfirmDialog';
+import { ConfigHistoryPanel } from './ConfigHistoryPanel';
+import { History } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 /** Label of the breadcrumb root: the serverdata directory the API lists (Story 16.7). */
 const ROOT_LABEL = 'serverdata';
@@ -136,12 +139,15 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
   const [editBase, setEditBase] = useState<{ text: string; version: string } | null>(null);
   const [dirty, setDirty] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  // Story 23.7: the history panel replaces the viewer while open
+  const [showingHistory, setShowingHistory] = useState(false);
   const serverNoteId = useId();
   const editing = editBase !== null;
 
   const stopEditing = () => {
     setEditBase(null);
     setDirty(false);
+    setShowingHistory(false);
   };
 
   /** Run a navigation, asking first when the editor has unsaved changes. */
@@ -209,7 +215,18 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
   const readVersion = contentData?.data?.version;
   const editAction =
     isAdmin && selectedPath && typeof readText === 'string' && typeof readVersion === 'string' ? (
-      <div className="flex flex-col items-end gap-1">
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="min-h-11 md:min-h-8"
+          onClick={() => setShowingHistory(true)}
+          data-testid="file-viewer-history"
+        >
+          <History className="h-4 w-4" aria-hidden="true" />
+          History
+        </Button>
         <EditFileButton
           disabled={!serverStopped}
           resume={getDraft(selectedPath, readVersion) !== undefined}
@@ -303,6 +320,20 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
                   queryKey: queryKeys.config.file(selectedPath),
                 });
               }}
+            />
+          ) : showingHistory &&
+            selectedFile &&
+            selectedPath &&
+            typeof readText === 'string' &&
+            typeof readVersion === 'string' ? (
+            <ConfigHistoryPanel
+              path={[...selectedFile.directory, selectedFile.name]}
+              displayPath={selectedPath}
+              currentText={readText}
+              currentVersion={readVersion}
+              serverStopped={serverStopped}
+              wordWrap={wordWrap}
+              onClose={() => setShowingHistory(false)}
             />
           ) : (
             <FileViewer
