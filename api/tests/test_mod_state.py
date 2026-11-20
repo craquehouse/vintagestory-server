@@ -2154,3 +2154,80 @@ class TestRepairFallbackEntries:
 
         assert state_manager.repair_fallback_entries() == []
         assert state_manager.get_mod("betterruins.zip") == entry
+
+
+class TestModinfoCacheFollowsTheEntries:
+    """Story 24.3 (FR333, Epic 24 ADR-5 decision 3): a removed mod's modinfo cache goes."""
+
+    @staticmethod
+    def _cache(temp_state_dir: Path, slug: str, version: str = "1.0.0") -> Path:
+        path = temp_state_dir / "mods" / slug / version / "modinfo.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("{}")
+        return path
+
+    def test_the_sync_removes_the_cache_of_a_removed_entry(
+        self, state_manager: ModStateManager, temp_mods_dir: Path, temp_state_dir: Path
+    ) -> None:
+        create_mod_zip(
+            temp_mods_dir / "Kept.zip", {"modid": "kept", "name": "Kept", "version": "1.0.0"}
+        )
+        state_manager.set_mod_state("Kept.zip", mod_state_entry("Kept.zip", "kept"))
+        state_manager.set_mod_state("ghost.zip", mod_state_entry("ghost.zip", "ghost"))
+        kept = self._cache(temp_state_dir, "kept")
+        self._cache(temp_state_dir, "ghost")
+        self._cache(temp_state_dir, "ghost", "0.9.0")
+
+        state_manager.sync_state_with_disk()
+
+        assert not (temp_state_dir / "mods" / "ghost").exists()
+        assert kept.is_file()
+
+    def test_a_mod_renamed_by_hand_keeps_its_cache(
+        self, state_manager: ModStateManager, temp_mods_dir: Path, temp_state_dir: Path
+    ) -> None:
+        """The removal and the addition name the same mod ID, so its cache stays."""
+        create_mod_zip(
+            temp_mods_dir / "Renamed.zip", {"modid": "moda", "name": "A", "version": "1.0.0"}
+        )
+        state_manager.set_mod_state("Original.zip", mod_state_entry("Original.zip", "moda"))
+        older = self._cache(temp_state_dir, "moda", "0.9.0")
+
+        summary = state_manager.sync_state_with_disk()
+
+        assert summary == ModSyncSummary(added=1, removed=1, skipped=0)
+        assert older.is_file()
+        assert (temp_state_dir / "mods" / "moda" / "1.0.0" / "modinfo.json").is_file()
+
+    def test_a_failure_to_remove_the_cache_is_logged_and_the_sync_completes(
+        self,
+        state_manager: ModStateManager,
+        temp_state_dir: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        captured_logs: StringIO,
+    ) -> None:
+        state_manager.set_mod_state("ghost.zip", mod_state_entry("ghost.zip", "ghost"))
+        self._cache(temp_state_dir, "ghost")
+
+        def refuse(path: Path) -> None:
+            raise PermissionError(13, "Permission denied", str(path))
+
+        monkeypatch.setattr("vintagestory_api.services.mod_state.shutil.rmtree", refuse)
+
+        summary = state_manager.sync_state_with_disk()
+
+        assert summary.removed == 1
+        assert state_manager.get_mod("ghost.zip") is None
+        assert "mod_modinfo_cache_not_removed" in captured_logs.getvalue()
+
+    @pytest.mark.parametrize("slug", ["..", "a/b", "../escape", ""])
+    def test_a_slug_that_is_not_one_directory_name_removes_nothing(
+        self, state_manager: ModStateManager, temp_state_dir: Path, slug: str
+    ) -> None:
+        outside = temp_state_dir / "mods.json"
+        outside.write_text("{}")
+
+        state_manager.remove_cached_modinfo(slug)
+
+        assert outside.is_file()
+        assert (temp_state_dir).is_dir()

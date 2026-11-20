@@ -981,11 +981,8 @@ class ModService:
         self._state_manager.remove_mod(state.filename)
         self._state_manager.save()
 
-        # Clean up cached metadata directory
-        cache_dir = self._state_manager.state_dir / "mods" / slug
-        if cache_dir.exists():
-            shutil.rmtree(cache_dir)
-            logger.debug("mod_cache_deleted", slug=slug, path=str(cache_dir))
+        # Clean up cached metadata directory; a failure is logged (Epic 24 ADR-5)
+        self._state_manager.remove_cached_modinfo(slug)
 
         logger.info("mod_removed", slug=slug, filename=state.filename)
 
