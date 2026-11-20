@@ -1,6 +1,7 @@
 """Tests for frontend file serving, run against the real route registration."""
 
 import json
+import re
 from pathlib import Path
 from urllib.parse import quote
 
@@ -9,7 +10,11 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from vintagestory_api.config import Settings
-from vintagestory_api.main import frontend_security_headers, register_frontend
+from vintagestory_api.main import (
+    WEB_ROUTE_PREFIXES,
+    frontend_security_headers,
+    register_frontend,
+)
 
 INDEX = "<html>SPA index</html>"
 PRIVATE = "outside the static directory"
@@ -45,6 +50,13 @@ def assert_serves_index(client: TestClient, path: str) -> None:
     assert response.text == INDEX
 
 
+def assert_not_found(client: TestClient, path: str) -> None:
+    response = client.get(path)
+    assert response.status_code == 404
+    assert PRIVATE not in response.text
+    assert INDEX not in response.text
+
+
 class TestFrontendFiles:
     def test_serves_file_in_static_dir(self, client: TestClient) -> None:
         response = client.get("/favicon.ico")
@@ -67,6 +79,47 @@ class TestFrontendFiles:
     @pytest.mark.parametrize("path", ["/", "/dashboard", "/game-server/mods/browse"])
     def test_client_routes_fall_back_to_index(self, client: TestClient, path: str) -> None:
         assert_serves_index(client, path)
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "/game-server/mods/browse/some.mod",
+            "/game-server/mods/browse/carrycapacity.v2",
+            "/mods/browse/some.mod",
+            "/config/file.json",
+            "/game-server/mods/installed/",
+        ],
+    )
+    def test_web_ui_routes_with_a_dot_fall_back_to_index(
+        self, client: TestClient, path: str
+    ) -> None:
+        """A mod slug can contain a dot; the web UI's routes always get the page (ADR-2)."""
+        assert_serves_index(client, path)
+
+    @pytest.mark.parametrize(
+        "path", ["/missing.png", "/favicon.svg", "/nested/missing.js", "/vite.svg", "/a.b/c.txt"]
+    )
+    def test_missing_files_with_an_extension_are_404(self, client: TestClient, path: str) -> None:
+        """A missing file outside the web UI's routes fails visibly (FR329, ADR-2)."""
+        assert_not_found(client, path)
+
+    def test_a_missing_file_has_the_page_headers(self, static_dir: Path) -> None:
+        target = FastAPI()
+        register_frontend(target, static_dir, Settings(api_key_admin="admin", csp_mode="enforce"))
+
+        response = TestClient(target).get("/missing.png")
+
+        assert response.status_code == 404
+        assert response.headers["x-content-type-options"] == "nosniff"
+        assert "content-security-policy" in response.headers
+
+    def test_route_prefixes_match_the_web_ui(self) -> None:
+        """Every top-level route of web/src/App.tsx is a web UI prefix (ADR-2 decision 2)."""
+        app_tsx = Path(__file__).parents[2] / "web" / "src" / "App.tsx"
+        top_level = set(re.findall(r'<Route path="/([^/"*]+)', app_tsx.read_text()))
+
+        assert top_level
+        assert top_level <= set(WEB_ROUTE_PREFIXES)
 
     def test_directory_falls_back_to_index(self, client: TestClient) -> None:
         assert_serves_index(client, "/nested")
@@ -91,19 +144,20 @@ class TestFrontendContainment:
         ],
     )
     def test_relative_paths_cannot_leave_static_dir(self, client: TestClient, path: str) -> None:
-        assert_serves_index(client, path)
+        # A missing file with an extension is 404 (Story 24.2); never the private file
+        assert_not_found(client, path)
 
     def test_absolute_paths_cannot_leave_static_dir(
         self, client: TestClient, static_dir: Path
     ) -> None:
         private = static_dir.parent / "private.txt"
 
-        assert_serves_index(client, f"/{quote(str(private), safe='')}")
+        assert_not_found(client, f"/{quote(str(private), safe='')}")
 
     def test_symlinks_cannot_leave_static_dir(self, client: TestClient, static_dir: Path) -> None:
         (static_dir / "link.txt").symlink_to(static_dir.parent / "private.txt")
 
-        assert_serves_index(client, "/link.txt")
+        assert_not_found(client, "/link.txt")
 
     @pytest.mark.parametrize("path", ["/bad%00name", "/" + "a" * 5000])
     def test_invalid_paths_fall_back_to_index(self, client: TestClient, path: str) -> None:

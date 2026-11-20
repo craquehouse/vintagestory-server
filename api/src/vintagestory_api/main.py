@@ -269,12 +269,27 @@ CONTENT_SECURITY_POLICY = "; ".join(
 )
 
 
+FILE_SECURITY_HEADERS: dict[str, str] = {
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+}
+"""Headers every web UI response carries, files under /assets included (Epic 24 ADR-2).
+
+The policy and X-Frame-Options apply to documents, so only pages add them."""
+
+WEB_ROUTE_PREFIXES: tuple[str, ...] = ("game-server", "config", "mods")
+"""First path segments of the web UI's own routes (web/src/App.tsx).
+
+A path under them always gets the page, even with a dot in its last segment (a mod slug
+such as `carrycapacity.v2`). A test checks the list against App.tsx (Epic 24 ADR-2)."""
+
+
 def frontend_security_headers(csp_mode: str) -> dict[str, str]:
     """Return the security headers of a web UI page for a validated VS_CSP_MODE.
 
     X-Frame-Options follows the policy, so report-only and off also allow framing.
     """
-    headers = {"X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer"}
+    headers = dict(FILE_SECURITY_HEADERS)
     if csp_mode == "enforce":
         return {
             "Content-Security-Policy": CONTENT_SECURITY_POLICY,
@@ -300,11 +315,14 @@ def runtime_config_script(api_key: str) -> str:
     return f"window.__VSM_CONFIG__ = {config};\n"
 
 
-def _resolve_frontend_file(static_root: Path, requested: str) -> Path:
-    """Return the file to serve for a request path, or index.html for client-side routing.
+def _resolve_frontend_file(static_root: Path, requested: str) -> Path | None:
+    """Return the file to serve for a request path, index.html, or None for a 404.
 
     The request path is untrusted and may be absolute or contain traversal segments, so a
-    file is served only if its real path is inside static_root.
+    file is served only if its real path is inside static_root. A path that is not a file
+    gets index.html for client-side routing, unless it asks for a missing file (Epic 24
+    ADR-2): its last segment has a file extension and its first segment is not one of the
+    web UI's routes. Then it is None, so a missing asset or icon fails visibly.
     """
     index = static_root / "index.html"
     try:
@@ -313,7 +331,17 @@ def _resolve_frontend_file(static_root: Path, requested: str) -> Path:
         return index
     if candidate.is_relative_to(static_root) and candidate.is_file():
         return candidate
+    if _asks_for_a_missing_file(requested):
+        return None
     return index
+
+
+def _asks_for_a_missing_file(requested: str) -> bool:
+    """True when a path outside the web UI's routes names a file (has an extension)."""
+    segments = [segment for segment in requested.split("/") if segment]
+    if not segments or segments[0] in WEB_ROUTE_PREFIXES:
+        return False
+    return Path(segments[-1]).suffix != ""
 
 
 def register_frontend(target: FastAPI, static_dir: Path, settings: Settings) -> None:
@@ -352,11 +380,12 @@ def register_frontend(target: FastAPI, static_dir: Path, settings: Settings) -> 
     # SPA fallback - serve index.html for all non-API, non-health routes, with the
     # Content-Security-Policy and the other security headers (Epic 19 ADR-6)
     @target.get("/{full_path:path}")
-    async def serve_spa(full_path: str) -> FileResponse:
+    async def serve_spa(full_path: str) -> Response:
         """Serve static files or fall back to index.html for client-side routing."""
-        return FileResponse(
-            _resolve_frontend_file(static_root, full_path), headers=security_headers
-        )
+        resolved = _resolve_frontend_file(static_root, full_path)
+        if resolved is None:
+            return Response(status_code=404, headers=security_headers)
+        return FileResponse(resolved, headers=security_headers)
 
 
 def create_app(settings: Settings, static_dir: Path = STATIC_DIR) -> FastAPI:
@@ -367,7 +396,8 @@ def create_app(settings: Settings, static_dir: Path = STATIC_DIR) -> FastAPI:
         version=__version__,
         lifespan=lifespan_for(settings),
         # The API documentation and schema only in debug mode (Epic 19 ADR-7). Without
-        # them, these paths reach the web UI's page in the image, and 404 otherwise
+        # them, /docs and /redoc reach the web UI's page in the image, and 404 otherwise;
+        # /openapi.json names a missing file, so it is 404 (Epic 24 ADR-2)
         docs_url="/docs" if settings.debug else None,
         redoc_url="/redoc" if settings.debug else None,
         openapi_url="/openapi.json" if settings.debug else None,
