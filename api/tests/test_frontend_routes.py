@@ -64,6 +64,7 @@ class TestFrontendFiles:
 
         assert response.status_code == 200
         assert response.content == b"\x00\x00\x01\x00"
+        assert response.headers["content-type"].startswith("image/")
 
     def test_serves_file_in_subdirectory(self, client: TestClient) -> None:
         response = client.get("/nested/page.txt")
@@ -89,6 +90,7 @@ class TestFrontendFiles:
             "/mods/browse/some.mod",
             "/config/file.json",
             "/game-server/mods/installed/",
+            "/Game-Server/mods/browse/some.mod",
         ],
     )
     def test_web_ui_routes_with_a_dot_fall_back_to_index(
@@ -104,15 +106,16 @@ class TestFrontendFiles:
         """A missing file outside the web UI's routes fails visibly (FR329, ADR-2)."""
         assert_not_found(client, path)
 
-    def test_a_missing_file_has_the_page_headers(self, static_dir: Path) -> None:
+    @pytest.mark.parametrize("mode", ["enforce", "report-only", "off"])
+    def test_a_missing_file_has_the_page_headers(self, static_dir: Path, mode: str) -> None:
         target = FastAPI()
-        register_frontend(target, static_dir, Settings(api_key_admin="admin", csp_mode="enforce"))
+        register_frontend(target, static_dir, Settings(api_key_admin="admin", csp_mode=mode))
 
         response = TestClient(target).get("/missing.png")
 
         assert response.status_code == 404
-        assert response.headers["x-content-type-options"] == "nosniff"
-        assert "content-security-policy" in response.headers
+        for name, value in frontend_security_headers(mode).items():
+            assert response.headers[name] == value
 
     def test_route_prefixes_match_the_web_ui(self) -> None:
         """Every top-level route of web/src/App.tsx is a web UI prefix (ADR-2 decision 2)."""
@@ -326,6 +329,24 @@ class TestSecurityHeaders:
         assert response.headers["x-content-type-options"] == "nosniff"
         assert response.headers["referrer-policy"] == "no-referrer"
         assert {k: response.headers[k] for k in FILE_SECURITY_HEADERS} == FILE_SECURITY_HEADERS
+
+    @pytest.mark.parametrize(
+        ("method", "path", "status"),
+        [
+            ("GET", "/assets/missing.js", 404),
+            ("POST", "/assets/main.js", 405),
+        ],
+    )
+    def test_asset_errors_carry_the_file_headers(
+        self, static_dir: Path, method: str, path: str, status: int
+    ) -> None:
+        """A missing asset or a wrong method still answers with nosniff (review M-1)."""
+        response = self._client(static_dir, "enforce").request(method, path)
+
+        assert response.status_code == status
+        assert {k: response.headers[k] for k in FILE_SECURITY_HEADERS} == FILE_SECURITY_HEADERS
+        if status == 405:
+            assert "allow" in response.headers
 
     def test_assets_have_no_policy(self, static_dir: Path) -> None:
         response = self._client(static_dir, "enforce").get("/assets/main.js")
