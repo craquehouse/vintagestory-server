@@ -1,6 +1,6 @@
 # Story 24.2: The Web UI Has Its Own Icon, and Missing Files Are 404
 
-Status: review
+Status: done
 
 <!-- Implements FR328, FR329, FR330, Epic 24 ADR-2. Beads: VSS-2bp (UI-075), closed by this story after merge; VSS-koo1 (API-094) item 1 (closes in Story 24.8). Branch story/24-2-web-ui-icon-and-missing-files-are-404, stacked on story/24-1-api-tests-run-on-a-fresh-clone at 2f40938f (24.1 in review); the PR targets main and merges after 24.1's. -->
 
@@ -116,6 +116,17 @@ Claude Opus 5.5 (claude-opus-5-5), as the epic's controller.
 - `_bmad-output/implementation-artifacts/24-2-web-ui-icon-and-missing-files-are-404.md` (this file)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode. Verdict: approve with changes. 0 HIGH, one MEDIUM, four LOW, all fixed:
+
+1. **MEDIUM: error responses under `/assets` had no headers.** StaticFiles raises for a missing file (404) or another method (405), and the exception was rendered outside the mount. `_StaticFilesWithHeaders` now renders it with the file headers (and keeps `Allow`); two tests.
+2. **LOW: a mixed-case web UI URL with a dotted last segment answered 404,** while React Router matches routes ignoring case. The prefix is compared lower-cased; one test row.
+3. **LOW: no test pinned `/favicon.ico`'s image content type.** Asserted.
+4. **LOW: Epic 19 ADR-7 decision 3 still said `/openapi.json` gets the page.** Amended.
+5. **LOW: 404 headers tested in enforce mode only.** Parametrized over the three modes.
+
 ## Change Log
 
 - 2026-11-20: Story 24.2 created and implemented (dev-story): Tasks 1 to 4; status review.
+- 2026-11-20: Code review (GLM-5.3-Flash via opencode): approve with changes; 0 HIGH, 1 MEDIUM, 4 LOW, all fixed (see "Review"). Status done.
