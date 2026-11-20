@@ -30,7 +30,7 @@ Releases are published as `ghcr.io/craquehouse/vintagestory-server`, tagged with
    docker compose up -d
    ```
 
-5. Open `http://<host>:8080`, go to **Game Server → Installation** and install a VintageStory version (the item is called **Version** once a server is installed). Game data, mods and manager state live in `./data`. Mod archives (`.zip`, or `.zip.disabled` for a disabled mod) copied into or deleted from `data/serverdata/Mods` by hand are picked up the next time the manager container starts (a file replaced by hand under the same name keeps the listed version until it is reinstalled or removed and added again).
+5. Open `http://<host>:8080`, go to **Game Server → Installation** and install a VintageStory version (the item is called **Version** once a server is installed). Game data, mods and manager state live in `./data`. Mod archives copied into or deleted from `data/serverdata/Mods` by hand are picked up as described in [Mods added by hand](#mods-added-by-hand).
 
 ### Security
 
@@ -163,6 +163,16 @@ A file that cannot be read shows the parser's message with the line and column o
 An Admin key sees each file as its text, with its comments, and can edit it: open the file and press **Edit**. Editing is possible only while the game server is stopped, because the game and mods can write their config files while they run and would overwrite the change. The editor checks the text as you type and shows where an error is, and the file is saved exactly as typed, comments included. `serverconfig.json` is also read by the manager itself, so it must stay standard JSON: comments and trailing commas are refused there. If the file changed on disk after you opened it, the save is refused; reload it and make the change again. Unsaved changes are kept while you switch Settings tabs or visit another page, until the browser tab is closed or reloaded.
 
 Each save keeps the text it replaced, in `vsmanager/state/config-history/` in the data volume (outside `serverdata`, so the game never loads it). Only saves made in the file browser or through the API are recorded, not changes by the game, mods, the Game Settings page or by hand. Each file keeps its newest 20 earlier versions by default: set `config_history_keep_count` (1 to 200) and `config_history_max_age_days` (0 to 3650; 0 keeps them whatever their age, and the newest is always kept). A lower limit applies when the file is next saved. If the earlier version cannot be kept, the save is refused, so every save can be undone. The API lists them at `GET /api/v1alpha1/config/history/{path}` and restores one with `POST /api/v1alpha1/config/history/{path}/restore` (Admin key, game server stopped). A restore is a save of the earlier text, so it follows the save's rules: for example, a UTF-8 byte order mark is kept only if the file has one now. Earlier versions are stored readable by the manager only, since config files can hold passwords.
+
+### Mods added by hand
+
+Mod archives (`.zip`, or `.zip.disabled` for a disabled mod) copied into or deleted from `data/serverdata/Mods` by hand are picked up when the manager container starts, or at once with **Rescan** on the **Installed** tab (Admin key). A rescan is refused while a mod install, version change, update or update check runs; while the game server runs, a rescan that changed the list asks for a restart. A file replaced by hand under the same name keeps the listed version until it is reinstalled, or removed and added again.
+
+A mod added by hand gets its mod database link at the next update check (**Check for updates**, or the scheduled check). A mod the mod database does not know is shown as a **Local mod**: it can be enabled, disabled and removed, and gets no update offers.
+
+The manager imports only `.zip` mods. Source mods (`.cs` files) and unzipped mod folders in `data/serverdata/Mods` are left alone: the game loads them, but the manager does not list, update or delete them.
+
+**Unused files.** With an Admin key, the **Installed** tab shows a notice when the mods folder holds files the manager does not use: names ending in `.tmp` or `.bak` (for example an editor's backup or a copy left by an interrupted transfer), archives without a readable `modinfo.json`, and a second archive of a mod that is already installed under another file (as an interrupted version change can leave). Each can be deleted after confirming. Nothing is deleted without asking, since such a file may be the only copy of a mod. The API lists them at `GET /api/v1alpha1/mods/unused-files` and deletes one with `DELETE /api/v1alpha1/mods/unused-files/{name}`.
 
 ### Metrics
 
