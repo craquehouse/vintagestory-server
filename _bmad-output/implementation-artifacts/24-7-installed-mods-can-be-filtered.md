@@ -1,6 +1,6 @@
 # Story 24.7: Installed Mods Can Be Filtered
 
-Status: review
+Status: done
 
 <!-- Implements FR341, FR342, Epic 24 ADR-6. Bead: VSS-foq7 (UI-104), closed by this story after merge. Branch story/24-7-installed-mods-can-be-filtered, stacked on story/24-6-rescan-and-unused-files-on-the-installed-tab at 325f7ee0 (24.6 in review); the PR targets main and merges after 24.6's. Web only. -->
 
@@ -90,12 +90,26 @@ Claude Opus 5.5 (claude-opus-5-5), as the epic's controller.
 
 - `web/src/lib/installed-mods-filters.ts`, `installed-mods-filters.test.ts` (new)
 - `web/src/components/InstalledModsFilterBar.tsx`, `InstalledModsFilterBar.test.tsx` (new)
+- `web/src/hooks/use-mods.ts`, `use-mods.test.tsx` (review: a failed lookup reads as not verified)
 - `web/src/components/ModTable.tsx`, `InstalledModParts.tsx`, `web/src/features/mods/InstalledTab.tsx`, `InstalledTab.test.tsx` (modified)
 - `web/e2e/installed-mods-filters.spec.ts` (new)
 - `_bmad-output/planning-artifacts/architecture/epic-24-mod-management-follow-ups.md` (ADR-6 decision 1 as implemented)
 - `_bmad-output/implementation-artifacts/24-7-installed-mods-can-be-filtered.md` (this file)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode. Verdict: approve with changes. 0 HIGH, one MEDIUM, six LOW; the MEDIUM and five LOW fixed, one accepted:
+
+1. **MEDIUM: a mod the mod database does not know showed "Not verified" but never matched that filter.** Its lookup answers 404, so it never entered the compatibility map and counted as "loading" forever. `useModsCompatibility` now records a settled failed lookup as `not_verified` (no details), as its badge already showed; only a lookup still in flight counts as loading. The hook test asserts it.
+2. **LOW: `type="search"` added a native clear button beside ours.** Now `type="text"`, as `BrowseTab`.
+3. **LOW: the clear button was 36px on phones.** 44px; the 44px test covers it.
+4. **LOW: a query of only spaces was written to the URL.** Not written; test.
+5. **LOW: `setFilters` spread this render's `filters`.** It now applies a partial change to the URL as it is when the update runs.
+6. **LOW: no test for the select pushing history.** A test chooses Incompatible, checks the URL, and Back restores the previous filter.
+7. **LOW (accepted): a filtered direct URL briefly shows "Showing 0 of M" while lookups load.** The documented result of ADR-6 decision 4; the `role="status"` line announces the correction.
+
 ## Change Log
 
 - 2026-11-20: Story 24.7 created and implemented (dev-story): Tasks 1 to 3; status review.
+- 2026-11-20: Code review (GLM-5.3-Flash via opencode): approve with changes; 0 HIGH, 1 MEDIUM (fixed), 6 LOW (5 fixed, 1 accepted) (see "Review"). Status done.

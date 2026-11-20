@@ -46,7 +46,8 @@ export function filtersToSearchParams(
   params.delete('q');
   params.delete('compat');
   params.delete('updates');
-  if (filters.query) params.set('q', filters.query);
+  // A query of only spaces is no filter, so it is not written (Story 24.7 review)
+  if (filters.query.trim()) params.set('q', filters.query);
   if (filters.compat) params.set('compat', filters.compat);
   if (filters.updates) params.set('updates', '1');
   return params;

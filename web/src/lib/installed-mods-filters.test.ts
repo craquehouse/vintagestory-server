@@ -47,6 +47,12 @@ describe('filtersToSearchParams', () => {
     expect(params.toString()).toBe('tab=x&q=carry&updates=1');
   });
 
+  it('does not write a query of only spaces', () => {
+    const params = filtersToSearchParams({ ...EMPTY_FILTERS, query: '   ' }, new URLSearchParams());
+
+    expect(params.toString()).toBe('');
+  });
+
   it('drops invalid values on the next change', () => {
     const params = filtersToSearchParams(EMPTY_FILTERS, new URLSearchParams('compat=sometimes'));
 

@@ -25,7 +25,7 @@ describe('InstalledModsFilterBar (Story 24.7)', () => {
   it('reports each keystroke in the search box', () => {
     const { onQueryChange } = renderBar();
 
-    fireEvent.change(screen.getByRole('searchbox', { name: /by name or mod ID/ }), {
+    fireEvent.change(screen.getByRole('textbox', { name: /by name or mod ID/ }), {
       target: { value: 'carry' },
     });
 
@@ -78,6 +78,10 @@ describe('InstalledModsFilterBar (Story 24.7)', () => {
     renderBar({ ...EMPTY_FILTERS, query: 'x' });
 
     expect(screen.getByTestId('installed-mods-filter-query')).toHaveClass('max-lg:h-11');
+    expect(screen.getByTestId('installed-mods-filter-query-clear')).toHaveClass(
+      'max-lg:h-11',
+      'max-lg:w-11'
+    );
     expect(screen.getByTestId('installed-mods-filter-compat')).toHaveClass('max-lg:min-h-11');
     expect(screen.getByText('Update available')).toHaveClass('max-lg:min-h-11');
   });

@@ -66,9 +66,10 @@ test.describe('Rescan and unused files (Story 24.6)', () => {
       await expect(page.getByText('Rescanned the mods folder')).toBeVisible();
     } finally {
       // Through the API, so the entry and the file both go
-      await request.delete(`/api/v1alpha1/mods/${modid}`, {
+      const removed = await request.delete(`/api/v1alpha1/mods/${modid}`, {
         headers: { 'X-API-Key': ADMIN_KEY },
       });
+      expect(removed.ok(), `removing ${modid} through the API`).toBeTruthy();
       dockerExec(['rm', '-f', `${MODS_DIR}/${modid}_1.0.0.zip`]);
     }
   });
