@@ -7,6 +7,7 @@
  * matches the mod detail breadcrumb (`ModDetailPage`).
  *
  * Story 16.7: File Browser Breadcrumbs (FR174)
+ * Story 23.2: the path is a list of directory names, never split or joined here (FR312)
  */
 
 import { useEffect, useRef } from 'react';
@@ -14,12 +15,12 @@ import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface PathBreadcrumbProps {
-  /** Slash-separated path relative to the root; `null` or empty is the root. */
-  path: string | null;
+  /** Directory names from the root; `[]` is the root (Story 23.2). */
+  segments: readonly string[];
   /** Label of the root segment. */
   rootLabel: string;
-  /** Called with the root (`null`) or the path up to and including the clicked segment. */
-  onNavigate: (path: string | null) => void;
+  /** Called with the root (`[]`) or the names up to and including the clicked segment. */
+  onNavigate: (segments: string[]) => void;
   /** Additional CSS class names for the `nav`. */
   className?: string;
 }
@@ -34,18 +35,23 @@ const segmentButtonClass = cn(
 /**
  * Breadcrumb for a directory path.
  *
- * Only the root or a prefix of `path` is ever passed to `onNavigate`.
+ * Only the root (`[]`) or a prefix of `segments` is ever passed to `onNavigate`.
  * After a jump through the breadcrumb, focus moves to the new current segment so
  * keyboard users keep their place (the clicked button is replaced by text).
  *
  * @example
- * <PathBreadcrumb path="Logs/Archive" rootLabel="serverdata" onNavigate={setDirectory} />
+ * <PathBreadcrumb segments={['Logs', 'Archive']} rootLabel="serverdata" onNavigate={setDirectory} />
  */
-export function PathBreadcrumb({ path, rootLabel, onNavigate, className }: PathBreadcrumbProps) {
-  const segments = (path ?? '').split('/').filter((segment) => segment !== '');
-  const currentPath = segments.join('/');
+export function PathBreadcrumb({
+  segments,
+  rootLabel,
+  onNavigate,
+  className,
+}: PathBreadcrumbProps) {
+  // A string key for the list that cannot collide for different lists (names may hold anything)
+  const currentPath = JSON.stringify(segments);
   const currentRef = useRef<HTMLSpanElement>(null);
-  // Path requested by the last breadcrumb click, until the next render ('' is the root)
+  // Path requested by the last breadcrumb click (its key), until the next render
   const focusTarget = useRef<string | null>(null);
 
   // Runs after every render: focus the current segment only if this render shows the
@@ -59,8 +65,8 @@ export function PathBreadcrumb({ path, rootLabel, onNavigate, className }: PathB
     focusTarget.current = null;
   });
 
-  const navigate = (target: string | null) => {
-    focusTarget.current = target ?? '';
+  const navigate = (target: string[]) => {
+    focusTarget.current = JSON.stringify(target);
     onNavigate(target);
   };
 
@@ -95,7 +101,7 @@ export function PathBreadcrumb({ path, rootLabel, onNavigate, className }: PathB
                   type="button"
                   title={name}
                   className={segmentButtonClass}
-                  onClick={() => navigate(isRoot ? null : segments.slice(0, index).join('/'))}
+                  onClick={() => navigate(segments.slice(0, index))}
                   data-testid={
                     isRoot ? 'path-breadcrumb-root' : `path-breadcrumb-segment-${index - 1}`
                   }

@@ -9,21 +9,21 @@ function Harness({
   initialPath,
   onNavigate,
 }: {
-  initialPath: string | null;
-  onNavigate?: (path: string | null) => void;
+  initialPath: string[];
+  onNavigate?: (segments: string[]) => void;
 }) {
-  const [path, setPath] = useState<string | null>(initialPath);
+  const [segments, setSegments] = useState<string[]>(initialPath);
   return (
     <>
       <PathBreadcrumb
-        path={path}
+        segments={segments}
         rootLabel="serverdata"
         onNavigate={(next) => {
           onNavigate?.(next);
-          setPath(next);
+          setSegments(next);
         }}
       />
-      <button type="button" onClick={() => setPath('Elsewhere/Deep')}>
+      <button type="button" onClick={() => setSegments(['Elsewhere', 'Deep'])}>
         external change
       </button>
     </>
@@ -33,7 +33,7 @@ function Harness({
 describe('PathBreadcrumb (Story 16.7)', () => {
   describe('rendering', () => {
     it('shows only the root as the current location at the root', () => {
-      render(<PathBreadcrumb path={null} rootLabel="serverdata" onNavigate={vi.fn()} />);
+      render(<PathBreadcrumb segments={[]} rootLabel="serverdata" onNavigate={vi.fn()} />);
 
       const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
       expect(within(nav).queryAllByRole('button')).toHaveLength(0);
@@ -43,16 +43,13 @@ describe('PathBreadcrumb (Story 16.7)', () => {
       expect(within(nav).getAllByRole('listitem')).toHaveLength(1);
     });
 
-    it('treats an empty path as the root', () => {
-      render(<PathBreadcrumb path="" rootLabel="serverdata" onNavigate={vi.fn()} />);
-
-      expect(screen.getByTestId('path-breadcrumb-current')).toHaveTextContent('serverdata');
-      expect(screen.queryByTestId('path-breadcrumb-root')).not.toBeInTheDocument();
-    });
-
     it('shows the root and ancestors as buttons and the last directory as current', () => {
       render(
-        <PathBreadcrumb path="Cache/unpack/Mods" rootLabel="serverdata" onNavigate={vi.fn()} />
+        <PathBreadcrumb
+          segments={['Cache', 'unpack', 'Mods']}
+          rootLabel="serverdata"
+          onNavigate={vi.fn()}
+        />
       );
 
       const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
@@ -73,7 +70,13 @@ describe('PathBreadcrumb (Story 16.7)', () => {
     });
 
     it('hides the separators from assistive technology', () => {
-      render(<PathBreadcrumb path="Logs/Archive" rootLabel="serverdata" onNavigate={vi.fn()} />);
+      render(
+        <PathBreadcrumb
+          segments={['Logs', 'Archive']}
+          rootLabel="serverdata"
+          onNavigate={vi.fn()}
+        />
+      );
 
       const nav = screen.getByTestId('path-breadcrumb');
       const separators = nav.querySelectorAll('svg');
@@ -81,8 +84,14 @@ describe('PathBreadcrumb (Story 16.7)', () => {
       separators.forEach((svg) => expect(svg).toHaveAttribute('aria-hidden', 'true'));
     });
 
-    it('ignores empty segments from stray slashes', () => {
-      render(<PathBreadcrumb path="/Logs//Archive/" rootLabel="serverdata" onNavigate={vi.fn()} />);
+    it('shows each name as given, without splitting it (Story 23.2)', () => {
+      render(
+        <PathBreadcrumb
+          segments={['Logs', 'Archive']}
+          rootLabel="serverdata"
+          onNavigate={vi.fn()}
+        />
+      );
 
       const nav = screen.getByTestId('path-breadcrumb');
       expect(
@@ -96,7 +105,11 @@ describe('PathBreadcrumb (Story 16.7)', () => {
     it('wraps segments and truncates long names, keeping the full name in the title', () => {
       const longName = 'Auto Map Markers 5.0.3 - Vintage Story 1.22.zip_ff41715051bc';
       render(
-        <PathBreadcrumb path={`Cache/${longName}/x`} rootLabel="serverdata" onNavigate={vi.fn()} />
+        <PathBreadcrumb
+          segments={['Cache', longName, 'x']}
+          rootLabel="serverdata"
+          onNavigate={vi.fn()}
+        />
       );
 
       const list = screen.getByTestId('path-breadcrumb').querySelector('ol');
@@ -109,7 +122,13 @@ describe('PathBreadcrumb (Story 16.7)', () => {
     });
 
     it('gives the root and ancestor buttons a 44px touch target on phones only', () => {
-      render(<PathBreadcrumb path="Logs/Archive" rootLabel="serverdata" onNavigate={vi.fn()} />);
+      render(
+        <PathBreadcrumb
+          segments={['Logs', 'Archive']}
+          rootLabel="serverdata"
+          onNavigate={vi.fn()}
+        />
+      );
 
       for (const id of ['path-breadcrumb-root', 'path-breadcrumb-segment-0']) {
         expect(screen.getByTestId(id)).toHaveClass('min-h-11', 'px-1', 'md:min-h-0', 'md:px-0');
@@ -119,7 +138,7 @@ describe('PathBreadcrumb (Story 16.7)', () => {
     it('renders special characters as text', () => {
       render(
         <PathBreadcrumb
-          path="a b/100% & #1/<b>Ünïcødé"
+          segments={['a b', '100% & #1', '<b>Ünïcødé']}
           rootLabel="serverdata"
           onNavigate={vi.fn()}
         />
@@ -134,26 +153,38 @@ describe('PathBreadcrumb (Story 16.7)', () => {
   });
 
   describe('navigation', () => {
-    it('navigates to the root with null', async () => {
+    it('navigates to the root with an empty list', async () => {
       const user = userEvent.setup();
       const onNavigate = vi.fn();
-      render(<PathBreadcrumb path="Logs/Archive" rootLabel="serverdata" onNavigate={onNavigate} />);
+      render(
+        <PathBreadcrumb
+          segments={['Logs', 'Archive']}
+          rootLabel="serverdata"
+          onNavigate={onNavigate}
+        />
+      );
 
       await user.click(screen.getByTestId('path-breadcrumb-root'));
 
-      expect(onNavigate).toHaveBeenCalledExactlyOnceWith(null);
+      expect(onNavigate).toHaveBeenCalledExactlyOnceWith([]);
     });
 
-    it('navigates to each ancestor with the path up to it', async () => {
+    it('navigates to each ancestor with the names up to it', async () => {
       const user = userEvent.setup();
       const onNavigate = vi.fn();
-      render(<PathBreadcrumb path="a/b/c/d" rootLabel="serverdata" onNavigate={onNavigate} />);
+      render(
+        <PathBreadcrumb
+          segments={['a', 'b', 'c', 'd']}
+          rootLabel="serverdata"
+          onNavigate={onNavigate}
+        />
+      );
 
       await user.click(screen.getByTestId('path-breadcrumb-segment-0'));
       await user.click(screen.getByTestId('path-breadcrumb-segment-1'));
       await user.click(screen.getByTestId('path-breadcrumb-segment-2'));
 
-      expect(onNavigate.mock.calls).toEqual([['a'], ['a/b'], ['a/b/c']]);
+      expect(onNavigate.mock.calls).toEqual([[['a']], [['a', 'b']], [['a', 'b', 'c']]]);
     });
 
     it('passes names with special characters back unchanged', async () => {
@@ -161,7 +192,7 @@ describe('PathBreadcrumb (Story 16.7)', () => {
       const onNavigate = vi.fn();
       render(
         <PathBreadcrumb
-          path="a b/100% & #1/Ünïcødé"
+          segments={['a b', '100% & #1', 'Ünïcødé']}
           rootLabel="serverdata"
           onNavigate={onNavigate}
         />
@@ -169,13 +200,13 @@ describe('PathBreadcrumb (Story 16.7)', () => {
 
       await user.click(screen.getByTestId('path-breadcrumb-segment-1'));
 
-      expect(onNavigate).toHaveBeenCalledExactlyOnceWith('a b/100% & #1');
+      expect(onNavigate).toHaveBeenCalledExactlyOnceWith(['a b', '100% & #1']);
     });
 
     it('does not make the current segment interactive', async () => {
       const user = userEvent.setup();
       const onNavigate = vi.fn();
-      render(<PathBreadcrumb path="Logs" rootLabel="serverdata" onNavigate={onNavigate} />);
+      render(<PathBreadcrumb segments={['Logs']} rootLabel="serverdata" onNavigate={onNavigate} />);
 
       await user.click(screen.getByTestId('path-breadcrumb-current'));
 
@@ -185,7 +216,7 @@ describe('PathBreadcrumb (Story 16.7)', () => {
     it('navigates with the keyboard', async () => {
       const user = userEvent.setup();
       const onNavigate = vi.fn();
-      render(<Harness initialPath="Logs/Archive" onNavigate={onNavigate} />);
+      render(<Harness initialPath={['Logs', 'Archive']} onNavigate={onNavigate} />);
 
       await user.tab();
       expect(screen.getByTestId('path-breadcrumb-root')).toHaveFocus();
@@ -193,14 +224,14 @@ describe('PathBreadcrumb (Story 16.7)', () => {
       expect(screen.getByTestId('path-breadcrumb-segment-0')).toHaveFocus();
       await user.keyboard('{Enter}');
 
-      expect(onNavigate).toHaveBeenCalledExactlyOnceWith('Logs');
+      expect(onNavigate).toHaveBeenCalledExactlyOnceWith(['Logs']);
     });
   });
 
   describe('focus', () => {
     it('moves focus to the new current segment after a jump', async () => {
       const user = userEvent.setup();
-      render(<Harness initialPath="a/b/c" />);
+      render(<Harness initialPath={['a', 'b', 'c']} />);
 
       await user.click(screen.getByTestId('path-breadcrumb-segment-0'));
 
@@ -211,7 +242,7 @@ describe('PathBreadcrumb (Story 16.7)', () => {
 
     it('moves focus to the root after jumping to the root', async () => {
       const user = userEvent.setup();
-      render(<Harness initialPath="a/b" />);
+      render(<Harness initialPath={['a', 'b']} />);
 
       screen.getByTestId('path-breadcrumb-root').focus();
       await user.keyboard('{Enter}');
@@ -223,7 +254,7 @@ describe('PathBreadcrumb (Story 16.7)', () => {
 
     it('does not take focus when the path changes from outside', async () => {
       const user = userEvent.setup();
-      render(<Harness initialPath="a/b" />);
+      render(<Harness initialPath={['a', 'b']} />);
 
       const external = screen.getByRole('button', { name: 'external change' });
       await user.click(external);
@@ -236,7 +267,7 @@ describe('PathBreadcrumb (Story 16.7)', () => {
     it('does not take focus later when a click did not change the path', async () => {
       const user = userEvent.setup();
       const { rerender } = render(
-        <PathBreadcrumb path="a/b" rootLabel="serverdata" onNavigate={() => {}} />
+        <PathBreadcrumb segments={['a', 'b']} rootLabel="serverdata" onNavigate={() => {}} />
       );
 
       await user.click(screen.getByTestId('path-breadcrumb-root'));
@@ -245,7 +276,9 @@ describe('PathBreadcrumb (Story 16.7)', () => {
       const outside = document.createElement('button');
       document.body.appendChild(outside);
       outside.focus();
-      rerender(<PathBreadcrumb path="x/y" rootLabel="serverdata" onNavigate={() => {}} />);
+      rerender(
+        <PathBreadcrumb segments={['x', 'y']} rootLabel="serverdata" onNavigate={() => {}} />
+      );
 
       expect(screen.getByTestId('path-breadcrumb-current')).toHaveTextContent('y');
       expect(screen.getByTestId('path-breadcrumb-current')).not.toHaveFocus();
@@ -254,7 +287,7 @@ describe('PathBreadcrumb (Story 16.7)', () => {
     });
 
     it('keeps the current segment out of the tab order', () => {
-      render(<PathBreadcrumb path="a/b" rootLabel="serverdata" onNavigate={vi.fn()} />);
+      render(<PathBreadcrumb segments={['a', 'b']} rootLabel="serverdata" onNavigate={vi.fn()} />);
 
       expect(screen.getByTestId('path-breadcrumb-current')).toHaveAttribute('tabindex', '-1');
     });
