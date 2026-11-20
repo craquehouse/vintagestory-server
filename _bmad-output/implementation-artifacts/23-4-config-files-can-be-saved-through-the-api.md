@@ -1,6 +1,6 @@
 # Story 23.4: Config Files Can Be Saved Through the API
 
-Status: review
+Status: done
 
 <!-- Implements FR314-FR318, Epic 23 ADR-1 decision 5, ADR-4, ADR-9. Bead: VSS-glz (UI-025), first half (Story 23.5 closes it). Branch story/23-4-config-files-can-be-saved-through-the-api, stacked on story/23-3-game-settings-are-read-only-for-monitor-keys at 02c96240 (23.3 in review); the PR targets main and merges after 23.3's. API only: no web change, no new dependency. Line references verified at 02c96240. -->
 
@@ -193,7 +193,18 @@ Claude Opus 5.5 (claude-opus-5-5), as the epic's controller.
 - `_bmad-output/implementation-artifacts/23-4-config-files-can-be-saved-through-the-api.md` (this file)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode. Verdict: approve. 0 HIGH, 0 MEDIUM, five LOW:
+
+1. **LOW: `changed_top_level_keys` compared with `==`, so `1` to `true` was no change** and a pending edit could be written back over the save. Fixed: values are compared as JSON (`1`, `1.0` and `true` differ); two rows.
+2. **LOW: a root `serverconfig.json` that is a symlink was checked as JSON5.** Fixed: the requested name in the root also makes it strict. (A symlink whose target is outside `serverdata` is refused as an invalid path anyway.)
+3. **LOW: the Admin-gate 403 and FastAPI's 422 carry no `Cache-Control: no-store`.** The 403 is fixed in Story 23.6's review (`require_admin`); FastAPI's own 422 for a malformed body stays as for every route (a PUT or POST answer is not cached by default).
+4. **LOW: test gaps.** (b) the `config_file_saved` log without the text: test added. (a) the read-error 500 over HTTP, (c) a partial-write failure, (d) the check's 413 over HTTP: accepted, covered at the service level.
+5. **LOW: a temp file that cannot be removed was not logged.** Fixed (`config_file_temp_not_removed`). The other observations (the write loop, synchronous I/O, PEP 758 `except`) need no change.
+
 ## Change Log
 
 - 2026-11-19: Story 23.4 created (ready-for-dev).
 - 2026-11-19: Implemented (dev-story): Tasks 1 to 5; status review.
+- 2026-11-19: Code review (GLM-5.3-Flash via opencode): approve; 0 HIGH, 0 MEDIUM, five LOW (three fixed, the 403 header fixed in Story 23.6, the rest accepted) (see "Review"). Status done.

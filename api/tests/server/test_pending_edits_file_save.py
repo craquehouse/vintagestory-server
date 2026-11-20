@@ -24,6 +24,9 @@ class TestChangedTopLevelKeys:
             (None, {"a": 1, "b": 2}, {"a", "b"}),
             ([1], {"a": 1}, {"a"}),
             ({"a": 1}, [1], set[str]()),
+            # Story 23.4 review L1: a changed type is a change (Python says 1 == True)
+            ({"Port": 1}, {"Port": True}, {"Port"}),
+            ({"a": 1}, {"a": 1.0}, {"a"}),
         ],
     )
     def test_keys(self, old: object, new: object, expected: set[str]) -> None:
