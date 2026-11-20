@@ -23,6 +23,10 @@ Config Files (6.5):
   and the text of files that are not valid JSON, for Admin only). Story 19.1: only
   regular .json files (any letter case) of UTF-8 text, up to 2 MiB, are served;
   anything else is 400 CONFIG_FILE_NOT_SUPPORTED or 413 CONFIG_FILE_TOO_LARGE
+- POST /config/files/validate - Check a text against a file's parser rule (Admin only;
+  Story 23.4)
+- PUT /config/files/{filename} - Save an existing config file's text while the game
+  server is stopped (Admin only; Story 23.4)
 
 Story 19.1 (FR208): roles other than Admin list and read the root of the server data
 directory and ModConfig only; any other directory is 403 FORBIDDEN for the three routes,
@@ -38,6 +42,7 @@ only "Internal Server Error", without the header.
 from functools import partial
 from typing import Annotated, Any
 
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, Path, Response
 from pydantic import BaseModel, Field
 
@@ -55,11 +60,14 @@ from vintagestory_api.services.api_settings import (
 )
 from vintagestory_api.services.config_files import (
     ConfigDirectoryForbiddenError,
+    ConfigFileChangedError,
+    ConfigFileInvalidError,
     ConfigFileNotFoundError,
     ConfigFileNotSupportedError,
     ConfigFileReadError,
     ConfigFilesService,
     ConfigFileTooLargeError,
+    ConfigFileWriteError,
     ConfigPathInvalidError,
 )
 from vintagestory_api.services.game_config import (
@@ -72,7 +80,11 @@ from vintagestory_api.services.game_config import (
 from vintagestory_api.services.mods import get_restart_state
 from vintagestory_api.services.pending_restart import PendingRestartState
 from vintagestory_api.services.scheduler import SchedulerService
-from vintagestory_api.services.server import get_server_service
+from vintagestory_api.services.server import (
+    GameServerNotStoppedError,
+    ServerService,
+    get_server_service,
+)
 
 router = APIRouter(prefix="/config", tags=["Config"])
 
@@ -82,6 +94,8 @@ RequireAuth = Annotated[str, Depends(get_current_user)]
 # Story 17.5: the read endpoints answer depending on the key's role, so no response
 # of theirs, error responses included, may be cached (Story 19.1: the listings too)
 NO_STORE = {"Cache-Control": "no-store"}
+
+logger = structlog.get_logger()
 
 
 class SettingUpdateRequest(BaseModel):
@@ -636,3 +650,187 @@ async def read_config_file(
             detail={"code": ErrorCode.INTERNAL_ERROR, "message": e.message},
             headers=NO_STORE,
         )
+
+
+# ==============================================================================
+# Saving config files (Story 23.4, FR314-FR318, Epic 23 ADR-4)
+# ==============================================================================
+
+VERSION_PATTERN = r"^[0-9a-f]{64}$"
+
+
+class ConfigTextCheckRequest(BaseModel):
+    """Body of POST /config/files/validate."""
+
+    filename: str = Field(min_length=1, max_length=255)
+    text: str
+
+
+class ConfigFileSaveRequest(BaseModel):
+    """Body of PUT /config/files/{filename}: the text, and the version it was edited from."""
+
+    text: str
+    version: str = Field(pattern=VERSION_PATTERN)
+
+
+def _path_error(
+    e: ConfigPathInvalidError | ConfigDirectoryForbiddenError | ConfigFileNotSupportedError,
+) -> HTTPException:
+    """The read's answer for a path a save or check refuses."""
+    if isinstance(e, ConfigPathInvalidError):
+        status, code = 400, ErrorCode.CONFIG_PATH_INVALID
+    elif isinstance(e, ConfigDirectoryForbiddenError):
+        status, code = 403, ErrorCode.FORBIDDEN
+    else:
+        status, code = 400, ErrorCode.CONFIG_FILE_NOT_SUPPORTED
+    return HTTPException(
+        status_code=status, detail={"code": code, "message": e.message}, headers=NO_STORE
+    )
+
+
+def _too_large(e: ConfigFileTooLargeError) -> HTTPException:
+    return HTTPException(
+        status_code=413,
+        detail={"code": ErrorCode.CONFIG_FILE_TOO_LARGE, "message": e.message},
+        headers=NO_STORE,
+    )
+
+
+@router.post("/files/validate", response_model=ApiResponse, summary="Check a config file text")
+async def validate_config_file_text(
+    body: ConfigTextCheckRequest,
+    _: RequireAdmin,
+    response: Response,
+    service: ConfigFilesService = Depends(get_config_files_service),
+) -> ApiResponse:
+    """Check a text against the parser rule a save of the file would use (Story 23.4).
+
+    Admin only. The rule is JSON5, or strict JSON for serverconfig.json in the data
+    root (Epic 23 ADR-1 decision 5). The path rules of a save apply, but the file need
+    not exist; nothing is read or written, and the game server's state does not matter
+    (ADR-4 decision 10). The response is never cached.
+
+    Returns:
+        ApiResponse with data: valid (bool) and parse_error ({message, line, column}
+        or null).
+
+    Raises:
+        HTTPException: 400 CONFIG_PATH_INVALID or CONFIG_FILE_NOT_SUPPORTED for a path a
+            save refuses; 403 for a key that is not Admin; 413 CONFIG_FILE_TOO_LARGE for a
+            text over 2 MiB.
+    """
+    response.headers.update(NO_STORE)
+    try:
+        info = service.check_text(body.filename, body.text)
+    except (
+        ConfigPathInvalidError,
+        ConfigDirectoryForbiddenError,
+        ConfigFileNotSupportedError,
+    ) as e:
+        raise _path_error(e)
+    except ConfigFileTooLargeError as e:
+        raise _too_large(e)
+    return ApiResponse(
+        status="ok",
+        data={"valid": info is None, "parse_error": info.to_dict() if info else None},
+    )
+
+
+@router.put("/files/{filename:path}", response_model=ApiResponse, summary="Save config file")
+async def save_config_file(
+    filename: Annotated[
+        str,
+        Path(description="Path of the config file to save", min_length=1, max_length=255),
+    ],
+    body: ConfigFileSaveRequest,
+    _: RequireAdmin,
+    response: Response,
+    service: ConfigFilesService = Depends(get_config_files_service),
+    server_service: ServerService = Depends(get_server_service),
+) -> ApiResponse:
+    """Save an existing config file's text while the game server is stopped (Story 23.4).
+
+    Admin only (FR314-FR318, Epic 23 ADR-4). The text is written exactly as sent
+    (comments, key order and formatting kept), atomically, keeping the file's mode. It
+    must parse as JSON5 (strict JSON for serverconfig.json in the data root), be at most
+    2 MiB of UTF-8, and `version` must be the version of the file as it is now (from the
+    read), else nothing is written. Only existing files are saved. The save holds the
+    server's lifecycle lock, so a start requested meanwhile waits for it. A save of the
+    root serverconfig.json drops the pending restart-required edits (Story 22.7) whose
+    setting it changes. The response is never cached.
+
+    Returns:
+        ApiResponse with data: filename and version (the SHA-256 of the bytes written).
+
+    Raises:
+        HTTPException: 400 CONFIG_PATH_INVALID or CONFIG_FILE_NOT_SUPPORTED; 403 for a key
+            that is not Admin; 404 CONFIG_FILE_NOT_FOUND; 409 CONFIG_FILE_SERVER_RUNNING
+            (the game is running, starting or stopping), CONFIG_FILE_SERVER_BUSY (a start,
+            stop, restart, install or uninstall is in progress) or CONFIG_FILE_CHANGED
+            (the file changed since it was read); 413 CONFIG_FILE_TOO_LARGE; 422
+            CONFIG_FILE_INVALID with parse_error; 500 CONFIG_FILE_WRITE_FAILED (the file is
+            unchanged) or INTERNAL_ERROR (it could not be read).
+    """
+    response.headers.update(NO_STORE)
+    try:
+        async with server_service.config_write():
+            saved = service.save_file(filename, body.text, body.version)
+            if saved.is_root_serverconfig:
+                server_service.drop_pending_edits_changed_by_save(saved.previous_bytes, saved.value)
+    except GameServerNotStoppedError as e:
+        if e.reason == "running":
+            code = ErrorCode.CONFIG_FILE_SERVER_RUNNING
+            message = "Stop the game server to save config files"
+        else:
+            code = ErrorCode.CONFIG_FILE_SERVER_BUSY
+            message = (
+                "The game server is starting, stopping or being installed; "
+                "try again when it is stopped"
+            )
+        logger.info("config_file_save_refused", filename=filename, reason=e.reason)
+        raise HTTPException(
+            status_code=409, detail={"code": code, "message": message}, headers=NO_STORE
+        )
+    except (
+        ConfigPathInvalidError,
+        ConfigDirectoryForbiddenError,
+        ConfigFileNotSupportedError,
+    ) as e:
+        raise _path_error(e)
+    except ConfigFileNotFoundError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": ErrorCode.CONFIG_FILE_NOT_FOUND, "message": e.message},
+            headers=NO_STORE,
+        )
+    except ConfigFileTooLargeError as e:
+        raise _too_large(e)
+    except ConfigFileInvalidError as e:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": ErrorCode.CONFIG_FILE_INVALID,
+                "message": e.message,
+                "parse_error": e.info.to_dict(),
+            },
+            headers=NO_STORE,
+        )
+    except ConfigFileChangedError as e:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": ErrorCode.CONFIG_FILE_CHANGED, "message": e.message},
+            headers=NO_STORE,
+        )
+    except ConfigFileWriteError as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"code": ErrorCode.CONFIG_FILE_WRITE_FAILED, "message": e.message},
+            headers=NO_STORE,
+        )
+    except ConfigFileReadError as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"code": ErrorCode.INTERNAL_ERROR, "message": e.message},
+            headers=NO_STORE,
+        )
+    return ApiResponse(status="ok", data={"filename": saved.filename, "version": saved.version})

@@ -7,7 +7,8 @@ import shutil
 import signal
 import tarfile
 import time
-from collections.abc import Callable
+from collections.abc import AsyncGenerator, Callable
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -26,7 +27,9 @@ from vintagestory_api.models.server import (
     ServerStatus,
     VersionInfo,
 )
+from vintagestory_api.services.config_files import changed_top_level_keys
 from vintagestory_api.services.config_init_service import ConfigInitService
+from vintagestory_api.services.config_parse import ConfigParseError, parse_config_text
 from vintagestory_api.services.console import ConsoleBuffer
 from vintagestory_api.services.pending_config_edits import (
     PendingConfigEdit,
@@ -88,6 +91,18 @@ async def stop_game_server_for_api_shutdown() -> None:
 
 
 ReapplyTrigger = Literal["exit", "start", "api_start"]
+
+
+class GameServerNotStoppedError(Exception):
+    """A config file cannot be written now (Story 23.4, Epic 23 ADR-4 decision 4).
+
+    `running`: a game process lives, or the game is starting or stopping.
+    `busy`: a start, stop, restart, install or uninstall holds its lock.
+    """
+
+    def __init__(self, reason: Literal["running", "busy"]) -> None:
+        self.reason: Literal["running", "busy"] = reason
+        super().__init__(f"The game server is not stopped ({reason})")
 
 
 @dataclass(frozen=True)
@@ -286,6 +301,47 @@ class ServerService:
     def game_running(self) -> bool:
         """True while the game process runs and is neither starting nor stopping (Story 22.3)."""
         return self._get_runtime_state() == ServerState.RUNNING
+
+    @asynccontextmanager
+    async def config_write(self) -> AsyncGenerator[None]:
+        """Hold the lifecycle lock while a config file is written (Story 23.4).
+
+        Epic 23 ADR-4 decision 4: refused at once, without waiting, while a lifecycle or
+        install lock is held (`busy`) or while a game process lives or the game is starting
+        or stopping (`running`). A free asyncio lock is acquired without yielding, so no
+        other task runs between the check and the acquire; a start requested during the
+        write waits for the lock and begins after it.
+
+        Raises:
+            GameServerNotStoppedError: If the game server is not stopped.
+        """
+        if self._lifecycle_lock.locked() or self._install_lock.locked():
+            raise GameServerNotStoppedError("busy")
+        async with self._lifecycle_lock:
+            process_alive = self._process is not None and self._process.returncode is None
+            state = self._get_runtime_state()
+            if process_alive or state in (
+                ServerState.RUNNING,
+                ServerState.STARTING,
+                ServerState.STOPPING,
+            ):
+                raise GameServerNotStoppedError("running")
+            yield
+
+    def drop_pending_edits_changed_by_save(self, previous_bytes: bytes, new_value: object) -> None:
+        """Drop the pending config edits a serverconfig.json save changed (Story 23.4, FR318).
+
+        Epic 23 ADR-4 decision 7: a key whose value the saved text changes was changed on
+        purpose, so the Story 22.7 write-back must not undo it at the next start. The old
+        text is parsed leniently; if it does not parse, every key of the new text counts as
+        changed. Keys the save left alone stay pending.
+        """
+        try:
+            previous: object = parse_config_text(previous_bytes.decode("utf-8-sig"))
+        except ConfigParseError, UnicodeDecodeError:
+            previous = None
+        keys = changed_top_level_keys(previous, new_value)
+        self._pending_config_edits.drop(sorted(keys), reason="file_edited")
 
     @property
     def lifecycle_busy(self) -> bool:
