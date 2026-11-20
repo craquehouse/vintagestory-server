@@ -140,7 +140,7 @@ The maintainer named the scope: `VSS-foq7` (filter the installed mods), `VSS-v3b
 
 **Decision:**
 
-1. **Replaced with a note.** `<video>` and `<audio>` are replaced with a "not shown" note in the style of Story 19.3's, naming the kind of media. *(As implemented in Story 24.8: the policy allows images from `https:`, so a `<picture>`'s `<source>`s are dropped and its `<img>` gets the image rule, and an SVG `<image>` is removed only when its address is refused, without a note, since an SVG cannot hold an HTML note.)*
+1. **Replaced with a note.** `<video>` and `<audio>` are replaced with a "not shown" note in the style of Story 19.3's, naming the kind of media. *(As implemented in Story 24.8: the policy allows images from `https:`, so a `<picture>`'s `<source>`s are dropped and its `<img>` gets the image rule, and an SVG `<image>` or `<feImage>` is removed only when its address is refused, without a note, since an SVG cannot hold an HTML note.)*
 2. **Removed without a note.** The `background` attribute, and inline style declarations whose `url()` the policy refuses (`https:` and `data:image/` stay). `poster` goes with its `<video>`.
 3. **The CSP is not widened.** No `media-src` is added. Epic 19 ADR-6's policy stays as it is.
 

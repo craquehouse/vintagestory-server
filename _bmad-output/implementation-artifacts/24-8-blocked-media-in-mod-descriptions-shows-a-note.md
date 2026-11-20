@@ -1,6 +1,6 @@
 # Story 24.8: Blocked Media in Mod Descriptions Shows a Note
 
-Status: review
+Status: done
 
 <!-- Implements FR343, Epic 24 ADR-7. Bead: VSS-koo1 (API-094), item 2; Story 24.2 carried item 1; this story closes the bead after merge. Branch story/24-8-blocked-media-in-mod-descriptions-shows-a-note, stacked on story/24-7-installed-mods-can-be-filtered at 8b7d2fec (24.7 in review); the PR targets main and merges after 24.7's. Web only. -->
 
@@ -92,6 +92,16 @@ Claude Opus 5.5 (claude-opus-5-5), as the epic's controller.
 - `_bmad-output/implementation-artifacts/24-8-blocked-media-in-mod-descriptions-shows-a-note.md` (this file)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode. Verdict: approve with changes. 0 HIGH, one MEDIUM, three LOW, all fixed. The reviewer ran the real module in Chromium as well as jsdom, and confirmed that removing a node in the hook does not stop DOMPurify's walk.
+
+1. **MEDIUM: an SVG `<feImage>` from a refused address was kept and loaded silently** (same class as `<image>`). Handled with `<image>`; tests for `href` and `xlink:href` (in jsdom DOMPurify already drops `xlink:href` on it; Chromium keeps it, so the `href` case is the one that pins it).
+2. **LOW: a `<source>` outside any media element was kept.** Every `<source>` is dropped now; test.
+3. **LOW: the label test named `aria-label` but tested only `title`.** `aria-label` and a markup-in-`title` case added.
+4. **LOW: no test showed sanitizing continues after a replaced video.** A late refused image gets its note and a trailing `<script>` is removed.
+
 ## Change Log
 
 - 2026-11-20: Story 24.8 created and implemented (dev-story): Tasks 1 and 2; status review.
+- 2026-11-20: Code review (GLM-5.3-Flash via opencode): approve with changes; 0 HIGH, 1 MEDIUM, 3 LOW, all fixed (see "Review"). Status done.
