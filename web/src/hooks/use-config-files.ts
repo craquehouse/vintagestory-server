@@ -122,6 +122,8 @@ export function useSaveConfigFile() {
   return useMutation({
     mutationFn: ({ path, text, version }: SaveConfigFileVariables) =>
       saveConfigFile(path, text, version),
+    // The editor shows every refusal itself (Story 23.5 review L-1): no global toast
+    onError: () => {},
     onSuccess: (_data, { path }) =>
       queryClient.invalidateQueries({ queryKey: queryKeys.config.file(path.join('/')) }),
   });
@@ -147,9 +149,13 @@ export function useConfigTextCheck(path: readonly string[] | null, text: string,
     retry: false,
   });
   const lagging = debounced !== text;
+  // A failed check is not pending (Story 23.5 review M-1): the editor shows the error and
+  // offers to check again, and Save stays disabled since no check said the text is valid
+  const failed = !lagging && !query.isFetching && query.isError;
   return {
     check: lagging ? undefined : query.data,
-    isPending: enabled && (lagging || query.isFetching || query.data === undefined),
-    error: query.error,
+    isPending: enabled && !failed && (lagging || query.isFetching || query.data === undefined),
+    error: failed ? query.error : null,
+    retry: () => void query.refetch(),
   };
 }
