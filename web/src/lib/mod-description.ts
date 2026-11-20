@@ -18,6 +18,12 @@
  *   `createElement` and `textContent`, so no request is made and no broken image shows.
  *   `srcset` and `sizes` are dropped from every image: the browser would pick from
  *   `srcset` instead of `src` (Story 19.3, VSS-my4c). Nothing is rewritten to `https`.
+ * - Story 24.8 (VSS-koo1, Epic 24 ADR-7): a `<video>` or `<audio>` is replaced by
+ *   `<span data-media-not-shown>Video not shown</span>` (the policy has no `media-src`);
+ *   a `<picture>`'s `<source>`s are dropped, so its `<img>` (checked as above) is used; an
+ *   SVG `<image>` from an address the policy refuses is removed (an SVG cannot hold an
+ *   HTML note); the `background` attribute is removed; an inline style declaration
+ *   whose `url()` the policy refuses is removed. The policy itself is not widened.
  * - `<style>` elements are removed: DOMPurify keeps one that follows body content,
  *   and it would restyle the whole app, not just the description.
  * - Forms and their controls are removed.
@@ -31,6 +37,38 @@ export { OPENS_IN_NEW_TAB };
 
 /** Text shown in place of a description image the page cannot load (Story 19.3). */
 export const IMAGE_NOT_SHOWN = 'Image not shown';
+
+/** Text shown in place of a description video or audio (Story 24.8): no media-src. */
+export const VIDEO_NOT_SHOWN = 'Video not shown';
+export const AUDIO_NOT_SHOWN = 'Audio not shown';
+
+const CSS_URL = /url\(\s*(['"]?)(.*?)\1\s*\)/gi;
+
+/** True when every url() in a CSS value is one the policy lets the page load. */
+function cssUrlsLoadable(value: string): boolean {
+  return Array.from(value.matchAll(CSS_URL)).every(([, , url]) => isLoadableImage(url));
+}
+
+/** Story 24.8: replace a video or audio, which the policy never loads, by a note. */
+function replaceMedia(node: Element, text: string): void {
+  const label = (node.getAttribute('title') ?? node.getAttribute('aria-label') ?? '').trim();
+  const note = node.ownerDocument.createElement('span');
+  note.setAttribute('data-media-not-shown', '');
+  note.textContent = label ? `${text}: ${label}` : text;
+  node.replaceWith(note);
+}
+
+/** Story 24.8: drop inline style declarations whose url() the policy refuses. */
+function removeBlockedStyleUrls(node: Element): void {
+  if (!(node instanceof HTMLElement || node instanceof SVGElement)) return;
+  const style = node.style;
+  for (const property of Array.from(style)) {
+    if (!cssUrlsLoadable(style.getPropertyValue(property))) {
+      style.removeProperty(property);
+    }
+  }
+  if (style.length === 0) node.removeAttribute('style');
+}
 
 /** True when an image address is one the Content-Security-Policy lets the page load. */
 function isLoadableImage(src: string | null): boolean {
@@ -92,6 +130,26 @@ function addSvgLinkTitle(link: Element) {
 }
 
 purifier.addHook('afterSanitizeAttributes', (node) => {
+  // Story 24.8 (Epic 24 ADR-7): media the policy blocks never reaches the page silently
+  if (node.namespaceURI === HTML_NAMESPACE) {
+    if (node.nodeName === 'VIDEO') return replaceMedia(node, VIDEO_NOT_SHOWN);
+    if (node.nodeName === 'AUDIO') return replaceMedia(node, AUDIO_NOT_SHOWN);
+    // A picture's sources would be chosen over its image; the image is checked below
+    if (node.nodeName === 'SOURCE' && node.parentElement?.nodeName === 'PICTURE') {
+      node.remove();
+      return;
+    }
+  }
+  if (node.nodeName === 'image' && node.namespaceURI === SVG_NAMESPACE) {
+    const href = node.getAttribute('href') ?? node.getAttribute('xlink:href');
+    if (!isLoadableImage(href)) {
+      node.remove();
+      return;
+    }
+  }
+  node.removeAttribute('background');
+  if (node.hasAttribute('style')) removeBlockedStyleUrls(node);
+
   if (node.nodeName === 'IMG' && node.namespaceURI === HTML_NAMESPACE) {
     node.removeAttribute('srcset');
     node.removeAttribute('sizes');

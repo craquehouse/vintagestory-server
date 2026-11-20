@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import DOMPurify from 'dompurify';
-import { IMAGE_NOT_SHOWN, OPENS_IN_NEW_TAB, sanitizeModDescription } from './mod-description';
+import {
+  AUDIO_NOT_SHOWN,
+  IMAGE_NOT_SHOWN,
+  OPENS_IN_NEW_TAB,
+  VIDEO_NOT_SHOWN,
+  sanitizeModDescription,
+} from './mod-description';
 import { OPENS_IN_NEW_TAB as NEW_TAB_NOTE } from './new-tab';
 
 /** Parse sanitized markup so assertions inspect elements, not substrings. */
@@ -507,5 +513,117 @@ describe('images the page cannot load (Story 19.3, VSS-my4c)', () => {
     expect(
       Array.from(el.querySelectorAll('[data-image-not-shown]')).map((n) => n.textContent)
     ).toEqual(['Image not shown: a', 'Image not shown: b']);
+  });
+});
+
+describe('media the page cannot load (Story 24.8, VSS-koo1, Epic 24 ADR-7)', () => {
+  it.each([
+    [
+      'video',
+      '<video src="https://x.test/a.mp4" poster="https://x.test/p.png"></video>',
+      VIDEO_NOT_SHOWN,
+    ],
+    [
+      'video with sources',
+      '<video controls><source src="https://x.test/a.webm"><track src="https://x.test/t.vtt"></video>',
+      VIDEO_NOT_SHOWN,
+    ],
+    ['audio', '<audio src="https://x.test/a.ogg" controls></audio>', AUDIO_NOT_SHOWN],
+  ])('replaces a %s by a note: the policy has no media-src', (_name, html, text) => {
+    const el = parse(sanitizeModDescription(`<p>Before</p>${html}<p>After</p>`));
+    expect(el.querySelector('video, audio, source, track')).toBeNull();
+    const note = el.querySelector('[data-media-not-shown]');
+    expect(note?.tagName).toBe('SPAN');
+    expect(note?.textContent).toBe(text);
+    expect(Array.from(el.children).map((child) => child.tagName)).toEqual(['P', 'SPAN', 'P']);
+  });
+
+  it('names a video by its title or aria-label', () => {
+    const el = parse(
+      sanitizeModDescription('<video title="Trailer" src="https://x.test/a.mp4"></video>')
+    );
+    expect(el.querySelector('[data-media-not-shown]')?.textContent).toBe(
+      `${VIDEO_NOT_SHOWN}: Trailer`
+    );
+  });
+
+  it('drops the sources of a picture, so its image (checked as any image) is used', () => {
+    const el = parse(
+      sanitizeModDescription(
+        '<picture><source srcset="http://x.test/b.webp"><img src="https://x.test/a.png" alt="a"></picture>'
+      )
+    );
+    expect(el.querySelector('source')).toBeNull();
+    expect(el.querySelector('picture img')?.getAttribute('src')).toBe('https://x.test/a.png');
+  });
+
+  it('drops the sources of a picture whose image cannot load, leaving the image note', () => {
+    const el = parse(
+      sanitizeModDescription(
+        '<picture><source srcset="https://x.test/b.webp"><img src="http://x.test/a.png" alt="a"></picture>'
+      )
+    );
+    expect(el.querySelector('source')).toBeNull();
+    expect(el.querySelector('[data-image-not-shown]')?.textContent).toBe(`${IMAGE_NOT_SHOWN}: a`);
+  });
+
+  it.each(['href', 'xlink:href'])(
+    'removes an SVG image whose %s the policy refuses, keeping the drawing',
+    (attribute) => {
+      const el = parse(
+        sanitizeModDescription(
+          `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><image ${attribute}="http://x.test/a.png"/><circle r="4"/></svg>`
+        )
+      );
+      expect(el.querySelector('image')).toBeNull();
+      expect(el.querySelector('circle')).not.toBeNull();
+    }
+  );
+
+  it('keeps an SVG image from https', () => {
+    const el = parse(
+      sanitizeModDescription(
+        '<svg xmlns="http://www.w3.org/2000/svg"><image href="https://x.test/a.png"/></svg>'
+      )
+    );
+    expect(el.querySelector('image')?.getAttribute('href')).toBe('https://x.test/a.png');
+  });
+
+  it('removes the background attribute, which only loads an image', () => {
+    const el = parse(
+      sanitizeModDescription(
+        '<table background="http://x.test/bg.png"><tr><td background="https://x.test/c.png">x</td></tr></table>'
+      )
+    );
+    expect(el.querySelector('[background]')).toBeNull();
+    expect(el.querySelector('td')?.textContent).toBe('x');
+  });
+
+  it('removes inline style declarations that load from an address the policy refuses', () => {
+    const el = parse(
+      sanitizeModDescription(
+        '<div style="color: red; background-image: url(http://x.test/bg.png); padding: 2px">x</div>'
+      )
+    );
+    const style = el.querySelector('div')?.getAttribute('style') ?? '';
+    expect(style).not.toContain('url(');
+    expect(style).toContain('color: red');
+    expect(style).toContain('padding: 2px');
+  });
+
+  it('keeps inline style images from https and data:image', () => {
+    const el = parse(
+      sanitizeModDescription(
+        '<div style="background-image: url(&quot;https://x.test/bg.png&quot;)">a</div>' +
+          '<span style="background: url(data:image/png;base64,AAAA)">b</span>'
+      )
+    );
+    expect(el.querySelector('div')?.getAttribute('style')).toContain('https://x.test/bg.png');
+    expect(el.querySelector('span')?.getAttribute('style')).toContain('data:image/png');
+  });
+
+  it('keeps an https image unchanged (the policy is not widened)', () => {
+    const el = parse(sanitizeModDescription('<img src="https://x.test/a.png" alt="a">'));
+    expect(el.querySelector('img')?.getAttribute('src')).toBe('https://x.test/a.png');
   });
 });

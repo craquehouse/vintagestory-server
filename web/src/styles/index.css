@@ -268,8 +268,10 @@
     -webkit-mask: var(--external-link-icon) center / contain no-repeat;
     mask: var(--external-link-icon) center / contain no-repeat;
   }
-  /* Story 19.3: a description image the page cannot load securely (VSS-my4c) */
-  .mod-description [data-image-not-shown] {
+  /* Story 19.3: a description image the page cannot load securely (VSS-my4c);
+     Story 24.8: a video or audio (VSS-koo1) */
+  .mod-description [data-image-not-shown],
+  .mod-description [data-media-not-shown] {
     @apply text-muted-foreground text-sm italic;
   }
 
