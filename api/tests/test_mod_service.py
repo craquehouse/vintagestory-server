@@ -2726,3 +2726,48 @@ class TestPrepareModFiles:
         prepare_mod_files()
 
         assert "mod_cache_old_layout_removed" not in captured_logs.getvalue()
+
+
+class TestRemoveModCache:
+    """Story 24.3 (Epic 24 ADR-5 decision 3): the modinfo cache never fails a removal."""
+
+    def test_the_cache_is_removed_with_the_mod(
+        self, mod_service: ModService, temp_dirs: tuple[Path, Path]
+    ) -> None:
+        state_dir, mods_dir = temp_dirs
+        create_mod_zip(
+            mods_dir / "testmod_1.0.0.zip",
+            {"modid": "testmod", "name": "Test Mod", "version": "1.0.0"},
+        )
+        mod_service.state_manager.sync_state_with_disk()
+        assert (state_dir / "mods" / "testmod").is_dir()
+
+        mod_service.remove_mod("testmod")
+
+        assert not (state_dir / "mods" / "testmod").exists()
+
+    def test_a_cache_that_cannot_be_removed_is_logged(
+        self,
+        mod_service: ModService,
+        temp_dirs: tuple[Path, Path],
+        monkeypatch: pytest.MonkeyPatch,
+        captured_logs: StringIO,
+    ) -> None:
+        _, mods_dir = temp_dirs
+        create_mod_zip(
+            mods_dir / "testmod_1.0.0.zip",
+            {"modid": "testmod", "name": "Test Mod", "version": "1.0.0"},
+        )
+        mod_service.state_manager.sync_state_with_disk()
+
+        def refuse(path: Path) -> None:
+            raise PermissionError(13, "Permission denied", str(path))
+
+        monkeypatch.setattr("vintagestory_api.services.mod_state.shutil.rmtree", refuse)
+
+        result = mod_service.remove_mod("testmod")
+
+        assert result.slug == "testmod"
+        assert mod_service.state_manager.get_mod_by_slug("testmod") is None
+        assert not (mods_dir / "testmod_1.0.0.zip").exists()
+        assert "mod_modinfo_cache_not_removed" in captured_logs.getvalue()

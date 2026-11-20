@@ -400,6 +400,7 @@ class ModUpdateService:
         from vintagestory_api.services.mods import (
             ModConfirmationRequiredError,
             ModFileConflictError,
+            ModFileMissingError,
             ModNotFoundError,
             ModOperationInProgressError,
             ModValidationError,
@@ -429,6 +430,7 @@ class ModUpdateService:
                     ModValidationError,
                     ModVersionChangeFailedError,
                     ModFileConflictError,
+                    ModFileMissingError,
                     ModOperationInProgressError,
                     OSError,
                     # Unexpected data or state errors from one mod must not abort the run

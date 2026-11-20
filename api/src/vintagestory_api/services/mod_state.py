@@ -6,6 +6,7 @@ to prevent corruption.
 """
 
 import json
+import shutil
 import zipfile
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -404,6 +405,26 @@ class ModStateManager:
             path=str(cache_file),
         )
 
+    def remove_cached_modinfo(self, slug: str) -> None:
+        """Remove a mod ID's cached modinfo directory, `state/mods/<slug>/` (Epic 24 ADR-5).
+
+        For the last entry of that mod ID only; the caller checks. A slug that is not one
+        plain directory name is ignored. A failure is logged and never raised, so it never
+        fails the removal that called it.
+        """
+        if not slug or slug in (".", "..") or "/" in slug or "\\" in slug:
+            logger.warning("mod_modinfo_cache_not_removed", slug=slug, reason="unsafe slug")
+            return
+        cache_dir = self._state_dir / "mods" / slug
+        if not cache_dir.is_dir():
+            return
+        try:
+            shutil.rmtree(cache_dir)
+        except OSError as e:
+            logger.warning("mod_modinfo_cache_not_removed", slug=slug, error=str(e))
+            return
+        logger.debug("mod_modinfo_cache_removed", slug=slug)
+
     def get_cached_metadata(self, slug: str, version: str) -> ModMetadata | None:
         """Get cached modinfo.json metadata.
 
@@ -528,9 +549,11 @@ class ModStateManager:
           `modinfo.json`, and an archive whose mod ID is already installed under
           another file.
 
-        Creates, renames and deletes no file in the mods directory. Saves once, only
-        when something changed; a failed save is logged and the in-memory state keeps
-        the changes. Never raises for anything the directory or an archive can hold.
+        The cached `modinfo.json` directory of a mod ID left with no entry is removed
+        (Epic 24 ADR-5). Creates, renames and deletes no file in the mods directory.
+        Saves once, only when something changed; a failed save is logged and the
+        in-memory state keeps the changes. Never raises for anything the directory or an
+        archive can hold.
 
         Returns:
             The numbers of entries added and removed and of files skipped.
@@ -552,6 +575,7 @@ class ModStateManager:
         # addition, instead of the new file being skipped as a duplicate of its own mod
         entries_before = len(self._state)
         removed = 0
+        removed_slugs: set[str] = set()
         for filename in sorted(self._state):
             if filename in names:
                 continue
@@ -566,6 +590,7 @@ class ModStateManager:
                 )
                 continue
             entry = self._state.pop(filename)
+            removed_slugs.add(entry.slug)
             removed += 1
             logger.info("mod_state_sync_removed", filename=filename, slug=entry.slug)
         if entries_before and removed == entries_before:
@@ -632,6 +657,13 @@ class ModStateManager:
                 self.save()
             except OSError as e:
                 logger.error("mod_state_sync_save_failed", error=str(e), path=str(self.state_file))
+
+        # The cached modinfo of a mod ID with no entry left (Epic 24 ADR-5 decision 3),
+        # after the additions, so a mod renamed by hand keeps its cache
+        remaining = {entry.slug.casefold() for entry in self._state.values()}
+        for slug in sorted(removed_slugs):
+            if slug.casefold() not in remaining:
+                self.remove_cached_modinfo(slug)
         return self._log_sync_summary(ModSyncSummary(added=added, removed=removed, skipped=skipped))
 
     def _kept_aside_original(self, filename: str, names: set[str]) -> str | None:

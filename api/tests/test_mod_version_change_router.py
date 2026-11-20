@@ -127,6 +127,27 @@ def error_code(response: Any) -> str:
 
 class TestChangeVersionEndpoint:
     @respx.mock
+    def test_a_mod_whose_file_is_gone_returns_409(
+        self, client: TestClient, service: ModService
+    ) -> None:
+        """Story 24.3 (FR331): MOD_FILE_MISSING, as enable and disable answer, not a 500."""
+        (service.state_manager.mods_dir / "carryon_1.14.1.zip").unlink()
+
+        response = client.put(URL, json={"version": "1.14.3"}, headers=ADMIN)
+
+        assert response.status_code == 409
+        assert response.json() == {
+            "detail": {
+                "code": ErrorCode.MOD_FILE_MISSING,
+                "message": (
+                    "Cannot change the version of 'carryon': its file carryon_1.14.1.zip is "
+                    "no longer in the mods directory. Remove the mod and install it again."
+                ),
+            }
+        }
+        assert respx.calls.call_count == 0
+
+    @respx.mock
     def test_successful_update(self, client: TestClient) -> None:
         respx.get(MOD_URL).mock(return_value=Response(200, json=carryon()))
         mock_download("1.14.3")

@@ -1153,7 +1153,8 @@ async def change_mod_version(
     The installed file is only replaced after the new release is validated; any
     failure leaves the mod unchanged. Returns 409 if another operation on this mod is
     in progress. A release file name, or its .disabled form, that is taken in the mods
-    directory or the mod state (ignoring case) is 409 MOD_FILE_CONFLICT; 500
+    directory or the mod state (ignoring case) is 409 MOD_FILE_CONFLICT; a mod whose own
+    file is gone is 409 MOD_FILE_MISSING, before any lookup (Story 24.3); 500
     MOD_VERSION_CHANGE_FAILED is for a failure to place the file or save state, rolled
     back. A completed change stores the mod's update record from its own lookup,
     so its update status shows without waiting for the next check (Story 18.2).
@@ -1191,6 +1192,8 @@ async def change_mod_version(
         raise _version_change_error(502, ErrorCode.DOWNLOAD_FAILED, e) from None
     except ModFileConflictError as e:
         raise _version_change_error(409, ErrorCode.MOD_FILE_CONFLICT, e) from None
+    except ModFileMissingError as e:
+        raise _version_change_error(409, ErrorCode.MOD_FILE_MISSING, e) from None
     except ModVersionChangeFailedError as e:
         raise _version_change_error(500, ErrorCode.MOD_VERSION_CHANGE_FAILED, e) from None
     return ApiResponse(status="ok", data=asdict(result))

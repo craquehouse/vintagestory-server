@@ -66,9 +66,9 @@ class CacheEvictionService:
         max_size_bytes: Maximum cache size in bytes (0 to disable eviction).
     """
 
-    # File patterns to consider for eviction (mod archives), matched in each
-    # file-ID directory under mods/
-    CACHE_FILE_PATTERNS = ("*.zip", "*.cs")
+    # Suffix of a download that is still being written (ModApiClient's `<uuid>.tmp`):
+    # never counted or evicted here, only removed by the stale-temp rule
+    DOWNLOAD_IN_PROGRESS_SUFFIX = ".tmp"
 
     def __init__(
         self,
@@ -119,24 +119,25 @@ class CacheEvictionService:
         if not mods_cache.exists():
             return files
 
-        for pattern in self.CACHE_FILE_PATTERNS:
-            for path in mods_cache.glob(f"*/{pattern}"):
-                if path.is_file():
-                    try:
-                        stat = path.stat()
-                        files.append(
-                            CacheFileInfo(
-                                path=path,
-                                size_bytes=stat.st_size,
-                                access_time=stat.st_atime,
-                            )
-                        )
-                    except OSError as e:
-                        logger.warning(
-                            "cache_file_stat_failed",
-                            path=str(path),
-                            error=str(e),
-                        )
+        # Every release file, whatever its type (Epic 24 ADR-5 decision 2)
+        for path in mods_cache.glob("*/*"):
+            if path.suffix == self.DOWNLOAD_IN_PROGRESS_SUFFIX or not path.is_file():
+                continue
+            try:
+                stat = path.stat()
+                files.append(
+                    CacheFileInfo(
+                        path=path,
+                        size_bytes=stat.st_size,
+                        access_time=stat.st_atime,
+                    )
+                )
+            except OSError as e:
+                logger.warning(
+                    "cache_file_stat_failed",
+                    path=str(path),
+                    error=str(e),
+                )
 
         # Sort by access time, oldest first (for LRU)
         files.sort(key=lambda f: f.access_time)

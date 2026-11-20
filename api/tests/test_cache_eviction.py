@@ -184,29 +184,52 @@ class TestEvictAll:
 class TestFilePatterns:
     """Tests for file pattern matching."""
 
-    def test_only_zip_files_considered(self, cache_dir: Path) -> None:
-        """Test that only .zip files are considered for eviction."""
-        create_test_file(cache_dir, "mod1.zip", 1000)
-        create_test_file(cache_dir, "readme.txt", 500)
-        create_test_file(cache_dir, "data.json", 300)
-
-        service = CacheEvictionService(cache_dir=cache_dir, max_size_mb=100)
-        stats = service.get_cache_stats()
-
-        # Only the .zip file should be counted
-        assert stats["file_count"] == 1
-        assert stats["total_size_bytes"] == 1000
-
-    def test_cs_files_also_considered(self, cache_dir: Path) -> None:
-        """Test that .cs files are also considered (source mods)."""
+    def test_every_release_file_type_is_considered(self, cache_dir: Path) -> None:
+        """A release of any type is counted (Story 24.3, FR332, Epic 24 ADR-5 decision 2)."""
         create_test_file(cache_dir, "mod1.zip", 1000)
         create_test_file(cache_dir, "source_mod.cs", 500)
+        create_test_file(cache_dir, "library.dll", 300)
+        create_test_file(cache_dir, "readme.txt", 200)
+        no_extension = cache_dir / "mods" / "77" / "LICENSE"
+        no_extension.parent.mkdir()
+        no_extension.write_bytes(b"x" * 100)
 
         service = CacheEvictionService(cache_dir=cache_dir, max_size_mb=100)
         stats = service.get_cache_stats()
 
-        assert stats["file_count"] == 2
-        assert stats["total_size_bytes"] == 1500
+        assert stats["file_count"] == 5
+        assert stats["total_size_bytes"] == 2100
+
+    def test_a_download_in_progress_is_not_considered(self, cache_dir: Path) -> None:
+        """A `.tmp` file is a running download; only the stale-temp rule removes it."""
+        create_test_file(cache_dir, "mod1.zip", 1000)
+        create_test_file(cache_dir, "0123abcd.tmp", 5000)
+
+        service = CacheEvictionService(cache_dir=cache_dir, max_size_mb=100)
+
+        assert service.get_cache_stats()["file_count"] == 1
+
+    def test_a_non_zip_release_is_evicted_by_size(self, cache_dir: Path) -> None:
+        old = create_test_file(cache_dir, "old_library.dll", 600 * 1024)
+        os.utime(old, (time.time() - 1000, time.time() - 1000))
+        new = create_test_file(cache_dir, "new_mod.zip", 600 * 1024)
+        service = CacheEvictionService(cache_dir=cache_dir, max_size_mb=1)
+
+        result = service.evict_if_needed()
+
+        assert result.files_evicted == 1
+        assert not old.exists()
+        assert not old.parent.exists()
+        assert new.exists()
+
+    def test_a_subdirectory_is_not_a_file(self, cache_dir: Path) -> None:
+        nested = cache_dir / "mods" / "88" / "folder"
+        nested.mkdir(parents=True)
+        (nested / "inner.zip").write_bytes(b"x" * 100)
+
+        service = CacheEvictionService(cache_dir=cache_dir, max_size_mb=100)
+
+        assert service.get_cache_stats()["file_count"] == 0
 
 
 class TestEdgeCases:
@@ -473,13 +496,14 @@ class TestFileIdLayout:
     def test_evict_all_keeps_a_directory_that_is_not_empty(self, cache_dir: Path) -> None:
         create_test_file(cache_dir, "mod1.zip", 1000)
         other = create_test_file(cache_dir, "mod2.zip", 1000)
-        (other.parent / "notes.txt").write_bytes(b"kept")
+        # Every release file is evicted (Story 24.3); a running download is not
+        (other.parent / "0123abcd.tmp").write_bytes(b"kept")
 
         result = CacheEvictionService(cache_dir=cache_dir, max_size_mb=100).evict_all()
 
         assert result.files_evicted == 2
         assert [p.name for p in (cache_dir / "mods").iterdir()] == ["mod2"]
-        assert [p.name for p in other.parent.iterdir()] == ["notes.txt"]
+        assert [p.name for p in other.parent.iterdir()] == ["0123abcd.tmp"]
 
 
 class TestStaleTempFiles:
