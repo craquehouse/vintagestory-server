@@ -1,6 +1,6 @@
 # Story 23.5: Config Files Are Edited in the File Browser
 
-Status: review
+Status: done
 
 <!-- Implements FR319, FR320, FR326 (editing part), Epic 23 ADR-5, ADR-6 decision 3, ADR-9. Bead: VSS-glz (UI-025), closed by this story after merge (23.4 carried its API half). Branch story/23-5-config-files-are-edited-in-the-file-browser, stacked on story/23-4-config-files-can-be-saved-through-the-api at 9a6e5e9c (23.4 in review); the PR targets main and merges after 23.4's. Web, README, and one line of the API error handling in the web client. Line references verified at 9a6e5e9c. -->
 
@@ -192,7 +192,23 @@ Claude Opus 5.5 (claude-opus-5-5), as the epic's controller.
 - `_bmad-output/implementation-artifacts/23-5-config-files-are-edited-in-the-file-browser.md` (this file)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode. Verdict: approve. 0 HIGH, one MEDIUM, seven LOW:
+
+1. **MEDIUM: a failed check request left Save disabled and the status at "Checking..." for good** (`useConfigTextCheck` counted a failed query as pending; the error was not shown). Fixed: the status shows "The text could not be checked: {message}" with a Check again button; Save stays disabled until a check says the text is valid. Test added.
+2. **LOW: a refused save was reported twice** (the editor's message and the global mutation toast). Fixed: the save mutation has its own `onError`.
+3. **LOW: a file-list error while editing hides the editor.** Accepted: the draft restores the text when the list recovers ("Resume editing").
+4. **LOW: just after a save, Edit could start from the cached text before the refetch lands.** Accepted: the save is then refused with 409 and nothing is overwritten.
+5. **LOW: the inline "line L, column C" and Reload buttons were under 44px on phones.** Fixed (`min-h-11` below `md`). The word-wrap toggle (Story UI-022) is unchanged.
+6. **LOW: `ConfirmDialog` called `onCancel` twice per cancel** (and after a confirm, through Radix's close). Fixed with a flag; three tests.
+7. **LOW: `getDraft` deleted from module state during render.** Fixed: `getDraft` is pure; `dropStaleDraft` runs when an edit starts. Two tests.
+8. **LOW: Task 5's commit (`test`) carries the README paragraph.** Accepted: the subject followed the story's task; no history rewritten.
+
+The fix commit is `refactor(...)`: the editor is not released yet, so the fix has no release note of its own (Epic 22 precedent for unreleased features).
+
 ## Change Log
 
 - 2026-11-19: Story 23.5 created (ready-for-dev).
 - 2026-11-19: Implemented (dev-story): Tasks 1 to 6; status review.
+- 2026-11-19: Code review (GLM-5.3-Flash via opencode): approve; 0 HIGH, one MEDIUM fixed (a failed check), seven LOW (four fixed, three accepted) (see "Review"). Status done.
