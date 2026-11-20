@@ -26,6 +26,8 @@ export interface ModTableRow extends ModInfo {
   compatibility?: ModCompatibilityInfo;
   /** Story 14.3: update status from GET /mods/updates */
   updateStatus?: ModUpdateStatus;
+  /** Story 24.7: false while the compatibility is loading (it then reads not_verified) */
+  compatibilityKnown?: boolean;
 }
 
 /** Whether the mod database does not know this mod (Story 24.4, FR335). */

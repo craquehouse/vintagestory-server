@@ -8,9 +8,11 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
+import { MemoryRouter, useLocation, useNavigate } from 'react-router';
+import userEvent from '@testing-library/user-event';
 
 // Mock sonner toast
 vi.mock('sonner', () => ({
@@ -37,13 +39,15 @@ vi.mock('@/lib/cookies', () => ({
   setCookie: vi.fn(),
 }));
 
-// Mock useModsCompatibility to avoid complex fetch handling
+// Mock useModsCompatibility to avoid complex fetch handling; Story 24.7's filter tests
+// set statuses in `compat.map` (a mod not in it is still loading)
+const compat = vi.hoisted(() => ({ map: new Map<string, string>() }));
 vi.mock('@/hooks/use-mods', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/hooks/use-mods')>();
   return {
     ...actual,
     useModsCompatibility: () => ({
-      compatibilityMap: new Map(),
+      compatibilityMap: compat.map,
       compatibilityDetails: new Map(),
       sideMap: new Map(),
       isLoading: false,
@@ -55,6 +59,7 @@ import { InstalledTab } from './InstalledTab';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
 import { toast } from 'sonner';
 import { queryKeys } from '@/api/query-keys';
+import { setViewportWidth } from '../../../tests/viewport';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -71,12 +76,14 @@ function createTestQueryClient() {
 }
 
 // Wrapper component for rendering with QueryClientProvider and PreferencesProvider
-function createWrapper(queryClient: QueryClient) {
+function createWrapper(queryClient: QueryClient, initialEntry = '/game-server/mods/installed') {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <QueryClientProvider client={queryClient}>
-        <PreferencesProvider>{children}</PreferencesProvider>
-      </QueryClientProvider>
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <QueryClientProvider client={queryClient}>
+          <PreferencesProvider>{children}</PreferencesProvider>
+        </QueryClientProvider>
+      </MemoryRouter>
     );
   };
 }
@@ -864,6 +871,230 @@ describe('InstalledTab', () => {
       renderAs('admin');
 
       expect(await screen.findByTestId('mods-rescan')).toHaveClass('max-lg:h-11');
+    });
+  });
+
+  describe('Filters (Story 24.7)', () => {
+    const navigation: { navigate: (delta: number) => void } = { navigate: () => {} };
+
+    function LocationProbe() {
+      const location = useLocation();
+      const navigate = useNavigate();
+      navigation.navigate = (delta) => void navigate(delta);
+      return <div data-testid="location-search">{location.search}</div>;
+    }
+
+    const modsBody = {
+      status: 'ok',
+      data: {
+        mods: [
+          {
+            filename: 'smithingplus-1.5.0.zip',
+            slug: 'smithingplus',
+            version: '1.5.0',
+            enabled: true,
+            installed_at: '2024-01-15T10:30:00Z',
+            asset_id: 1,
+            name: 'Smithing Plus',
+            authors: [],
+            description: null,
+          },
+          {
+            filename: 'carryon-1.0.0.zip',
+            slug: 'carryon',
+            version: '1.0.0',
+            enabled: true,
+            installed_at: '2024-01-15T10:30:00Z',
+            asset_id: 2,
+            name: 'Carry On',
+            authors: [],
+            description: null,
+          },
+        ],
+        pending_restart: false,
+      },
+    };
+
+    const updatesBody = {
+      status: 'ok',
+      data: {
+        game_version: '1.22.7',
+        checked_at: '2026-11-19T00:00:00Z',
+        update_count: 1,
+        mods: [
+          {
+            slug: 'smithingplus',
+            name: 'Smithing Plus',
+            installed_version: '1.5.0',
+            status: 'update_available',
+            reason: null,
+            offered_version: '1.6.0',
+            offered_compatibility: 'compatible',
+            offered_prerelease: false,
+            checked_at: '2026-11-19T00:00:00Z',
+            error: null,
+          },
+          {
+            slug: 'carryon',
+            name: 'Carry On',
+            installed_version: '1.0.0',
+            status: 'up_to_date',
+            reason: null,
+            offered_version: null,
+            offered_compatibility: null,
+            offered_prerelease: null,
+            checked_at: '2026-11-19T00:00:00Z',
+            error: null,
+          },
+        ],
+      },
+    };
+
+    function renderAt(entry: string) {
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        const body = url.includes('/mods/updates')
+          ? updatesBody
+          : url.includes('/mods')
+            ? modsBody
+            : mockServerStatusResponse;
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+      });
+      const queryClient = createTestQueryClient();
+      queryClient.setQueryData(queryKeys.auth.me, { status: 'ok', data: { role: 'admin' } });
+      const Wrapper = createWrapper(queryClient, entry);
+      render(
+        <Wrapper>
+          <InstalledTab />
+          <LocationProbe />
+        </Wrapper>
+      );
+    }
+
+    beforeEach(() => {
+      compat.map = new Map([
+        ['smithingplus', 'compatible'],
+        ['carryon', 'incompatible'],
+      ]);
+    });
+
+    it('filters by part of the name, ignoring case, and keeps it in the URL', async () => {
+      renderAt('/game-server/mods/installed');
+      await screen.findByTestId('mod-row-carryon');
+
+      fireEvent.change(screen.getByTestId('installed-mods-filter-query'), {
+        target: { value: 'SMITH' },
+      });
+
+      expect(screen.getByTestId('mod-row-smithingplus')).toBeInTheDocument();
+      expect(screen.queryByTestId('mod-row-carryon')).not.toBeInTheDocument();
+      expect(screen.getByTestId('mod-filter-status')).toHaveTextContent('Showing 1 of 2 mods');
+      expect(screen.getByTestId('location-search')).toHaveTextContent('?q=SMITH');
+    });
+
+    it('matches the mod ID too', async () => {
+      renderAt('/game-server/mods/installed?q=yon');
+
+      expect(await screen.findByTestId('mod-row-carryon')).toBeInTheDocument();
+      expect(screen.queryByTestId('mod-row-smithingplus')).not.toBeInTheDocument();
+    });
+
+    it('restores the compatibility filter from the URL', async () => {
+      renderAt('/game-server/mods/installed?compat=incompatible');
+
+      expect(await screen.findByTestId('mod-row-carryon')).toBeInTheDocument();
+      expect(screen.queryByTestId('mod-row-smithingplus')).not.toBeInTheDocument();
+      expect(screen.getByTestId('installed-mods-filter-compat')).toHaveTextContent('Incompatible');
+    });
+
+    it('shows a mod whose compatibility is loading only under All', async () => {
+      compat.map = new Map([['smithingplus', 'compatible']]);
+      renderAt('/game-server/mods/installed?compat=not_verified');
+
+      expect(await screen.findByTestId('mod-filter-empty')).toBeInTheDocument();
+    });
+
+    it('filters to mods with an update available, leaving Update all unchanged', async () => {
+      renderAt('/game-server/mods/installed');
+      await screen.findByTestId('mod-row-carryon');
+
+      fireEvent.click(screen.getByTestId('installed-mods-filter-updates'));
+
+      expect(screen.getByTestId('mod-row-smithingplus')).toBeInTheDocument();
+      expect(screen.queryByTestId('mod-row-carryon')).not.toBeInTheDocument();
+      expect(screen.getByTestId('location-search')).toHaveTextContent('?updates=1');
+      expect(screen.getByTestId('mod-updates-update-all')).toHaveTextContent('Update all (1)');
+    });
+
+    it('combines the filters', async () => {
+      renderAt('/game-server/mods/installed?updates=1&compat=incompatible');
+
+      expect(await screen.findByTestId('mod-filter-empty')).toHaveTextContent(
+        'No installed mods match these filters.'
+      );
+    });
+
+    it('clears every filter from the no-match state', async () => {
+      renderAt('/game-server/mods/installed?q=nothing&updates=1&tab=keep');
+      await screen.findByTestId('mod-filter-empty');
+
+      fireEvent.click(screen.getByTestId('mod-filter-clear'));
+
+      expect(await screen.findByTestId('mod-row-carryon')).toBeInTheDocument();
+      expect(screen.getByTestId('mod-row-smithingplus')).toBeInTheDocument();
+      expect(screen.queryByTestId('mod-filter-status')).not.toBeInTheDocument();
+      expect(screen.getByTestId('location-search')).toHaveTextContent('?tab=keep');
+    });
+
+    it('Back restores the previous filter', async () => {
+      renderAt('/game-server/mods/installed');
+      await screen.findByTestId('mod-row-carryon');
+
+      fireEvent.click(screen.getByTestId('installed-mods-filter-updates'));
+      expect(screen.queryByTestId('mod-row-carryon')).not.toBeInTheDocument();
+      act(() => navigation.navigate(-1));
+
+      expect(await screen.findByTestId('mod-row-carryon')).toBeInTheDocument();
+      expect(screen.getByTestId('location-search')).toHaveTextContent('');
+    });
+
+    it('a compatibility choice pushes a history entry that Back undoes', async () => {
+      Element.prototype.hasPointerCapture ??= () => false;
+      Element.prototype.releasePointerCapture ??= () => {};
+      Element.prototype.scrollIntoView ??= () => {};
+      const user = userEvent.setup();
+      renderAt('/game-server/mods/installed?q=n');
+      await screen.findByTestId('mod-row-carryon');
+
+      await user.click(screen.getByRole('combobox', { name: 'Compatibility' }));
+      await user.click(await screen.findByTestId('installed-mods-filter-compat-incompatible'));
+
+      expect(screen.getByTestId('location-search')).toHaveTextContent('?q=n&compat=incompatible');
+      expect(screen.queryByTestId('mod-row-smithingplus')).not.toBeInTheDocument();
+      act(() => navigation.navigate(-1));
+
+      expect(await screen.findByTestId('mod-row-smithingplus')).toBeInTheDocument();
+      expect(screen.getByTestId('location-search')).toHaveTextContent('?q=n');
+    });
+
+    it('ignores invalid values', async () => {
+      renderAt('/game-server/mods/installed?compat=sometimes&updates=yes');
+
+      expect(await screen.findByTestId('mod-row-carryon')).toBeInTheDocument();
+      expect(screen.getByTestId('mod-row-smithingplus')).toBeInTheDocument();
+      expect(screen.queryByTestId('mod-filter-status')).not.toBeInTheDocument();
+    });
+
+    it('filters the cards on phones too', async () => {
+      setViewportWidth(390);
+      renderAt('/game-server/mods/installed?q=carry');
+
+      const cards = await screen.findByTestId('installed-mod-cards');
+      await waitFor(() =>
+        expect(within(cards).getByTestId('installed-mod-card-carryon')).toBeInTheDocument()
+      );
+      expect(
+        within(cards).queryByTestId('installed-mod-card-smithingplus')
+      ).not.toBeInTheDocument();
     });
   });
 });

@@ -15,9 +15,16 @@
  *   the headers; the Name column wraps so the table fits its container from 1024px
  * - Story 21.4: the remove dialog stays open until the DELETE answers and cannot be
  *   dismissed while it runs; on an error it offers Remove again
+ * - Story 24.7: `filters` narrow the rows before the table sorts them, so the table and
+ *   the cards show the same mods; "Showing N of M mods" and a no-match state with Clear
  */
 
 import { useState, useMemo, useCallback } from 'react';
+import {
+  hasFilters,
+  matchesFilters,
+  type InstalledModsFilters,
+} from '@/lib/installed-mods-filters';
 import { Loader2, ChevronUp, ChevronDown } from 'lucide-react';
 import {
   createColumnHelper,
@@ -83,6 +90,10 @@ interface ModTableProps {
   onRemoved?: (slug: string) => void;
   /** Callback when a mod's enabled state changes */
   onToggled?: (slug: string, enabled: boolean) => void;
+  /** Story 24.7: show only the mods these match (both layouts); omit for every mod */
+  filters?: InstalledModsFilters;
+  /** Story 24.7: clears the filters (the "Showing N of M" line and the no-match state) */
+  onClearFilters?: () => void;
 }
 
 const features = tableFeatures({
@@ -129,7 +140,7 @@ function SortableHeader({
  *   onToggled={(slug, enabled) => toast.success(`${slug} ${enabled ? 'enabled' : 'disabled'}`)}
  * />
  */
-export function ModTable({ onRemoved, onToggled }: ModTableProps) {
+export function ModTable({ onRemoved, onToggled, filters, onClearFilters }: ModTableProps) {
   const [modToRemove, setModToRemove] = useState<ModInfo | null>(null);
 
   const { data: modsData, isLoading } = useMods();
@@ -194,12 +205,23 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
     return mods.map((mod) => ({
       ...mod,
       compatibilityStatus: compatibilityMap.get(mod.slug) ?? 'not_verified',
+      compatibilityKnown: compatibilityMap.has(mod.slug),
       compatibility: compatibilityDetails.get(mod.slug),
       // Use API side if available, fall back to sideMap for legacy data
       side: mod.side ?? sideMap.get(mod.slug) ?? null,
       updateStatus: updateMap.get(mod.slug),
     }));
   }, [mods, compatibilityMap, compatibilityDetails, sideMap, updateMap]);
+
+  // Story 24.7 (Epic 24 ADR-6): filtered before the table, so both layouts agree
+  const isFiltered = filters !== undefined && hasFilters(filters);
+  const visibleData = useMemo(
+    () =>
+      filters !== undefined && isFiltered
+        ? tableData.filter((row) => matchesFilters(row, filters))
+        : tableData,
+    [tableData, filters, isFiltered]
+  );
 
   const handleToggle = useCallback(
     (mod: ModInfo) => {
@@ -369,7 +391,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
 
   const table = useTable({
     features,
-    data: tableData,
+    data: visibleData,
     columns,
     state: { sorting },
     onSortingChange,
@@ -437,8 +459,44 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
     );
   }
 
+  const filterStatus = isFiltered && (
+    <div
+      className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground"
+      role="status"
+      data-testid="mod-filter-status"
+    >
+      <span>
+        Showing {visibleData.length} of {mods.length} {mods.length === 1 ? 'mod' : 'mods'}
+      </span>
+      {onClearFilters && (
+        <Button
+          variant="link"
+          size="sm"
+          className="h-auto p-0 max-lg:min-h-11"
+          onClick={onClearFilters}
+          data-testid="mod-filter-clear"
+        >
+          Clear filters
+        </Button>
+      )}
+    </div>
+  );
+
+  if (isFiltered && visibleData.length === 0) {
+    return (
+      <>
+        {filterStatus}
+        <div className="text-center py-8 text-muted-foreground" data-testid="mod-filter-empty">
+          No installed mods match these filters.
+        </div>
+        {removeDialog}
+      </>
+    );
+  }
+
   return (
     <>
+      {filterStatus}
       {isTableLayout ? (
         <Table data-testid="mod-table">
           <TableHeader>
