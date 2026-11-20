@@ -552,8 +552,12 @@ class ModUpdateService:
         self._store.set(slug, record)
         self._store.clear_lookup_error(slug)
         if data is not None:
-            # A mod copied in by hand has no asset ID until now (Epic 24 ADR-1)
-            self._mod_source.fill_asset_id(slug, data["assetid"])
+            # A mod copied in by hand has no asset ID until now (Epic 24 ADR-1). One mod
+            # must never fail the whole check, so a failure here is only logged.
+            try:
+                self._mod_source.fill_asset_id(slug, data["assetid"])
+            except Exception as e:
+                logger.warning("mod_asset_id_fill_failed", slug=slug, error=str(e))
         return True
 
 
