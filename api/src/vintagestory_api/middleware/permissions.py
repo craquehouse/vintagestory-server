@@ -35,6 +35,8 @@ async def require_admin(
                 "code": ErrorCode.FORBIDDEN,
                 "message": "Admin role required for this operation",
             },
+            # Story 23.6 review M1: an error answer is never cached
+            headers={"Cache-Control": "no-store"},
         )
     return current_role
 

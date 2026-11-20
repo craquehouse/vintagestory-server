@@ -830,7 +830,8 @@ async def save_config_file(
             stop, restart, install or uninstall is in progress) or CONFIG_FILE_CHANGED
             (the file changed since it was read); 413 CONFIG_FILE_TOO_LARGE; 422
             CONFIG_FILE_INVALID with parse_error; 500 CONFIG_FILE_WRITE_FAILED (the file is
-            unchanged) or INTERNAL_ERROR (it could not be read).
+            unchanged), CONFIG_HISTORY_WRITE_FAILED (the replaced text could not be kept, the
+            file is unchanged; Story 23.6) or INTERNAL_ERROR (it could not be read).
     """
     response.headers.update(NO_STORE)
     try:
@@ -851,7 +852,9 @@ async def save_config_file(
 class RevisionRestoreRequest(BaseModel):
     """Body of POST /config/history/{filename}/restore."""
 
-    revision: str = Field(min_length=1, max_length=64)
+    # No length rule here: the service refuses any id that is not of the revision form
+    # with 400 CONFIG_REVISION_INVALID (Story 23.6 review M1)
+    revision: str
     version: str = Field(pattern=VERSION_PATTERN)
 
 
@@ -866,7 +869,7 @@ async def read_config_history(
     ],
     _: RequireAdmin,
     response: Response,
-    revision: Annotated[str | None, Query(max_length=64)] = None,
+    revision: Annotated[str | None, Query()] = None,
     service: ConfigFilesService = Depends(get_config_files_service),
 ) -> ApiResponse:
     """List a config file's earlier versions, or read one (Story 23.6, Admin only).

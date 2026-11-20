@@ -239,3 +239,35 @@ class TestRefusals:
         assert response.json()["detail"]["code"] == ErrorCode.CONFIG_HISTORY_WRITE_FAILED
         assert str(settings.data_dir) not in response.text
         assert path.read_bytes() == b'{"a": 1}'
+
+
+class TestReviewFixesOverHttp:
+    """Story 23.6 review M1: every refusal is typed and never cached."""
+
+    @pytest.mark.parametrize("revision", ["", "2" * 100])
+    def test_an_empty_or_long_revision_is_400_on_restore(
+        self, client: TestClient, saved_twice: Path, revision: str
+    ) -> None:
+        response = client.post(
+            f"{HISTORY_URL}/ModConfig/x.json/restore",
+            headers=ADMIN,
+            json={"revision": revision, "version": _version(b'{"a": 3}')},
+        )
+
+        assert response.status_code == 400
+        assert response.json()["detail"]["code"] == ErrorCode.CONFIG_REVISION_INVALID
+        assert response.headers["Cache-Control"] == "no-store"
+
+    def test_a_long_revision_is_400_on_read(self, client: TestClient, saved_twice: Path) -> None:
+        response = client.get(
+            f"{HISTORY_URL}/ModConfig/x.json", headers=ADMIN, params={"revision": "2" * 100}
+        )
+
+        assert response.status_code == 400
+        assert response.json()["detail"]["code"] == ErrorCode.CONFIG_REVISION_INVALID
+
+    def test_the_monitor_403_is_not_cached(self, client: TestClient) -> None:
+        response = client.get(f"{HISTORY_URL}/ModConfig/x.json", headers=MONITOR)
+
+        assert response.status_code == 403
+        assert response.headers["Cache-Control"] == "no-store"
