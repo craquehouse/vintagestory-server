@@ -27,6 +27,9 @@ from vintagestory_api.models.mods import (
     ModRelease,
     ModState,
     RemoveResult,
+    RescanResult,
+    UnusedFileDeleteResult,
+    UnusedFileInfo,
 )
 from vintagestory_api.services.cache_eviction import CacheEvictionService
 from vintagestory_api.services.mod_api import (
@@ -158,8 +161,9 @@ def sync_mod_state_at_startup() -> None:
     """Bring the mod state in line with the mods directory, once, at start-up (ADR-10).
 
     Runs before any request is served, any job is registered and the game server is
-    auto-started, so it needs no mod lock; it must never be called from a route, a job
-    or a thread. Any failure is logged and start-up continues.
+    auto-started, so it needs no mod lock. The one other caller is `ModService.rescan`
+    (Epic 24 ADR-4), which refuses while a mod operation runs; the sync must never be
+    called from a job or a thread. Any failure is logged and start-up continues.
     """
     try:
         get_mod_service().state_manager.sync_state_with_disk()
@@ -263,6 +267,36 @@ class ModFileMissingError(Exception):
             f"Cannot {operation} '{slug}': its file {filename} is no longer in the mods "
             "directory. Remove the mod and install it again."
         )
+
+
+class ModsBusyError(Exception):
+    """Raised when a rescan or an unused-file delete meets a running mod operation.
+
+    Epic 24 ADR-4: refused while an install, version change, update all or update check
+    runs.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            "A mod install, version change, update or update check is running. "
+            "Try again when it has finished."
+        )
+
+
+class UnusedFileNotFoundError(Exception):
+    """Raised when a delete names a file that is not in the unused-file listing."""
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+        super().__init__(f"{name} is not an unused file in the mods directory.")
+
+
+class UnusedFileDeleteFailedError(Exception):
+    """Raised when an unused file could not be deleted."""
+
+    def __init__(self, name: str, message: str) -> None:
+        self.name = name
+        super().__init__(f"Could not delete {name}: {message}")
 
 
 class ModVersionChangeFailedError(Exception):
@@ -456,6 +490,101 @@ class ModService:
             yield
         finally:
             self._busy.discard(key)
+
+    def list_unused_files(self) -> list[UnusedFileInfo]:
+        """The files in the mods directory the manager does not use (Epic 24 ADR-3)."""
+        return [
+            UnusedFileInfo(
+                name=item.name,
+                size_bytes=item.size_bytes,
+                modified_at=item.modified_at,
+                reason=item.reason,
+                installed_as=item.installed_as,
+            )
+            for item in self._state_manager.list_unused_files()
+        ]
+
+    def delete_unused_file(
+        self, name: str, *, other_operation_running: bool = False
+    ) -> UnusedFileDeleteResult:
+        """Delete one file of the unused-file listing (Epic 24 ADR-3 decision 5).
+
+        The listing is computed for this call, so only a file in it now can be deleted:
+        never a mod's file, a `.cs` file, a folder or the manager's working files.
+        Synchronous after the busy check, so no mod operation can start meanwhile. If it
+        ever becomes `async` or moves to a thread, it must hold every mod's lock.
+        Deleting a skipped archive while the game server runs sets "Restart required".
+
+        Args:
+            name: The file name, as the listing gives it.
+            other_operation_running: An update check or update all is running (the
+                caller knows the update service; ADR-4 decision 2).
+
+        Raises:
+            ModsBusyError: A mod operation is running.
+            UnusedFileNotFoundError: The name is not in the listing.
+            UnusedFileDeleteFailedError: The file could not be deleted.
+        """
+        self._refuse_while_mods_busy(other_operation_running)
+        item = next((f for f in self._state_manager.list_unused_files() if f.name == name), None)
+        if item is None:
+            raise UnusedFileNotFoundError(name)
+        try:
+            (self._state_manager.mods_dir / item.name).unlink()
+        except FileNotFoundError:
+            raise UnusedFileNotFoundError(name) from None
+        except OSError as e:
+            raise UnusedFileDeleteFailedError(name, str(e)) from e
+        logger.info("mod_unused_file_deleted", filename=item.name, reason=item.reason)
+
+        pending_restart = False
+        if item.reason != "leftover" and self._server_running:
+            self._restart_state.require_restart(f"{item.name} was deleted from the mods folder")
+            pending_restart = True
+        return UnusedFileDeleteResult(name=item.name, pending_restart=pending_restart)
+
+    def rescan(self, *, other_operation_running: bool = False) -> RescanResult:
+        """Bring the mod state in line with the mods directory now (Epic 24 ADR-4).
+
+        Runs the start-up sync (Epic 19 ADR-10) without its start-up recovery of the
+        manager's working files. Synchronous after the busy check: no install, version
+        change, update all or check can start while it runs, and enable, disable and
+        remove cannot interleave with it. If it ever becomes `async` or moves to a
+        thread, it must hold every mod's lock. While the game server runs, a rescan that added
+        or removed an entry sets "Restart required".
+
+        Args:
+            other_operation_running: An update check or update all is running.
+
+        Raises:
+            ModsBusyError: A mod operation is running.
+        """
+        self._refuse_while_mods_busy(other_operation_running)
+        summary = self._state_manager.sync_state_with_disk()
+        pending_restart = False
+        if (summary.added or summary.removed) and self._server_running:
+            self._restart_state.require_restart(
+                f"Mods folder rescanned: {summary.added} added, {summary.removed} removed"
+            )
+            pending_restart = True
+        logger.info(
+            "mod_rescan_complete",
+            added=summary.added,
+            removed=summary.removed,
+            skipped=summary.skipped,
+            pending_restart=pending_restart,
+        )
+        return RescanResult(
+            added=summary.added,
+            removed=summary.removed,
+            skipped=summary.skipped,
+            pending_restart=pending_restart,
+        )
+
+    def _refuse_while_mods_busy(self, other_operation_running: bool) -> None:
+        """Raise ModsBusyError while any mod's lock is held or the caller says so."""
+        if self._busy or other_operation_running:
+            raise ModsBusyError()
 
     def fill_asset_id(self, slug: str, asset_id: int) -> bool:
         """Store a mod's mod database asset ID if it has none yet (Epic 24 ADR-1).

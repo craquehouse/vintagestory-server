@@ -11,6 +11,7 @@ import zipfile
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
 import structlog
 from pydantic import TypeAdapter, ValidationError
@@ -29,6 +30,37 @@ imported from there)."""
 
 _JSON_OBJECT: TypeAdapter[dict[str, object]] = TypeAdapter(dict[str, object])
 """A modinfo.json must be a JSON object; its keys are always strings."""
+
+
+UnusedReason = Literal["leftover", "unreadable", "duplicate_mod_id"]
+"""Why a file in the mods directory is not used by the manager (Epic 24 ADR-3)."""
+
+LEFTOVER_SUFFIXES = (".tmp", ".bak")
+"""Suffixes, ignoring case, of files nobody names: listed as leftovers, never deleted
+unasked (Epic 19 ADR-9 decision 7). The manager's own `.vsm-tmp` and `.vsm-bak` do not
+end in them."""
+
+
+@dataclass(frozen=True)
+class UnusedFile:
+    """A file in the mods directory that the manager does not use (Epic 24 ADR-3)."""
+
+    name: str
+    size_bytes: int
+    modified_at: datetime
+    reason: UnusedReason
+    installed_as: str | None = None
+    """For `duplicate_mod_id`: the file under which the same mod ID is installed."""
+
+
+@dataclass(frozen=True)
+class _NewArchive:
+    """The sync's verdict on an archive without an entry (Epic 24 ADR-3 decision 3)."""
+
+    reason: Literal["new", "unreadable", "duplicate_mod_id"]
+    modinfo_data: dict[str, object] | None = None
+    metadata: ModMetadata | None = None
+    installed_as: str | None = None
 
 
 @dataclass(frozen=True)
@@ -520,7 +552,7 @@ class ModStateManager:
         for path in self._mods_dir.iterdir():
             if path.is_file():
                 name = path.name
-                if name.endswith(".zip") or name.endswith(".zip.disabled"):
+                if self.is_archive_name(name):
                     filenames.append(name)
 
         logger.debug(
@@ -533,7 +565,8 @@ class ModStateManager:
     def sync_state_with_disk(self) -> ModSyncSummary:
         """Bring the state in line with the mods directory (Epic 19 ADR-10).
 
-        Meant to be called once, at start-up, before any mod operation can run: it
+        Called once at start-up, before any mod operation can run, and by the Admin
+        rescan (`ModService.rescan`, Epic 24 ADR-4), which refuses while one runs: it
         changes the state without a mod lock.
 
         - Removed: an entry whose own file name is not in one listing of the mods
@@ -598,10 +631,7 @@ class ModStateManager:
             # because it is also what a volume that did not mount looks like
             logger.warning("mod_state_sync_removed_all", removed=removed, path=str(mods_dir))
 
-        # Mod IDs are compared lower-cased, as ModService._lock_key does
-        by_mod_id: dict[str, str] = {}
-        for filename in sorted(self._state):
-            by_mod_id.setdefault(self._state[filename].slug.lower(), filename)
+        by_mod_id = self._mod_id_index()
 
         added = 0
         skipped = 0
@@ -609,22 +639,11 @@ class ModStateManager:
         for filename in candidates:
             if filename in self._state:
                 continue
-            metadata = self._read_new_archive(mods_dir / filename)
-            if metadata is None:
+            verdict = self._classify_new_archive(mods_dir / filename, by_mod_id, log=True)
+            if verdict.reason != "new" or verdict.metadata is None:
                 skipped += 1
                 continue
-            modinfo_data, metadata = metadata
-            existing = by_mod_id.get(metadata.modid.lower())
-            if existing is not None:
-                skipped += 1
-                logger.warning(
-                    "mod_state_sync_skipped",
-                    filename=filename,
-                    reason="duplicate_mod_id",
-                    slug=metadata.modid,
-                    existing=existing,
-                )
-                continue
+            modinfo_data, metadata = verdict.modinfo_data or {}, verdict.metadata
             try:
                 self._cache_modinfo(metadata.modid, metadata.version, modinfo_data)
             except OSError as e:
@@ -666,6 +685,100 @@ class ModStateManager:
                 self.remove_cached_modinfo(slug)
         return self._log_sync_summary(ModSyncSummary(added=added, removed=removed, skipped=skipped))
 
+    def list_unused_files(self) -> list[UnusedFile]:
+        """The files in the mods directory that the manager does not use (Epic 24 ADR-3).
+
+        From one listing, regular files only (not symlinks), sorted by name:
+        - names ending in `.tmp` or `.bak`, ignoring case (`leftover`);
+        - `.zip` and `.zip.disabled` archives without an entry that the sync skips,
+          by the same rules (`unreadable`, `duplicate_mod_id`).
+        Never listed: folders, `.cs` files and other names (the game may load them), any
+        name an entry uses (ignoring case), and an archive the sync would add. Computed
+        on each call; nothing is stored. A directory that is missing or cannot be listed
+        gives an empty list.
+        """
+        mods_dir = self._mods_dir
+        try:
+            paths = sorted(mods_dir.iterdir()) if mods_dir.is_dir() else []
+        except OSError as e:
+            logger.warning("mod_unused_files_unlistable", path=str(mods_dir), error=str(e))
+            return []
+        entry_names = {name.casefold() for name in self._state}
+        # Only entries whose file is here: an entry whose file was deleted by hand (until
+        # the next rescan) must not make the only copy of its mod read as a duplicate
+        # (Story 24.5 review M1). The sync gets the same by removing such entries first.
+        by_mod_id = self._mod_id_index(present={path.name for path in paths})
+        unused: list[UnusedFile] = []
+        for path in paths:
+            name = path.name
+            if name.casefold() in entry_names or path.is_symlink() or not path.is_file():
+                continue
+            if name.lower().endswith(LEFTOVER_SUFFIXES):
+                reason: UnusedReason = "leftover"
+                installed_as = None
+            elif self.is_archive_name(name):
+                verdict = self._classify_new_archive(path, by_mod_id, log=False)
+                if verdict.reason == "new":
+                    continue
+                reason, installed_as = verdict.reason, verdict.installed_as
+            else:
+                continue
+            try:
+                stat = path.stat()
+            except OSError:
+                continue
+            unused.append(
+                UnusedFile(
+                    name=name,
+                    size_bytes=stat.st_size,
+                    modified_at=datetime.fromtimestamp(stat.st_mtime, UTC),
+                    reason=reason,
+                    installed_as=installed_as,
+                )
+            )
+        return unused
+
+    @staticmethod
+    def is_archive_name(name: str) -> bool:
+        """Whether the sync and the scan treat this name as a mod archive."""
+        return name.endswith(".zip") or name.endswith(".zip.disabled")
+
+    def _mod_id_index(self, present: set[str] | None = None) -> dict[str, str]:
+        """Each installed mod ID, lower-cased (as ModService._lock_key), to its file.
+
+        With `present`, only entries whose file name is in it are indexed.
+        """
+        by_mod_id: dict[str, str] = {}
+        for filename in sorted(self._state):
+            if present is None or filename in present:
+                by_mod_id.setdefault(self._state[filename].slug.lower(), filename)
+        return by_mod_id
+
+    def _classify_new_archive(
+        self, path: Path, by_mod_id: dict[str, str], *, log: bool
+    ) -> _NewArchive:
+        """Whether the sync adds an archive without an entry, or why it skips it.
+
+        The one place these rules live, so the sync and `list_unused_files` agree
+        (Epic 24 ADR-3 decision 3). With `log`, each skip is logged as the sync logs it.
+        """
+        read = self._read_new_archive(path, log=log)
+        if read is None:
+            return _NewArchive(reason="unreadable")
+        modinfo_data, metadata = read
+        existing = by_mod_id.get(metadata.modid.lower())
+        if existing is not None:
+            if log:
+                logger.warning(
+                    "mod_state_sync_skipped",
+                    filename=path.name,
+                    reason="duplicate_mod_id",
+                    slug=metadata.modid,
+                    existing=existing,
+                )
+            return _NewArchive(reason="duplicate_mod_id", installed_as=existing)
+        return _NewArchive(reason="new", modinfo_data=modinfo_data, metadata=metadata)
+
     def _kept_aside_original(self, filename: str, names: set[str]) -> str | None:
         """The name of this entry's original kept aside by a version change, if listed.
 
@@ -689,7 +802,9 @@ class ModStateManager:
                 return name
         return None
 
-    def _read_new_archive(self, path: Path) -> tuple[dict[str, object], ModMetadata] | None:
+    def _read_new_archive(
+        self, path: Path, *, log: bool = True
+    ) -> tuple[dict[str, object], ModMetadata] | None:
         """Read the modinfo.json of an archive the sync found, or log why it is skipped.
 
         Any exception is caught: the set that zipfile and json raise for a broken or
@@ -698,17 +813,21 @@ class ModStateManager:
         try:
             data = self._extract_modinfo_from_zip(path)
             if data is None:
-                logger.warning("mod_state_sync_skipped", filename=path.name, reason="unreadable")
+                if log:
+                    logger.warning(
+                        "mod_state_sync_skipped", filename=path.name, reason="unreadable"
+                    )
                 return None
             return data, ModMetadata.model_validate(data)
         except Exception as e:
-            logger.warning(
-                "mod_state_sync_skipped",
-                filename=path.name,
-                reason="unreadable",
-                error_type=type(e).__name__,
-                error=str(e),
-            )
+            if log:
+                logger.warning(
+                    "mod_state_sync_skipped",
+                    filename=path.name,
+                    reason="unreadable",
+                    error_type=type(e).__name__,
+                    error=str(e),
+                )
             return None
 
     def _log_sync_summary(self, summary: ModSyncSummary) -> ModSyncSummary:

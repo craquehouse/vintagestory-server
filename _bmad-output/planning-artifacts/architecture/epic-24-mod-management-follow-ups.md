@@ -106,7 +106,7 @@ The maintainer named the scope: `VSS-foq7` (filter the installed mods), `VSS-v3b
 
 1. **The rescan.** `POST /mods/rescan` (Admin) runs `sync_state_with_disk` and returns its summary (added, removed, skipped). Start-up recovery of the manager's working files (Epic 19 ADR-9) stays start-up only.
 2. **Refused while busy.** A rescan or a delete is refused with 409 `MODS_BUSY` while `ModService._busy` is not empty, update all runs or an update check runs.
-3. **And the reverse.** While a rescan or delete runs, an install, a version change, update all and the check refuse with 409 `MODS_BUSY`. A flag on `ModService` is set for the rescan or delete, which is synchronous after the check, so enable, disable and remove cannot interleave with it.
+3. **And the reverse.** While a rescan or delete runs, no install, version change, update all or check can start. *(As implemented in Story 24.5: no flag is needed. Both routes are `async` handlers with no `await`, and the service calls are synchronous, so they run on the event loop from the busy check to the end and nothing else, enable, disable and remove included, can run in between.)*
 4. **Epic 19 ADR-10 decision 1** ("called once, in the API's start-up ... not from a route") gains a note pointing here. `sync_mod_state_at_startup`'s docstring is amended to name the rescan as the one other caller.
 5. **Restart required.** While the game server runs, a rescan that added or removed an entry, or the delete of a skipped archive, sets "Restart required". Deleting a `leftover` file does not.
 

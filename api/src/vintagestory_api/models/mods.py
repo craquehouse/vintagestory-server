@@ -334,6 +334,41 @@ class RemoveResult(BaseModel):
     """Whether a server restart is required for changes to take effect."""
 
 
+class UnusedFileInfo(BaseModel):
+    """A file in the mods directory the manager does not use (Story 24.5, Epic 24 ADR-3)."""
+
+    name: str
+    """The file's name in the mods directory."""
+
+    size_bytes: int
+    modified_at: datetime
+
+    reason: Literal["leftover", "unreadable", "duplicate_mod_id"]
+    """`leftover`: a .tmp or .bak name; `unreadable`: an archive without a readable
+    modinfo.json; `duplicate_mod_id`: an archive of a mod installed under another file."""
+
+    installed_as: str | None = None
+    """For `duplicate_mod_id`: the file the same mod ID is installed as."""
+
+
+class UnusedFileDeleteResult(BaseModel):
+    """Result of deleting an unused file (Story 24.5)."""
+
+    name: str
+    pending_restart: bool
+    """Whether a server restart is required (a skipped archive deleted while it runs)."""
+
+
+class RescanResult(BaseModel):
+    """Result of rescanning the mods directory (Story 24.5, Epic 24 ADR-4)."""
+
+    added: int
+    removed: int
+    skipped: int
+    pending_restart: bool
+    """Whether a server restart is required (entries changed while it runs)."""
+
+
 class ModBrowseItem(BaseModel):
     """Single mod item in the browse list.
 
