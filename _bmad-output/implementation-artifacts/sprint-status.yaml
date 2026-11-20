@@ -258,9 +258,9 @@ development_status:
   23-7-config-history-in-the-file-browser: done
   epic-24: in-progress
   epic-24-retrospective: optional
-  24-1-api-tests-run-on-a-fresh-clone: review
-  24-2-web-ui-icon-and-missing-files-are-404: review
-  24-3-mod-file-follow-ups-from-epic-19: review
+  24-1-api-tests-run-on-a-fresh-clone: done
+  24-2-web-ui-icon-and-missing-files-are-404: done
+  24-3-mod-file-follow-ups-from-epic-19: done
   24-4-hand-added-mods-get-their-mod-database-link: review
   24-5-unused-files-and-rescan-in-the-api: backlog
   24-6-rescan-and-unused-files-on-the-installed-tab: backlog
