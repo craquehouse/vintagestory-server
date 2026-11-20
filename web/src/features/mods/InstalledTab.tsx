@@ -9,16 +9,25 @@
  * Story 10.2: Mods Tab Restructure - AC2
  */
 
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { Loader2, RefreshCw, ArrowUpCircle, FolderSearch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ModTable } from '@/components/ModTable';
 import { UpdateAllDialog } from '@/components/UpdateAllDialog';
 import { UnusedFilesNotice } from '@/components/UnusedFilesNotice';
+import { InstalledModsFilterBar } from '@/components/InstalledModsFilterBar';
+import {
+  EMPTY_FILTERS,
+  filtersFromSearchParams,
+  filtersToSearchParams,
+  hasFilters,
+  type InstalledModsFilters,
+} from '@/lib/installed-mods-filters';
 import { useIsAdmin } from '@/api/hooks/use-auth-me';
 import { useServerStatus } from '@/hooks/use-server-status';
-import { useCheckModUpdates, useModUpdates, useRescanMods } from '@/hooks/use-mods';
+import { useCheckModUpdates, useModUpdates, useMods, useRescanMods } from '@/hooks/use-mods';
 
 /**
  * Installed mods tab content.
@@ -28,6 +37,7 @@ import { useCheckModUpdates, useModUpdates, useRescanMods } from '@/hooks/use-mo
  * - Remove installed mods
  * - Check for and apply updates (Story 14.3), or all compatible updates (Story 14.4)
  * - Rescan the mods folder and see files it does not use, Admin only (Story 24.6)
+ * - Filter by name, compatibility and available update, kept in the URL (Story 24.7)
  *
  * For discovering and installing new mods, use the Browse tab.
  */
@@ -38,6 +48,19 @@ export function InstalledTab() {
   const { mutate: checkUpdates, isPending: isChecking } = useCheckModUpdates();
   const { mutate: rescan, isPending: isRescanning } = useRescanMods();
   const { isAdmin } = useIsAdmin();
+  const { data: modsData } = useMods();
+  const installedCount = modsData?.data?.mods.length ?? 0;
+
+  // Story 24.7 (Epic 24 ADR-6): the filters live in the URL. Typing replaces the history
+  // entry; the select and the switch push one, so Back restores the previous filter.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filters = useMemo(() => filtersFromSearchParams(searchParams), [searchParams]);
+  const setFilters = useCallback(
+    (next: InstalledModsFilters, replace: boolean) => {
+      setSearchParams((current) => filtersToSearchParams(next, current), { replace });
+    },
+    [setSearchParams]
+  );
   const lastChecked = updatesData?.data?.checkedAt;
   const [updateAllOpen, setUpdateAllOpen] = useState(false);
   const offeredUpdates = (updatesData?.data?.mods ?? []).filter(
@@ -161,7 +184,20 @@ export function InstalledTab() {
         </div>
       </div>
       <UnusedFilesNotice />
-      <ModTable onToggled={handleToggled} onRemoved={handleRemoved} />
+      {(installedCount > 0 || hasFilters(filters)) && (
+        <InstalledModsFilterBar
+          value={filters}
+          onQueryChange={(query) => setFilters({ ...filters, query }, true)}
+          onCompatChange={(compat) => setFilters({ ...filters, compat }, false)}
+          onUpdatesChange={(updates) => setFilters({ ...filters, updates }, false)}
+        />
+      )}
+      <ModTable
+        onToggled={handleToggled}
+        onRemoved={handleRemoved}
+        filters={filters}
+        onClearFilters={() => setFilters(EMPTY_FILTERS, false)}
+      />
       <UpdateAllDialog
         open={updateAllOpen}
         onOpenChange={setUpdateAllOpen}
