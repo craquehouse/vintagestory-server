@@ -339,6 +339,56 @@ describe('apiClient', () => {
   });
 
   describe('error handling', () => {
+    // Story 23.5: the save's 422 puts parse_error directly in the detail
+    it("passes a detail's other keys on as details", async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 422,
+        statusText: 'Unprocessable',
+        json: () =>
+          Promise.resolve({
+            detail: {
+              code: 'CONFIG_FILE_INVALID',
+              message: 'bad',
+              parse_error: { message: 'x', line: 1, column: 2 },
+            },
+          }),
+      });
+
+      const error = await apiClient('/test').catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).details).toEqual({
+        parse_error: { message: 'x', line: 1, column: 2 },
+      });
+    });
+
+    it('keeps an explicit details object as it is', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 409,
+        statusText: 'Conflict',
+        json: () => Promise.resolve({ detail: { code: 'X', message: 'm', details: { a: 1 } } }),
+      });
+
+      const error = await apiClient('/test').catch((e: unknown) => e);
+
+      expect((error as ApiError).details).toEqual({ a: 1 });
+    });
+
+    it('has no details when the detail has only a code and a message', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 409,
+        statusText: 'Conflict',
+        json: () => Promise.resolve({ detail: { code: 'X', message: 'm' } }),
+      });
+
+      const error = await apiClient('/test').catch((e: unknown) => e);
+
+      expect((error as ApiError).details).toBeUndefined();
+    });
+
     it('throws UnauthorizedError for 401 responses', async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: false,

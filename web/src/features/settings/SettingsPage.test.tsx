@@ -435,4 +435,14 @@ describe('SettingsPage', () => {
       expect(tabList).toHaveClass('flex-wrap', 'max-w-full', 'h-auto');
     });
   });
+
+  // Story 23.5: an edit in progress survives switching tabs
+  it('keeps the File Manager mounted, hidden, while another tab is active', async () => {
+    render(<SettingsPage />, { wrapper: createWrapper(createTestQueryClient()) });
+
+    const content = await screen.findByTestId('file-manager-tab-content');
+    expect(content).toHaveAttribute('data-state', 'inactive');
+    expect(content).toHaveClass('data-[state=inactive]:hidden');
+    expect(screen.getByTestId('file-manager-panel')).toBeInTheDocument();
+  });
 });

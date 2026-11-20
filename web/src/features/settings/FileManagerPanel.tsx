@@ -9,9 +9,12 @@
  * Story 16.7: File Browser Breadcrumbs - path segments replace the Back button
  * Story 19.1: a note for roles other than Admin, which see fewer folders (FR233)
  * Story 23.2: paths are lists of directory names, joined only by the API client (FR312)
+ * Story 23.5: an Admin key edits a file while the game server is stopped; leaving a file
+ * with unsaved changes asks first (FR319)
  */
 
-import { useState, useMemo } from 'react';
+import { useCallback, useId, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FileList, type FileListItem } from '@/components/FileList';
@@ -24,6 +27,11 @@ import {
   useConfigFileContent,
   useConfigDirectories,
 } from '@/hooks/use-config-files';
+import { useServerStatus } from '@/hooks/use-server-status';
+import { queryKeys } from '@/api/query-keys';
+import { clearDraft, dropStaleDraft, getDraft } from './config-drafts';
+import { ConfigFileEditor, EditFileButton, ServerNotStoppedNote } from './ConfigFileEditor';
+import { ConfirmDialog } from './ConfirmDialog';
 
 /** Label of the breadcrumb root: the serverdata directory the API lists (Story 16.7). */
 const ROOT_LABEL = 'serverdata';
@@ -118,21 +126,63 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
     return result;
   }, [directoriesData, filesData]);
 
+  // Story 23.5: editing (Epic 23 ADR-5)
+  const queryClient = useQueryClient();
+  const { data: statusData } = useServerStatus();
+  const serverState = statusData?.data?.state;
+  const serverStopped =
+    serverState === 'installed' || serverState === 'not_installed' || serverState === 'error';
+  // The text and version the edit started from: a refetch while editing does not move them
+  const [editBase, setEditBase] = useState<{ text: string; version: string } | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const serverNoteId = useId();
+  const editing = editBase !== null;
+
+  const stopEditing = () => {
+    setEditBase(null);
+    setDirty(false);
+  };
+
+  /** Run a navigation, asking first when the editor has unsaved changes. */
+  const guard = (action: () => void) => {
+    if (editing && dirty) {
+      setPendingAction(() => action);
+      return;
+    }
+    stopEditing();
+    action();
+  };
+
+  const handleDirtyChange = useCallback((next: boolean) => setDirty(next), []);
+
   // Handle file selection
   const handleSelectFile = (filename: string) => {
-    setSelectedFile({ directory: [...currentDirectory], name: filename });
+    if (
+      selectedFile &&
+      selectedFile.name === filename &&
+      selectedFile.directory.length === currentDirectory.length &&
+      selectedFile.directory.every((name, index) => name === currentDirectory[index])
+    ) {
+      return;
+    }
+    guard(() => setSelectedFile({ directory: [...currentDirectory], name: filename }));
   };
 
   // Handle directory navigation (Story 9.7 - nested directory support)
   const handleSelectDirectory = (dirname: string) => {
-    setCurrentDirectory([...currentDirectory, dirname]);
-    setSelectedFile(null); // Clear selection when changing directories
+    guard(() => {
+      setCurrentDirectory([...currentDirectory, dirname]);
+      setSelectedFile(null); // Clear selection when changing directories
+    });
   };
 
   // Breadcrumb navigation to the root ([]) or an ancestor of the current path (Story 16.7)
   const handleNavigate = (segments: string[]) => {
-    setCurrentDirectory(segments);
-    setSelectedFile(null);
+    guard(() => {
+      setCurrentDirectory(segments);
+      setSelectedFile(null);
+    });
   };
 
   const breadcrumb = (
@@ -153,6 +203,30 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
     selectedFile.directory.every((name, index) => name === currentDirectory[index])
       ? selectedFile.name
       : null;
+
+  // The Edit button: Admin, a read with the text and a version (Story 23.5)
+  const readText = contentData?.data?.text;
+  const readVersion = contentData?.data?.version;
+  const editAction =
+    isAdmin && selectedPath && typeof readText === 'string' && typeof readVersion === 'string' ? (
+      <div className="flex flex-col items-end gap-1">
+        <EditFileButton
+          disabled={!serverStopped}
+          resume={getDraft(selectedPath, readVersion) !== undefined}
+          describedBy={serverStopped ? undefined : serverNoteId}
+          onClick={() => {
+            dropStaleDraft(selectedPath, readVersion);
+            setEditBase({ text: readText, version: readVersion });
+          }}
+        />
+      </div>
+    ) : null;
+  const editNote =
+    isAdmin && selectedPath && typeof readText === 'string' && !serverStopped && !editing ? (
+      <div className="border-b px-3 py-1.5">
+        <ServerNotStoppedNote id={serverNoteId} />
+      </div>
+    ) : null;
 
   // Combined loading state
   const isLoading = isLoadingFiles || isLoadingDirectories;
@@ -195,6 +269,8 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
         </p>
       )}
 
+      {editNote}
+
       <div className="flex min-h-0 flex-1">
         {/* File List - Left Side */}
         <div className="w-56 shrink-0 border-r flex flex-col">
@@ -208,21 +284,58 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
           />
         </div>
 
-        {/* File Viewer - Right Side */}
+        {/* File Viewer - Right Side; the editor replaces it while editing (Story 23.5) */}
         <div className="flex-1 min-w-0">
-          <FileViewer
-            filename={selectedPath}
-            content={contentData?.data?.content ?? null}
-            isLoading={isLoadingContent}
-            error={contentError?.message ?? null}
-            wordWrap={wordWrap}
-            onWordWrapChange={setWordWrap}
-            parseError={contentData?.data?.parseError ?? null}
-            text={contentData?.data?.text}
-            className="h-full"
-          />
+          {editing && selectedFile && selectedPath ? (
+            <ConfigFileEditor
+              path={[...selectedFile.directory, selectedFile.name]}
+              displayPath={selectedPath}
+              initialText={editBase.text}
+              version={editBase.version}
+              draft={getDraft(selectedPath, editBase.version)?.text}
+              serverStopped={serverStopped}
+              onDone={stopEditing}
+              onDirtyChange={handleDirtyChange}
+              onRequestCancel={() => setPendingAction(() => () => {})}
+              onReload={() => {
+                stopEditing();
+                void queryClient.invalidateQueries({
+                  queryKey: queryKeys.config.file(selectedPath),
+                });
+              }}
+            />
+          ) : (
+            <FileViewer
+              filename={selectedPath}
+              content={contentData?.data?.content ?? null}
+              isLoading={isLoadingContent}
+              error={contentError?.message ?? null}
+              wordWrap={wordWrap}
+              onWordWrapChange={setWordWrap}
+              parseError={contentData?.data?.parseError ?? null}
+              text={contentData?.data?.text}
+              actions={editAction}
+              className="h-full"
+            />
+          )}
         </div>
       </div>
+      <ConfirmDialog
+        open={pendingAction !== null}
+        title="Discard your changes?"
+        description={`Discard your changes to ${selectedPath ?? 'this file'}?`}
+        confirmLabel="Discard"
+        cancelLabel="Keep editing"
+        onConfirm={() => {
+          const action = pendingAction;
+          setPendingAction(null);
+          if (selectedPath) clearDraft(selectedPath);
+          stopEditing();
+          action?.();
+        }}
+        onCancel={() => setPendingAction(null)}
+        data-testid="config-editor-discard-dialog"
+      />
     </div>
   );
 }

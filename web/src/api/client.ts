@@ -117,9 +117,17 @@ async function handleApiError(response: Response): Promise<never> {
     if (typeof errorData.detail === 'string') {
       message = errorData.detail;
     } else {
-      code = errorData.detail.code || 'UNKNOWN';
-      message = errorData.detail.message || response.statusText;
-      details = errorData.detail.details;
+      const {
+        code: detailCode,
+        message: detailMessage,
+        details: detailDetails,
+        ...rest
+      } = errorData.detail;
+      code = detailCode || 'UNKNOWN';
+      message = detailMessage || response.statusText;
+      // An explicit `details` object, else the detail's other keys (Story 23.5: a config
+      // save's 422 puts `parse_error` directly in the detail)
+      details = detailDetails ?? (Object.keys(rest).length > 0 ? rest : undefined);
     }
   }
 

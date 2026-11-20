@@ -160,6 +160,8 @@ Files are read as [JSON5](https://json5.org/), the relaxed JSON that the game's 
 
 A file that cannot be read shows the parser's message with the line and column of the error. An Admin key also sees the file's text below it.
 
+An Admin key sees each file as its text, with its comments, and can edit it: open the file and press **Edit**. Editing is possible only while the game server is stopped, because the game and mods can write their config files while they run and would overwrite the change. The editor checks the text as you type and shows where an error is, and the file is saved exactly as typed, comments included. `serverconfig.json` is also read by the manager itself, so it must stay standard JSON: comments and trailing commas are refused there. If the file changed on disk after you opened it, the save is refused; reload it and make the change again. Unsaved changes are kept while you switch Settings tabs or visit another page, until the browser tab is closed or reloaded.
+
 ### Metrics
 
 `GET /metrics` serves the game server's metrics and the manager's own in the Prometheus text format. Values are read at each scrape, so it works with metrics collection turned off in API Settings.

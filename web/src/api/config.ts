@@ -9,6 +9,7 @@
  */
 
 import { apiClient } from './client';
+import { ApiError } from './errors';
 import type {
   ApiResponse,
   GameConfigData,
@@ -19,6 +20,8 @@ import type {
   ModUpdateWebhookUpdateData,
   ConfigDirectoryListData,
   ConfigParseError,
+  ConfigFileSaveData,
+  ConfigTextCheck,
   ConfigFileListData,
   ConfigFileContentData,
 } from './types';
@@ -303,4 +306,51 @@ export async function fetchConfigFileContent(
   if (typeof source.text === 'string') data.text = source.text;
   if (typeof source.version === 'string') data.version = source.version;
   return { status: raw.status, data };
+}
+
+// ===== Saving config files (Story 23.5; API: Story 23.4, Epic 23 ADR-4) =====
+
+/**
+ * Save an existing config file's text (Admin; the game server must be stopped).
+ *
+ * @param path - Directory names then the file name
+ * @param text - The whole text, saved exactly as given
+ * @param version - The version of the file the text was edited from (from the read)
+ * @throws ApiError CONFIG_FILE_CHANGED, CONFIG_FILE_SERVER_RUNNING, CONFIG_FILE_SERVER_BUSY,
+ *   CONFIG_FILE_INVALID (with `details.parse_error`) and the read's path errors
+ */
+export async function saveConfigFile(
+  path: readonly string[],
+  text: string,
+  version: string
+): Promise<ApiResponse<ConfigFileSaveData>> {
+  const filename = toConfigPath(path);
+  return apiClient<ApiResponse<ConfigFileSaveData>>(
+    `${API_PREFIX}/files/${encodeURIComponent(filename)}`,
+    { method: 'PUT', body: { text, version } }
+  );
+}
+
+/**
+ * Check a text against the parser rule a save of the file would use (Admin).
+ *
+ * Nothing is written; the game server's state does not matter.
+ */
+export async function checkConfigText(
+  path: readonly string[],
+  text: string
+): Promise<ConfigTextCheck> {
+  const filename = toConfigPath(path);
+  const raw = await apiClient<ApiResponse<{ valid?: unknown; parse_error?: unknown }>>(
+    `${API_PREFIX}/files/validate`,
+    { method: 'POST', body: { filename, text }, transformResponse: false }
+  );
+  const data = isRecord(raw.data) ? raw.data : {};
+  return { valid: data.valid === true, parseError: toParseError(data.parse_error) };
+}
+
+/** The parse error of a save refused with CONFIG_FILE_INVALID, else null. */
+export function parseErrorFromApiError(error: unknown): ConfigParseError | null {
+  if (!(error instanceof ApiError) || error.code !== 'CONFIG_FILE_INVALID') return null;
+  return toParseError(error.details?.parse_error);
 }

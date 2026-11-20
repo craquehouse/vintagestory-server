@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { FileViewer } from './FileViewer';
 import '@testing-library/jest-dom';
 
+vi.mock('@/components/code-view/LazyCodeView', () => import('@/test/mocks/lazy-code-view'));
+
 describe('FileViewer', () => {
   const mockContent = {
     ServerName: 'My Test Server',
@@ -668,10 +670,63 @@ describe('FileViewer', () => {
     });
 
     it('shows the parsed content as before when parseError is null', () => {
-      render(<FileViewer filename="ok.json" content={{ a: 1 }} parseError={null} text="{a: 1}" />);
+      // Story 23.5: with `text` an Admin key sees the code view; without it, the content
+      render(<FileViewer filename="ok.json" content={{ a: 1 }} parseError={null} />);
 
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
       expect(screen.getByTestId('file-viewer-content').textContent).toContain('"a"');
+    });
+  });
+
+  // Story 23.5 (FR320, Epic 23 ADR-5 decision 7)
+  describe("Admin's view of a file with its comments", () => {
+    const text = '{\n  // How often flowers bloom\n  "a": 1,\n}\n';
+
+    it('shows the text with its comments when the read has it and it parsed', () => {
+      render(
+        <FileViewer filename="ModConfig/x.json" content={{ a: 1 }} parseError={null} text={text} />
+      );
+
+      expect(screen.getByTestId('file-viewer-code')).toHaveValue(text);
+      expect(screen.getByTestId('file-viewer-code')).toHaveAttribute('readonly');
+      expect(screen.queryByTestId('file-viewer-content')).not.toBeInTheDocument();
+    });
+
+    it('keeps the highlighted content without the text (a Monitor key)', () => {
+      render(<FileViewer filename="ModConfig/x.json" content={{ a: 1 }} parseError={null} />);
+
+      expect(screen.queryByTestId('file-viewer-code')).not.toBeInTheDocument();
+      expect(screen.getByTestId('file-viewer-content').textContent).toContain('"a"');
+    });
+
+    it('passes word wrap to the code view', () => {
+      render(
+        <FileViewer
+          filename="x.json"
+          content={{ a: 1 }}
+          parseError={null}
+          text={text}
+          wordWrap
+          onWordWrapChange={() => {}}
+        />
+      );
+
+      expect(screen.getByTestId('file-viewer-code')).toHaveAttribute('data-wrap', 'true');
+    });
+
+    it('shows header actions before the word-wrap toggle', () => {
+      render(
+        <FileViewer
+          filename="x.json"
+          content={{}}
+          onWordWrapChange={() => {}}
+          actions={<button type="button">Edit</button>}
+        />
+      );
+
+      const header = screen.getByText('x.json').parentElement!;
+      const buttons = Array.from(header.querySelectorAll('button')).map((b) => b.textContent);
+      expect(buttons[0]).toBe('Edit');
     });
   });
 });

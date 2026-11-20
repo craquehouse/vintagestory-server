@@ -7,9 +7,16 @@
  * Story 9.7: Dynamic File Browser
  */
 
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useDebounce } from '@/hooks/use-debounce';
 import { queryKeys } from '@/api/query-keys';
-import { fetchConfigDirectories, fetchConfigFiles, fetchConfigFileContent } from '@/api/config';
+import {
+  checkConfigText,
+  fetchConfigDirectories,
+  fetchConfigFiles,
+  fetchConfigFileContent,
+  saveConfigFile,
+} from '@/api/config';
 
 /**
  * Hook to fetch the list of directories in serverdata or a subdirectory.
@@ -98,4 +105,57 @@ export function useConfigFileContent(path: readonly string[] | null) {
     queryFn: () => fetchConfigFileContent(path ?? []),
     enabled: path !== null && path.length > 0,
   });
+}
+
+/** Variables of a config file save. */
+export interface SaveConfigFileVariables {
+  path: readonly string[];
+  text: string;
+  version: string;
+}
+
+/**
+ * Save a config file's text (Story 23.5); on success the file's read is refetched.
+ */
+export function useSaveConfigFile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ path, text, version }: SaveConfigFileVariables) =>
+      saveConfigFile(path, text, version),
+    // The editor shows every refusal itself (Story 23.5 review L-1): no global toast
+    onError: () => {},
+    onSuccess: (_data, { path }) =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.config.file(path.join('/')) }),
+  });
+}
+
+/** How long typing must pause before the text is checked (Epic 23 ADR-5 decision 4). */
+export const CONFIG_TEXT_CHECK_DELAY_MS = 500;
+
+/**
+ * Check a text against the file's parser rule after typing pauses (Story 23.5).
+ *
+ * `isPending` is true while the debounced text lags behind `text` or the check runs, so
+ * a Save button can wait for the check of the text it would send.
+ */
+export function useConfigTextCheck(path: readonly string[] | null, text: string, enabled: boolean) {
+  const debounced = useDebounce(text, CONFIG_TEXT_CHECK_DELAY_MS);
+  const key = path ? path.join('/') : '';
+  const query = useQuery({
+    queryKey: ['config', 'files', 'check', key, debounced] as const,
+    queryFn: () => checkConfigText(path ?? [], debounced),
+    enabled: enabled && path !== null && path.length > 0,
+    staleTime: Infinity,
+    retry: false,
+  });
+  const lagging = debounced !== text;
+  // A failed check is not pending (Story 23.5 review M-1): the editor shows the error and
+  // offers to check again, and Save stays disabled since no check said the text is valid
+  const failed = !lagging && !query.isFetching && query.isError;
+  return {
+    check: lagging ? undefined : query.data,
+    isPending: enabled && !failed && (lagging || query.isFetching || query.data === undefined),
+    error: failed ? query.error : null,
+    retry: () => void query.refetch(),
+  };
 }
