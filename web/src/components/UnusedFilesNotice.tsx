@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { relativeTime } from '@/features/settings/ConfigHistoryPanel';
+import { relativeTime } from '@/lib/relative-time';
 import { useDeleteUnusedFile, useUnusedFiles } from '@/hooks/use-mods';
 import { cn } from '@/lib/utils';
 
@@ -49,7 +49,7 @@ export function unusedReason(file: UnusedFile): string {
 
 export function UnusedFilesNotice() {
   const { isAdmin } = useIsAdmin();
-  const { data } = useUnusedFiles({ enabled: isAdmin });
+  const { data, isError } = useUnusedFiles({ enabled: isAdmin });
   const { mutate: deleteFile, isPending: isDeleting } = useDeleteUnusedFile();
   const [expanded, setExpanded] = useState(false);
   const [toDelete, setToDelete] = useState<UnusedFile | null>(null);
@@ -67,9 +67,9 @@ export function UnusedFilesNotice() {
         });
         setToDelete(null);
       },
+      // As Story 21.4: the dialog stays open after a failure, with Delete enabled again
       onError: (error) => {
         toast.error(`Could not delete ${name}`, { description: error.message });
-        setToDelete(null);
       },
     });
   };
@@ -114,6 +114,14 @@ export function UnusedFilesNotice() {
     </AlertDialog>
   );
 
+  if (isAdmin && isError) {
+    return (
+      <p className="text-sm text-muted-foreground" role="status" data-testid="unused-files-error">
+        Could not check the mods folder for unused files.
+      </p>
+    );
+  }
+
   if (files.length === 0) {
     return dialog;
   }
@@ -143,42 +151,43 @@ export function UnusedFilesNotice() {
           aria-hidden="true"
         />
       </button>
-      {expanded && (
-        <ul id="unused-files-list" className="divide-y border-t" data-testid="unused-files-list">
-          {files.map((file) => (
-            <li
-              key={file.name}
-              className="flex flex-wrap items-center justify-between gap-2 px-3 py-2"
-              data-testid={`unused-file-${file.name}`}
-            >
-              <div className="min-w-0">
-                <div className="break-all font-mono">{file.name}</div>
-                <div className="text-muted-foreground">
-                  {formatFileSize(file.sizeBytes)} · modified{' '}
-                  <time
-                    dateTime={file.modifiedAt}
-                    title={new Date(file.modifiedAt).toLocaleString()}
-                  >
-                    {relativeTime(file.modifiedAt)}
-                  </time>{' '}
-                  · {unusedReason(file)}
-                </div>
+      {/* Always rendered, so aria-controls always names an element */}
+      <ul
+        id="unused-files-list"
+        className="divide-y border-t"
+        hidden={!expanded}
+        data-testid="unused-files-list"
+      >
+        {files.map((file) => (
+          <li
+            key={file.name}
+            className="flex flex-wrap items-center justify-between gap-2 px-3 py-2"
+            data-testid={`unused-file-${file.name}`}
+          >
+            <div className="min-w-0">
+              <div className="break-all font-mono">{file.name}</div>
+              <div className="text-muted-foreground">
+                {formatFileSize(file.sizeBytes)} · modified{' '}
+                <time dateTime={file.modifiedAt} title={new Date(file.modifiedAt).toLocaleString()}>
+                  {relativeTime(file.modifiedAt)}
+                </time>{' '}
+                · {unusedReason(file)}
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="max-lg:h-11"
-                onClick={() => setToDelete(file)}
-                aria-label={`Delete ${file.name}`}
-                data-testid={`unused-file-delete-${file.name}`}
-              >
-                <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
-                Delete
-              </Button>
-            </li>
-          ))}
-        </ul>
-      )}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="max-lg:h-11"
+              onClick={() => setToDelete(file)}
+              aria-label={`Delete ${file.name}`}
+              data-testid={`unused-file-delete-${file.name}`}
+            >
+              <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
+              Delete
+            </Button>
+          </li>
+        ))}
+      </ul>
       {dialog}
     </section>
   );

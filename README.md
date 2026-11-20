@@ -172,7 +172,7 @@ A mod added by hand gets its mod database link at the next update check (**Check
 
 The manager imports only `.zip` mods. Source mods (`.cs` files) and unzipped mod folders in `data/serverdata/Mods` are left alone: the game loads them, but the manager does not list, update or delete them.
 
-**Unused files.** With an Admin key, the **Installed** tab shows a notice when the mods folder holds files the manager does not use: names ending in `.tmp` or `.bak` (for example an editor's backup or a copy left by an interrupted transfer), archives without a readable `modinfo.json`, and a second archive of a mod that is already installed under another file (as an interrupted version change can leave). Each can be deleted after confirming. Nothing is deleted without asking, since such a file may be the only copy of a mod. The API lists them at `GET /api/v1alpha1/mods/unused-files` and deletes one with `DELETE /api/v1alpha1/mods/unused-files/{name}`.
+**Unused files.** With an Admin key, the **Installed** tab shows a notice when the mods folder holds files the manager does not use: names ending in `.tmp` or `.bak` (for example an editor's backup or a copy left by an interrupted transfer), archives without a readable `modinfo.json`, and a second archive of a mod that is already installed under another file (as an interrupted version change can leave). Each can be deleted after confirming. Nothing is deleted without asking, since such a file may be the only copy of a mod. Deleting an archive while the game server runs asks for a restart; deleting a `.tmp` or `.bak` file does not. The API lists them at `GET /api/v1alpha1/mods/unused-files` and deletes one with `DELETE /api/v1alpha1/mods/unused-files/{name}`.
 
 ### Metrics
 

@@ -96,7 +96,8 @@ describe('UnusedFilesNotice', () => {
     const toggle = await screen.findByTestId('unused-files-toggle');
     expect(toggle).toHaveTextContent('2 files in the mods folder are not used');
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByTestId('unused-files-list')).not.toBeInTheDocument();
+    expect(screen.getByTestId('unused-files-list')).not.toBeVisible();
+    expect(toggle).toHaveAttribute('aria-controls', 'unused-files-list');
   });
 
   it('uses the singular for one file', async () => {
@@ -189,6 +190,65 @@ describe('UnusedFilesNotice', () => {
       expect(toast.error).toHaveBeenCalledWith('Could not delete old.zip.bak', {
         description: 'A mod install is running.',
       })
+    );
+    // As Story 21.4: the dialog stays open with Delete enabled again
+    expect(screen.getByTestId('unused-file-delete-dialog')).toBeInTheDocument();
+    expect(screen.getByTestId('unused-file-delete-confirm')).toBeEnabled();
+  });
+
+  it('keeps the dialog open and locked while the delete runs', async () => {
+    let answer: (response: Partial<Response>) => void = () => {};
+    setup(
+      'admin',
+      [file()],
+      () =>
+        new Promise((resolve) => {
+          answer = resolve;
+        })
+    );
+
+    fireEvent.click(await screen.findByTestId('unused-files-toggle'));
+    fireEvent.click(screen.getByTestId('unused-file-delete-old.zip.bak'));
+    fireEvent.click(screen.getByTestId('unused-file-delete-confirm'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('unused-file-delete-confirm')).toHaveTextContent('Deleting...')
+    );
+    expect(screen.getByTestId('unused-file-delete-confirm')).toBeDisabled();
+    expect(screen.getByTestId('unused-file-delete-cancel')).toBeDisabled();
+    fireEvent.keyDown(screen.getByTestId('unused-file-delete-dialog'), { key: 'Escape' });
+    expect(screen.getByTestId('unused-file-delete-dialog')).toBeInTheDocument();
+
+    answer({
+      ok: true,
+      json: () =>
+        Promise.resolve({ status: 'ok', data: { name: 'old.zip.bak', pending_restart: false } }),
+    });
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.queryByTestId('unused-file-delete-dialog')).not.toBeInTheDocument()
+    );
+  });
+
+  it('says so when the mods folder cannot be checked', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+      json: () => Promise.resolve({ detail: { code: 'INTERNAL_ERROR', message: 'boom' } }),
+    });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    queryClient.setQueryData(queryKeys.auth.me, { status: 'ok', data: { role: 'admin' } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <UnusedFilesNotice />
+      </QueryClientProvider>
+    );
+
+    expect(await screen.findByTestId('unused-files-error')).toHaveTextContent(
+      'Could not check the mods folder for unused files.'
     );
   });
 
