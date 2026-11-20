@@ -37,6 +37,7 @@ Security:
 """
 
 import hashlib
+import json
 import os
 import secrets
 import stat
@@ -183,7 +184,20 @@ def changed_top_level_keys(old: object, new: object) -> set[str]:
     if not _is_object(old):
         return set(new)
     keys = set(old) | set(new)
-    return {key for key in keys if (key in old) != (key in new) or old.get(key) != new.get(key)}
+    return {
+        key
+        for key in keys
+        if (key in old) != (key in new) or not _same_value(old.get(key), new.get(key))
+    }
+
+
+def _same_value(a: object, b: object) -> bool:
+    """Equal as JSON: `1`, `1.0` and `true` differ (Python's `==` says `1 == True`).
+
+    Story 23.4 review L1: a changed type is a change, or a pending edit would survive the
+    save and be written back over it.
+    """
+    return json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True)
 
 
 _UTF8_BOM = b"\xef\xbb\xbf"
@@ -529,15 +543,22 @@ class ConfigFilesService:
         logger.debug("config_file_read", filename=filename)
         return result
 
-    def is_root_serverconfig(self, resolved: Path) -> bool:
-        """Whether a resolved path is the game's serverconfig.json in the data root.
+    def is_root_serverconfig(self, resolved: Path, requested: str | None = None) -> bool:
+        """Whether a path is the game's serverconfig.json in the data root.
 
         That file is read and rewritten as strict JSON by other services, so it is saved
-        as strict JSON (Story 23.4, Epic 23 ADR-1 decision 5).
+        as strict JSON (Story 23.4, Epic 23 ADR-1 decision 5). Either the resolved path is
+        there, or the requested name is (Story 23.4 review L2: a root serverconfig.json
+        that is a symlink resolves elsewhere, but the game and the manager read it by its
+        name in the root).
         """
-        return (
+        if (
             resolved.parent == self.settings.serverdata_dir.resolve()
             and resolved.name.casefold() == "serverconfig.json"
+        ):
+            return True
+        return requested is not None and os.path.normpath(requested).casefold() == (
+            "serverconfig.json"
         )
 
     def _encode_and_parse(self, filename: str, text: str, strict: bool) -> tuple[bytes, object]:
@@ -583,7 +604,7 @@ class ConfigFilesService:
         """
         safe_path = self._target_for_write(filename)
         try:
-            self._encode_and_parse(filename, text, self.is_root_serverconfig(safe_path))
+            self._encode_and_parse(filename, text, self.is_root_serverconfig(safe_path, filename))
         except ConfigFileInvalidError as e:
             return e.info
         return None
@@ -615,7 +636,7 @@ class ConfigFilesService:
         if not (safe_path.is_file() and _has_json_suffix(safe_path.name)):
             raise ConfigFileNotSupportedError(filename)
 
-        root_serverconfig = self.is_root_serverconfig(safe_path)
+        root_serverconfig = self.is_root_serverconfig(safe_path, filename)
         data, value = self._encode_and_parse(filename, text, root_serverconfig)
 
         try:
@@ -729,8 +750,11 @@ class ConfigFilesService:
         except OSError as e:
             try:
                 temp.unlink(missing_ok=True)
-            except OSError:
-                pass
+            except OSError as cleanup:
+                # Story 23.4 review L5: a temp file left behind is worth a line in the log
+                logger.warning(
+                    "config_file_temp_not_removed", filename=filename, errno=cleanup.errno
+                )
             logger.error(
                 "config_file_write_failed",
                 filename=filename,

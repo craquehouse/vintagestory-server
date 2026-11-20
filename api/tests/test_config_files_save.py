@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+from structlog.testing import capture_logs
 
 from vintagestory_api.services.config_files import (
     CONFIG_FILE_MAX_BYTES,
@@ -399,3 +400,31 @@ class TestHistory:
 
         with pytest.raises(ConfigFileInvalidError):
             service.restore_revision("ModConfig/x.json", old.id, saved.version)
+
+
+class TestReviewFixes:
+    """Story 23.4 review: L2 (a symlinked root serverconfig.json), L4b (the log)."""
+
+    def test_a_symlinked_root_serverconfig_is_strict(
+        self, service: ConfigFilesService, serverdata: Path
+    ) -> None:
+        # A target outside serverdata is refused as an invalid path anyway (_safe_path)
+        real = serverdata / "configs" / "real.json"
+        real.parent.mkdir()
+        real.write_bytes(b'{"Port": 1}')
+        (serverdata / "serverconfig.json").symlink_to(real)
+
+        assert service.check_text("serverconfig.json", '{"Port": 1,}') is not None
+
+    def test_the_save_is_logged_without_the_text(
+        self, service: ConfigFilesService, serverdata: Path
+    ) -> None:
+        version = _write(serverdata / "ModConfig" / "x.json", b"{}")
+
+        with capture_logs() as logs:
+            service.save_file("ModConfig/x.json", '{"secret-ish": "zzz-text-zzz"}', version)
+
+        saved = [log for log in logs if log["event"] == "config_file_saved"]
+        assert len(saved) == 1
+        assert saved[0]["filename"] == "ModConfig/x.json"
+        assert "zzz-text-zzz" not in repr(logs)
