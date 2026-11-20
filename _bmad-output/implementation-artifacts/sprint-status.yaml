@@ -261,7 +261,7 @@ development_status:
   24-1-api-tests-run-on-a-fresh-clone: review
   24-2-web-ui-icon-and-missing-files-are-404: review
   24-3-mod-file-follow-ups-from-epic-19: review
-  24-4-hand-added-mods-get-their-mod-database-link: backlog
+  24-4-hand-added-mods-get-their-mod-database-link: review
   24-5-unused-files-and-rescan-in-the-api: backlog
   24-6-rescan-and-unused-files-on-the-installed-tab: backlog
   24-7-installed-mods-can-be-filtered: backlog
