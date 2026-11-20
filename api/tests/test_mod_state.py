@@ -2220,7 +2220,22 @@ class TestModinfoCacheFollowsTheEntries:
         assert state_manager.get_mod("ghost.zip") is None
         assert "mod_modinfo_cache_not_removed" in captured_logs.getvalue()
 
-    @pytest.mark.parametrize("slug", ["..", "a/b", "../escape", ""])
+    def test_a_mod_id_left_in_another_letter_case_keeps_its_cache(
+        self, state_manager: ModStateManager, temp_mods_dir: Path, temp_state_dir: Path
+    ) -> None:
+        """Mod IDs compare ignoring case, so a re-added `GHOST` keeps `ghost`'s cache."""
+        create_mod_zip(
+            temp_mods_dir / "Ghost-new.zip", {"modid": "GHOST", "name": "G", "version": "2.0.0"}
+        )
+        state_manager.set_mod_state("ghost.zip", mod_state_entry("ghost.zip", "ghost"))
+        kept = self._cache(temp_state_dir, "ghost")
+
+        summary = state_manager.sync_state_with_disk()
+
+        assert summary == ModSyncSummary(added=1, removed=1, skipped=0)
+        assert kept.is_file()
+
+    @pytest.mark.parametrize("slug", ["..", "a/b", "../escape", "", "a\\b", ".", "..\\x"])
     def test_a_slug_that_is_not_one_directory_name_removes_nothing(
         self, state_manager: ModStateManager, temp_state_dir: Path, slug: str
     ) -> None:

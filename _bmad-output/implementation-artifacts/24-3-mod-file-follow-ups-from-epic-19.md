@@ -1,6 +1,6 @@
 # Story 24.3: Mod File Follow-ups from Epic 19
 
-Status: review
+Status: done
 
 <!-- Implements FR331, FR332, FR333, Epic 24 ADR-5. Bead: VSS-3tb1 (API-095) items 1, 3 and 4; item 2 is Story 24.5, which closes the bead after merge. Branch story/24-3-mod-file-follow-ups-from-epic-19, stacked on story/24-2-web-ui-icon-and-missing-files-are-404 at b6a88124 (24.2 in review); the PR targets main and merges after 24.2's. API only. -->
 
@@ -92,6 +92,16 @@ Claude Opus 5.5 (claude-opus-5-5), as the epic's controller.
 - `_bmad-output/implementation-artifacts/24-3-mod-file-follow-ups-from-epic-19.md` (this file)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode. Verdict: approve. 0 HIGH, 0 MEDIUM, two LOW, both fixed:
+
+1. **LOW: the case-insensitive comparison in the sync's cache cleanup was untested.** A test removes `ghost` and adds `GHOST`; the cache stays.
+2. **LOW: the backslash branch of the unsafe-slug check was untested.** `a\b`, `.` and `..\x` added to the parametrization.
+
+The reviewer also checked a slug with an embedded NUL byte: `is_dir()` returns False for it before `rmtree`, so the current shape is correct (no change).
+
 ## Change Log
 
 - 2026-11-20: Story 24.3 created and implemented (dev-story): Tasks 1 to 4; status review.
+- 2026-11-20: Code review (GLM-5.3-Flash via opencode): approve; 0 HIGH, 0 MEDIUM, 2 LOW, both fixed (see "Review"). Status done.

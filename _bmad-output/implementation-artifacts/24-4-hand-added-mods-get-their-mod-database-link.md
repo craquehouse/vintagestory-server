@@ -1,6 +1,6 @@
 # Story 24.4: Hand-Added Mods Get Their Mod Database Link
 
-Status: review
+Status: done
 
 <!-- Implements FR334, FR335, Epic 24 ADR-1. Bead: VSS-v3be (API-093), first half; Stories 24.5 and 24.6 carry the rest and 24.6 closes it after merge. Branch story/24-4-hand-added-mods-get-their-mod-database-link, stacked on story/24-3-mod-file-follow-ups-from-epic-19 at 29a602be (24.3 in review); the PR targets main and merges after 24.3's. -->
 
@@ -98,6 +98,17 @@ Claude Opus 5.5 (claude-opus-5-5), as the epic's controller.
 - `_bmad-output/implementation-artifacts/24-4-hand-added-mods-get-their-mod-database-link.md` (this file)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode. Verdict: approve. 0 HIGH, 0 MEDIUM, five LOW, all fixed:
+
+1. **LOW: `casefold()` matching differed from the project's `lower()` mod-ID comparison,** so a non-ASCII twin could take another mod's asset ID. `fill_asset_id` now matches with `_lock_key`.
+2. **LOW: the fill sat outside the check's per-mod guard.** It is now in a `try` that logs `mod_asset_id_fill_failed`; test.
+3. **LOW: ADR-1 decision 3 said `_hold`.** Annotated: synchronous, reads `_busy`, as enable and disable; the docstring carries the "if it ever becomes async" warning.
+4. **LOW: test gaps.** Two entries of one mod ID are left alone (test); new `InstalledModCard.test.tsx` covers a local mod's card and a not-checked mod's link.
+5. **LOW: `mod_asset_id_filled` was logged after a failed save.** Only on success now; test.
+
 ## Change Log
 
 - 2026-11-20: Story 24.4 created and implemented (dev-story): Tasks 1 to 3; status review.
+- 2026-11-20: Code review (GLM-5.3-Flash via opencode): approve; 0 HIGH, 0 MEDIUM, 5 LOW, all fixed (see "Review"). Status done.
