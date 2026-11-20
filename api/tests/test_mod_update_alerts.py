@@ -246,6 +246,9 @@ class FakeModSource:
             )
         ]
 
+    def fill_asset_id(self, slug: str, asset_id: int) -> bool:
+        return False
+
 
 def make_service(tmp_path: Path, webhook: str | None = DISCORD) -> ModUpdateService:
     return ModUpdateService(

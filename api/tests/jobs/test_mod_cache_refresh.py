@@ -52,6 +52,9 @@ class FakeModSource:
             for slug, version in self.mods
         ]
 
+    def fill_asset_id(self, slug: str, asset_id: int) -> bool:
+        return False
+
 
 @pytest.fixture
 def service(tmp_path: Path) -> Iterator[ModUpdateService]:

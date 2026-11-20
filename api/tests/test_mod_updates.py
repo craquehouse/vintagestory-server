@@ -319,6 +319,9 @@ class FakeModSource:
     def list_mods(self) -> list[ModInfo]:
         return self._mods
 
+    def fill_asset_id(self, slug: str, asset_id: int) -> bool:
+        return False
+
 
 def make_service(
     tmp_path: Path, mods: list[ModInfo], game_version: str | None = "1.22.7"
@@ -756,6 +759,9 @@ class ChangingModSource:
 
     def list_mods(self) -> list[ModInfo]:
         return list(self.mods)
+
+    def fill_asset_id(self, slug: str, asset_id: int) -> bool:
+        return False
 
 
 class TestCheckWhileInstalling:
