@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
-import { GameConfigPanel } from './GameConfigPanel';
+import { GameConfigPanel, gameKeptDescription } from './GameConfigPanel';
 import { PAGE_CONTENT_WIDTH } from '@/components/layout/content-width';
 import { queryKeys } from '@/api/query-keys';
 import type { ApiResponse, GameConfigData } from '@/api/types';
@@ -817,6 +817,347 @@ describe('GameConfigPanel', () => {
         'Enabled (default)'
       );
       expect(screen.getByTestId('setting-state-AllowPvP')).toHaveTextContent(/^Not set$/);
+    });
+  });
+
+  describe('Story 25.4: Entity Spawning from the game', () => {
+    const OBSERVED = '2026-11-21T01:46:32Z';
+    const spawning = (extra: Record<string, unknown>) => ({
+      key: 'EntitySpawning',
+      type: 'bool',
+      live_update: true,
+      env_managed: false,
+      ...extra,
+    });
+    const configWith = (entity: Record<string, unknown>) => ({
+      ...mockGameConfig,
+      data: { ...mockGameConfig.data, settings: [...mockGameConfig.data.settings, entity] },
+    });
+
+    /** Answers by URL: the server status, a failing or passing POST, else the settings. */
+    function routeFetch(
+      config: unknown,
+      { state = 'running', post }: { state?: string; post?: { status: number; body: unknown } } = {}
+    ) {
+      const fetchMock = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
+        if (url.includes('/server/status')) {
+          return { ok: true, json: () => Promise.resolve({ status: 'ok', data: { state } }) };
+        }
+        if (init?.method === 'POST' && post) {
+          return {
+            ok: post.status < 400,
+            status: post.status,
+            json: () => Promise.resolve(post.body),
+          };
+        }
+        return { ok: true, json: () => Promise.resolve(config) };
+      });
+      globalThis.fetch = fetchMock;
+      return fetchMock;
+    }
+
+    async function renderPanel(role = 'admin') {
+      const queryClient = createTestQueryClient(role);
+      render(<GameConfigPanel />, { wrapper: createWrapper(queryClient) });
+      await screen.findByTestId('setting-state-EntitySpawning');
+      return queryClient;
+    }
+
+    it('from the game: the value, changeable by Admin', async () => {
+      routeFetch(configWith(spawning({ value: false, source: 'game', observed_at: OBSERVED })));
+      await renderPanel();
+
+      const toggle = screen.getByRole('switch', { name: 'Entity Spawning' });
+      expect(toggle).not.toBeChecked();
+      expect(toggle).toBeEnabled();
+      expect(screen.getByTestId('setting-state-EntitySpawning')).toHaveTextContent(/^Disabled$/);
+      expect(screen.getByText('Whether creatures can spawn naturally')).toBeInTheDocument();
+    });
+
+    it('from the game but a Monitor key: read-only', async () => {
+      routeFetch(configWith(spawning({ value: true, source: 'game', observed_at: OBSERVED })));
+      await renderPanel('monitor');
+
+      expect(screen.getByRole('switch', { name: 'Entity Spawning' })).toBeDisabled();
+    });
+
+    it('last seen: the value, read-only, with when the game reported it', async () => {
+      routeFetch(
+        configWith(spawning({ value: true, source: 'last_seen', observed_at: OBSERVED })),
+        {
+          state: 'installed',
+        }
+      );
+      await renderPanel();
+
+      const toggle = screen.getByRole('switch', { name: 'Entity Spawning' });
+      expect(toggle).toBeChecked();
+      expect(toggle).toBeDisabled();
+      expect(
+        screen.getByText(/^Last reported by the game .+\. Changes only while the server runs\.$/)
+      ).toBeInTheDocument();
+    });
+
+    it('unknown: "Not known yet", read-only (replaces Story 17.6\'s default)', async () => {
+      routeFetch(configWith(spawning({ value: null, source: 'unknown' })), { state: 'installed' });
+      await renderPanel();
+
+      expect(screen.getByTestId('setting-state-EntitySpawning')).toHaveTextContent(
+        /^Not known yet$/
+      );
+      expect(screen.getByRole('switch', { name: 'Entity Spawning' })).toBeDisabled();
+      expect(
+        screen.getByText('Not reported by the game yet. Changes only while the server runs.')
+      ).toBeInTheDocument();
+    });
+
+    it('a refused change puts the switch back', async () => {
+      routeFetch(configWith(spawning({ value: true, source: 'game', observed_at: OBSERVED })), {
+        post: {
+          status: 409,
+          body: { detail: { code: 'SETTING_NEEDS_RUNNING_SERVER', message: 'not ready' } },
+        },
+      });
+      await renderPanel();
+
+      const toggle = screen.getByRole('switch', { name: 'Entity Spawning' });
+      fireEvent.click(toggle);
+
+      await waitFor(() => expect(toggle).toBeChecked());
+      const { toast } = await import('sonner');
+      expect(toast.error).toHaveBeenCalled();
+    });
+
+    it('names the env var from the API on the badge', async () => {
+      routeFetch(
+        configWith(
+          spawning({
+            value: false,
+            source: 'game',
+            observed_at: OBSERVED,
+            env_managed: true,
+            env_var: 'VS_CFG_ENTITY_SPAWNING',
+          })
+        )
+      );
+      await renderPanel();
+
+      expect(screen.getByText('Env: VS_CFG_ENTITY_SPAWNING')).toBeInTheDocument();
+      expect(screen.getByRole('switch', { name: 'Entity Spawning' })).toBeDisabled();
+    });
+
+    it('fetches the settings again while the game has not reported yet', async () => {
+      const fetchMock = routeFetch(configWith(spawning({ value: null, source: 'unknown' })));
+      const queryClient = await renderPanel();
+      const settingsCalls = () =>
+        fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/config/game')).length;
+      const before = settingsCalls();
+
+      await queryClient.refetchQueries({ queryKey: queryKeys.server.status });
+
+      await waitFor(() => expect(settingsCalls()).toBeGreaterThan(before));
+    });
+
+    it('fetches the settings again when the server state changes', async () => {
+      let state = 'running';
+      const config = configWith(spawning({ value: true, source: 'game', observed_at: OBSERVED }));
+      const fetchMock = vi.fn().mockImplementation(async (url: string) => ({
+        ok: true,
+        json: () =>
+          Promise.resolve(
+            url.includes('/server/status') ? { status: 'ok', data: { state } } : config
+          ),
+      }));
+      globalThis.fetch = fetchMock;
+      const queryClient = await renderPanel();
+      const settingsCalls = () =>
+        fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/config/game')).length;
+      await waitFor(() => expect(queryClient.getQueryData(queryKeys.server.status)).toBeDefined());
+      // With the value from the game, a poll with the same state fetches nothing
+      await queryClient.refetchQueries({ queryKey: queryKeys.server.status });
+      const before = settingsCalls();
+
+      state = 'installed';
+      await queryClient.refetchQueries({ queryKey: queryKeys.server.status });
+
+      await waitFor(() => expect(settingsCalls()).toBe(before + 1));
+    });
+  });
+
+  describe('Story 25.4 review', () => {
+    const OBSERVED = '2026-11-21T01:46:32Z';
+    const withEntity = (entity: Record<string, unknown>) => ({
+      ...mockGameConfig,
+      data: {
+        ...mockGameConfig.data,
+        settings: [
+          ...mockGameConfig.data.settings,
+          { key: 'EntitySpawning', type: 'bool', live_update: true, env_managed: false, ...entity },
+        ],
+      },
+    });
+
+    function mockFetch(
+      config: unknown,
+      post: (url: string) => Promise<unknown>,
+      state = 'running'
+    ) {
+      const fetchMock = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
+        if (url.includes('/server/status')) {
+          return { ok: true, json: () => Promise.resolve({ status: 'ok', data: { state } }) };
+        }
+        if (init?.method === 'POST') return post(url);
+        return { ok: true, json: () => Promise.resolve(config) };
+      });
+      globalThis.fetch = fetchMock;
+      return fetchMock;
+    }
+
+    const settingsCalls = (fetchMock: ReturnType<typeof vi.fn>) =>
+      fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/config/game')).length;
+
+    async function renderPanel() {
+      const queryClient = createTestQueryClient();
+      render(<GameConfigPanel />, { wrapper: createWrapper(queryClient) });
+      await screen.findByTestId('setting-state-EntitySpawning');
+      await waitFor(() => expect(queryClient.getQueryData(queryKeys.server.status)).toBeDefined());
+      return queryClient;
+    }
+
+    it('does not refetch the settings while a save is in flight (M1)', async () => {
+      let finishPost: (value: unknown) => void = () => {};
+      const fetchMock = mockFetch(
+        withEntity({ value: null, source: 'unknown' }),
+        () => new Promise((resolve) => (finishPost = resolve))
+      );
+      const queryClient = await renderPanel();
+
+      fireEvent.click(screen.getByRole('switch', { name: 'Allow PvP' }));
+      await waitFor(() =>
+        expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true)
+      );
+      const before = settingsCalls(fetchMock);
+      await queryClient.refetchQueries({ queryKey: queryKeys.server.status });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+      await queryClient.refetchQueries({ queryKey: queryKeys.server.status });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+
+      expect(settingsCalls(fetchMock)).toBe(before);
+      finishPost({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: {
+              key: 'AllowPvP',
+              value: true,
+              method: 'console_command',
+              pending_restart: false,
+            },
+          }),
+      });
+    });
+
+    it('does not refetch when the settings first arrive, only on a status poll (L1)', async () => {
+      const fetchMock = mockFetch(withEntity({ value: null, source: 'unknown' }), () =>
+        Promise.reject(new Error('no POST expected'))
+      );
+      await renderPanel();
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+
+      expect(settingsCalls(fetchMock)).toBe(1);
+    });
+
+    it('a successful change keeps the new value (AC 4)', async () => {
+      mockFetch(withEntity({ value: true, source: 'game', observed_at: OBSERVED }), async () => ({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: {
+              key: 'EntitySpawning',
+              value: false,
+              method: 'console_command',
+              pending_restart: false,
+            },
+          }),
+      }));
+      await renderPanel();
+      const toggle = screen.getByRole('switch', { name: 'Entity Spawning' });
+
+      fireEvent.click(toggle);
+
+      const { toast } = await import('sonner');
+      await waitFor(() => expect(toast.success).toHaveBeenCalled());
+      expect(toggle).not.toBeChecked();
+    });
+
+    it('a change the game did not confirm (502) puts the switch back (AC 4)', async () => {
+      mockFetch(withEntity({ value: true, source: 'game', observed_at: OBSERVED }), async () => ({
+        ok: false,
+        status: 502,
+        json: () =>
+          Promise.resolve({ detail: { code: 'SETTING_UPDATE_FAILED', message: 'no reply' } }),
+      }));
+      await renderPanel();
+      const toggle = screen.getByRole('switch', { name: 'Entity Spawning' });
+
+      fireEvent.click(toggle);
+      expect(toggle).not.toBeChecked();
+
+      const { toast } = await import('sonner');
+      await waitFor(() => expect(toast.error).toHaveBeenCalled());
+      await waitFor(() => expect(toggle).toBeChecked());
+    });
+
+    it("names a file setting's env var from the API too (AC 5)", async () => {
+      const config = {
+        ...mockGameConfig,
+        data: {
+          ...mockGameConfig.data,
+          settings: mockGameConfig.data.settings.map((setting) =>
+            setting.key === 'MaxClients'
+              ? { ...setting, env_managed: true, env_var: 'VS_CFG_MAX_CLIENTS' }
+              : setting
+          ),
+        },
+      };
+      mockFetch(config, () => Promise.reject(new Error('no POST expected')));
+      render(<GameConfigPanel />, { wrapper: createWrapper(createTestQueryClient()) });
+
+      expect(await screen.findByText('Env: VS_CFG_MAX_CLIENTS')).toBeInTheDocument();
+    });
+  });
+
+  describe('gameKeptDescription (Story 25.4)', () => {
+    const now = Date.parse('2026-11-21T03:46:32Z');
+
+    it('keeps the usual description for a value from the game', () => {
+      expect(gameKeptDescription('Usual', { source: 'game' }, now)).toBe('Usual');
+    });
+
+    it('says when the game last reported it', () => {
+      expect(
+        gameKeptDescription(
+          'Usual',
+          { source: 'last_seen', observedAt: '2026-11-21T01:46:32Z' },
+          now
+        )
+      ).toMatch(
+        /^Last reported by the game .*2.*hours ago\. Changes only while the server runs\.$/
+      );
+    });
+
+    it('says the game has not reported it yet', () => {
+      expect(gameKeptDescription('Usual', { source: 'unknown' }, now)).toBe(
+        'Not reported by the game yet. Changes only while the server runs.'
+      );
     });
   });
 

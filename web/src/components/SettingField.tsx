@@ -10,6 +10,7 @@
  * value (password) behind a show/hide toggle.
  * Story 17.6: a boolean with no value shows the game's default ("Enabled (default)")
  * when it is known, otherwise "Not set", never a plain "Disabled".
+ * Story 25.4: `unsetLabel` replaces "Not set" ("Not known yet" for Entity Spawning).
  */
 
 import { useState } from 'react';
@@ -94,6 +95,11 @@ export interface SettingFieldProps {
   gameDefault?: boolean;
 
   /**
+   * The state of a boolean with no value and no known default (Story 25.4); "Not set".
+   */
+  unsetLabel?: string;
+
+  /**
    * Additional CSS class names.
    */
   className?: string;
@@ -126,6 +132,7 @@ export function SettingField({
   onSave,
   masked = false,
   gameDefault,
+  unsetLabel = 'Not set',
   className,
 }: SettingFieldProps) {
   // Coerce value to appropriate type and use as initial.
@@ -161,7 +168,7 @@ export function SettingField({
       ? 'Enabled'
       : 'Disabled'
     : gameDefault === undefined
-      ? 'Not set'
+      ? unsetLabel
       : `${gameDefault ? 'Enabled' : 'Disabled'} (default)`;
 
   // Story 23.3 review: a disabled control also names the note that says why

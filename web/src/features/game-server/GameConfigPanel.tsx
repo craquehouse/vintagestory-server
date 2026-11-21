@@ -20,8 +20,14 @@
  * role is loading or unknown) every field is disabled, with a note saying why.
  * Story 25.2: a warning above the groups when a mod or save path in serverconfig.json is
  * wrong (ServerConfigPathsWarning, its own query).
+ * Story 25.4: a setting the game keeps (Entity Spawning, it has `source`) can be changed
+ * only when its value came from the running game; otherwise the description says when
+ * the game last reported it. The settings are fetched again when the server state
+ * changes, and on each status poll while the game has not reported the value yet.
  */
 
+import { useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { SettingField } from '@/components/SettingField';
@@ -30,6 +36,9 @@ import { SecretSettingStatus } from '@/components/SecretSettingStatus';
 import { ServerConfigPathsWarning } from '@/components/ServerConfigPathsWarning';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useGameConfig, useUpdateGameSetting } from '@/hooks/use-game-config';
+import { useServerStatus } from '@/hooks/use-server-status';
+import { queryKeys } from '@/api/query-keys';
+import { relativeTime } from '@/lib/relative-time';
 import { validators, type SettingValue, type Validator } from '@/hooks/use-setting-field';
 import type { GameSetting, SettingType } from '@/api/types';
 import { PAGE_CONTENT_WIDTH } from '@/components/layout/content-width';
@@ -161,6 +170,26 @@ const NETWORK_SETTINGS: SettingDefinition[] = [
 const READ_ONLY_NOTE_ID = 'game-config-read-only-note';
 
 /**
+ * The description of a setting the game keeps (Story 25.4, Epic 25 ADR-5 decision 3): the
+ * usual text while the value came from the running game, otherwise when the game last
+ * reported it and that it changes only while the server runs.
+ */
+export function gameKeptDescription(
+  description: string | undefined,
+  setting: Pick<GameSetting, 'source' | 'observedAt'>,
+  now: number = Date.now()
+): string | undefined {
+  if (setting.source === 'game') {
+    return description;
+  }
+  const when =
+    setting.source === 'last_seen' && setting.observedAt
+      ? `Last reported by the game ${relativeTime(setting.observedAt, now)}.`
+      : 'Not reported by the game yet.';
+  return `${when} Changes only while the server runs.`;
+}
+
+/**
  * Props for the GameConfigPanel component.
  */
 export interface GameConfigPanelProps {
@@ -187,6 +216,30 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
       : roleError
         ? "Could not check this key's role; settings cannot be changed until it loads."
         : null;
+
+  // Story 25.4: a game-kept setting follows the server. Refetch when the state changes,
+  // and on every status poll while the server runs and the game has not reported yet.
+  const queryClient = useQueryClient();
+  const { data: statusData, dataUpdatedAt: statusUpdatedAt } = useServerStatus();
+  const serverState = statusData?.data?.state;
+  const waitingForGame =
+    serverState === 'running' &&
+    (data?.data?.settings ?? []).some((s) => s.source !== undefined && s.source !== 'game');
+  const lastState = useRef(serverState);
+  const lastPoll = useRef(statusUpdatedAt);
+  const saving = updateMutation.isPending;
+  useEffect(() => {
+    const changed = lastState.current !== undefined && lastState.current !== serverState;
+    // Only a new status poll counts, not the settings arriving (Story 25.4 review L1)
+    const polled = lastPoll.current !== 0 && lastPoll.current !== statusUpdatedAt;
+    lastState.current = serverState;
+    lastPoll.current = statusUpdatedAt;
+    // A refetch during a save could put an older value over the field being saved
+    // (review M1); a skipped poll is harmless, the next one comes 5 s later
+    if (!saving && (changed || (waitingForGame && polled))) {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.config.game, exact: true });
+    }
+  }, [serverState, statusUpdatedAt, waitingForGame, saving, queryClient]);
 
   // Handle save with toast notification
   const handleSave = async (params: { key: string; value: string | number | boolean }) => {
@@ -267,6 +320,10 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
       );
     }
 
+    // Story 25.4: a setting the game keeps changes only when the game reported it
+    const gameKept = setting.source !== undefined;
+    const fromGame = setting.source === 'game';
+
     return (
       <SettingField
         key={def.key}
@@ -276,10 +333,12 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
         type={setting.type as SettingType}
         validate={def.validate}
         envManaged={setting.envManaged}
-        description={def.description}
+        envVar={setting.envVar}
+        description={gameKept ? gameKeptDescription(def.description, setting) : def.description}
         masked={def.masked}
         gameDefault={setting.default}
-        disabled={!isAdmin}
+        unsetLabel={gameKept ? 'Not known yet' : undefined}
+        disabled={!isAdmin || (gameKept && !fromGame)}
         disabledReasonId={readOnlyNote ? READ_ONLY_NOTE_ID : undefined}
         onSave={handleSave}
       />

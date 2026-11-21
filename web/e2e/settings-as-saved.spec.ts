@@ -7,7 +7,9 @@ import { fetchOnNewConnection, pretendServerInstalled, serveConfigKey } from './
  * Story 17.6 (FR187, FR188; VSS-8bl, VSS-2le):
  * - A boolean game setting with no value shows the game's default ("Enabled (default)")
  *   or "Not set", never a plain "Disabled". The game settings are stubbed: nothing is
- *   written to the server's config.
+ *   written to the server's config. Since Story 25.3 Entity Spawning comes from the game
+ *   (`source`, no default), so the default is shown on a file setting, Pass Time When
+ *   Empty, which the API gives no default today (the stub adds one).
  * - A changed refresh interval reschedules its job without an API restart, and the
  *   Scheduled Jobs tab shows the new schedule at once. This changes the real
  *   `mod_list_refresh_interval` and restores it (snapshot guard). Expected residue:
@@ -109,20 +111,20 @@ test.describe('Boolean game settings with no value (Story 17.6)', () => {
   });
 
   test('show the default or "Not set", and the plain state once saved', async ({ page }) => {
-    let entitySpawning: boolean | null = null;
+    let passTime: boolean | null = null;
 
     // Nothing under /config/game is written for real
     await page.route('**/api/v1alpha1/config/game/**', (route) =>
       route.fulfill({ status: 500, json: { detail: { code: 'E2E', message: 'stubbed' } } })
     );
-    await page.route('**/api/v1alpha1/config/game/settings/EntitySpawning', async (route) => {
+    await page.route('**/api/v1alpha1/config/game/settings/PassTimeWhenEmpty', async (route) => {
       if (route.request().method() !== 'POST') return route.fallback();
-      entitySpawning = false;
+      passTime = false;
       await route.fulfill({
         json: {
           status: 'ok',
           data: {
-            key: 'EntitySpawning',
+            key: 'PassTimeWhenEmpty',
             value: false,
             method: 'file_update',
             pending_restart: false,
@@ -137,8 +139,8 @@ test.describe('Boolean game settings with no value (Story 17.6)', () => {
         data: { settings: Array<Record<string, unknown>> };
       };
       body.data.settings = body.data.settings.map((setting) => {
-        if (setting.key === 'EntitySpawning') {
-          return { ...setting, value: entitySpawning, default: true };
+        if (setting.key === 'PassTimeWhenEmpty') {
+          return { ...setting, value: passTime, default: true };
         }
         if (setting.key === 'AllowFireSpread') {
           // The API sends no default for it
@@ -152,16 +154,20 @@ test.describe('Boolean game settings with no value (Story 17.6)', () => {
     await page.goto('/game-server/settings');
     await expect(page.getByTestId('game-config-panel')).toBeVisible({ timeout: 30000 });
 
-    const entityState = page.getByTestId('setting-state-EntitySpawning');
-    await expect(entityState).toHaveText('Enabled (default)');
-    await expect(page.getByRole('switch', { name: 'Entity Spawning' })).toBeChecked();
+    const passTimeState = page.getByTestId('setting-state-PassTimeWhenEmpty');
+    await expect(passTimeState).toHaveText('Enabled (default)');
+    await expect(page.getByRole('switch', { name: 'Pass Time When Empty' })).toBeChecked();
     await expect(page.getByTestId('setting-state-AllowFireSpread')).toHaveText('Not set');
     await expect(page.getByRole('switch', { name: 'Allow Fire Spread' })).not.toBeChecked();
 
-    await page.getByRole('switch', { name: 'Entity Spawning' }).click();
+    await page.getByRole('switch', { name: 'Pass Time When Empty' }).click();
 
-    await expect(entityState).toHaveText('Disabled');
-    await expect(page.getByRole('switch', { name: 'Entity Spawning' })).not.toBeChecked();
+    await expect(passTimeState).toHaveText('Disabled');
+    await expect(page.getByRole('switch', { name: 'Pass Time When Empty' })).not.toBeChecked();
+
+    // Story 25.4: Entity Spawning on this stack (no game server) is not known yet, read-only
+    await expect(page.getByTestId('setting-state-EntitySpawning')).toHaveText('Not known yet');
+    await expect(page.getByRole('switch', { name: 'Entity Spawning' })).toBeDisabled();
   });
 });
 
