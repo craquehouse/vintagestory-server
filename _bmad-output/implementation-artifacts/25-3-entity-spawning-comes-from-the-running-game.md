@@ -73,7 +73,7 @@ so that **what I see and change is what the game does**.
   - [x] 2.1: `services/entity_spawning.py`: the line patterns, `EntitySpawningRecord`, the atomic store, `EntitySpawningWatcher` (`observe`, `query`, `set`, `reset`, `is_ready`, `seen_since_start`, the ready hook with the env var)
   - [x] 2.2: `ServerService`: one watcher; `_read_stream` feeds it after the player tracker in its own `try` (`console_reply_watcher_error`, type only); reset where the player tracker is reset
   - [x] 2.3: Tests with a fake `send_command` and fed lines: matches, chat spoof, interleaved lines, timeout, fault, ready hook, env var, store load/save/corrupt
-  - [x] 2.4: Commit `refactor(story-25.3/task-2): read Entity Spawning replies from the game's console`
+  - [x] 2.4: Commit `fix(story-25.3/task-2): apply VS_CFG_ENTITY_SPAWNING after each start, and read Entity Spawning replies from the game's console` (planned as `refactor`; the env var taking effect is user-visible and in the epic's release notes as a fix)
 
 - [x] Task 3: Game Settings reads and sets it on the game (AC: 3, 4, 5, 7, 8)
   - [x] 3.1: `ServerSetting.location`; EntitySpawning `location="game"`, no `default`; `SettingInfo` `source`/`observed_at`; `ServerConfigFile` drops `EntitySpawning`
@@ -82,11 +82,11 @@ so that **what I see and change is what the game does**.
   - [x] 3.4: Tests: GET for each source, POST running/stopped/not ready/no reply/env-managed, config init, the file never touched
   - [x] 3.5: Commit `fix(story-25.3/task-3): read and change Entity Spawning on the running game, where the world keeps it`
 
-- [ ] Task 4: End to end and documentation (AC: 10)
-  - [ ] 4.1: The AC 10 run on the built image in a throwaway container; record the commands and output in the Debug Log
-  - [ ] 4.2: `web/e2e/entity-spawning.spec.ts` tagged `@game-server` (local only)
-  - [ ] 4.3: README (Game Settings, `VS_CFG_ENTITY_SPAWNING`), `agentdocs/vs-serverconfig-commands.md`
-  - [ ] 4.4: Commit `docs(story-25.3/task-4): explain where Entity Spawning comes from`
+- [x] Task 4: End to end and documentation (AC: 10)
+  - [x] 4.1: The AC 10 run on the built image in a throwaway container; record the commands and output in the Debug Log
+  - [x] 4.2: `web/e2e/entity-spawning.spec.ts` tagged `@game-server` (local only)
+  - [x] 4.3: README (Game Settings, `VS_CFG_ENTITY_SPAWNING`), `agentdocs/vs-serverconfig-commands.md`
+  - [x] 4.4: Commit `docs(story-25.3/task-4): explain where Entity Spawning comes from`
 
 - [ ] Task 5: Validate and move the story to review (AC: 11)
   - [ ] 5.1: `just check` green; `just changelog`
@@ -124,6 +124,15 @@ Claude Opus 5.5 (claude-opus-5-5).
 
 ### Debug Log References
 
+- AC 10 (2026-11-21), image `vss-253-e2e` built from this branch, container `vss-253-e2e` with the dev stack's 1.22.7 install copied in (never the dev stack); all removed afterwards:
+  1. Stopped, before any run: `{'value': None, 'source': 'unknown'}`; a change: `409 SETTING_NEEDS_RUNNING_SERVER`.
+  2. `POST /server/start`; after about 25 s: `{'value': True, 'source': 'game'}` (`entity_spawning_observed via=query`).
+  3. Set `false`: `{"value": false, "method": "console_command"}`; GET `False, game`.
+  4. `/serverconfig entityspawning true` typed through `POST /console/command`: GET `True, game` (`via=console`).
+  5. Stop: `{'value': False, 'source': 'last_seen'}`; `serverconfig.json` has no `EntitySpawning`; `entity_spawning.json` `{"value": false, "via": "set"}`.
+  6. New container with `VS_CFG_ENTITY_SPAWNING=false`: after start `{'value': False, 'source': 'game', 'env_managed': True}`, the game log "Entity spawning mode set to off", a POST `400`, the fresh `serverconfig.json` without the key.
+- `entity-spawning.spec.ts` (`@game-server`) was not run: `just test-e2e-web` starts and stops the dev stack. `bunx playwright test --list`: 283 tests; CI set 251 untagged and 27 `@moddb`.
+
 ### Implementation decisions
 
 - **A watcher for this setting, not a general `ConsoleReplyWatcher`** (ADR-4 decision 2 named one): only Entity Spawning needs a reply, so `EntitySpawningWatcher` owns its patterns, its waiters and its record. A second setting that needs replies would extract the waiter part.
@@ -142,6 +151,7 @@ Claude Opus 5.5 (claude-opus-5-5).
 
 - `api/src/vintagestory_api/services/entity_spawning.py`, `api/tests/test_entity_spawning.py` (new); `api/src/vintagestory_api/services/server.py`, `api/tests/server/test_internal_methods.py` (modified); ADR-4 decision 1 and `epics.md` Story 25.3 (the recorded replies) (Tasks 1 and 2)
 - `api/src/vintagestory_api/services/game_config.py`, `services/config_init.py`, `services/config_init_service.py`, `models/server_config.py`, `models/errors.py`, `routers/config.py` (modified); `api/tests/test_entity_spawning_settings.py` (new); `api/tests/test_game_config.py`, `api/tests/test_routers_config.py` (modified: test doubles, Story 17.6 default tests) (Task 3)
+- `web/e2e/entity-spawning.spec.ts` (new); `web/e2e/README.md` (tags and counts), `README.md` (Entity Spawning), `agentdocs/vs-serverconfig-commands.md` (Task 4)
 
 ## Change Log
 
