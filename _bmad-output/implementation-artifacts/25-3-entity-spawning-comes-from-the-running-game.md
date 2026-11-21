@@ -65,15 +65,15 @@ so that **what I see and change is what the game does**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Record the game's replies (AC: 1)
-  - [ ] 1.1: Throwaway container `vss-253-spawning` with the dev stack's 1.22.7 install; send the query, sets and `/stop`; record in ADR-4 decision 1
-  - [ ] 1.2: Goes with Task 2's commit
+- [x] Task 1: Record the game's replies (AC: 1)
+  - [x] 1.1: Throwaway container `vss-253-spawning` with the dev stack's 1.22.7 install; send the query, sets and `/stop`; record in ADR-4 decision 1
+  - [x] 1.2: Goes with Task 2's commit
 
-- [ ] Task 2: The watcher and the record (AC: 1, 2, 3, 6, 9)
-  - [ ] 2.1: `services/entity_spawning.py`: the line patterns, `EntitySpawningRecord`, the atomic store, `EntitySpawningWatcher` (`observe`, `query`, `set`, `reset`, `is_ready`, `seen_since_start`, the ready hook with the env var)
-  - [ ] 2.2: `ServerService`: one watcher; `_read_stream` feeds it after the player tracker in its own `try` (`console_reply_watcher_error`, type only); reset where the player tracker is reset
-  - [ ] 2.3: Tests with a fake `send_command` and fed lines: matches, chat spoof, interleaved lines, timeout, fault, ready hook, env var, store load/save/corrupt
-  - [ ] 2.4: Commit `refactor(story-25.3/task-2): read Entity Spawning replies from the game's console`
+- [x] Task 2: The watcher and the record (AC: 1, 2, 3, 6, 9)
+  - [x] 2.1: `services/entity_spawning.py`: the line patterns, `EntitySpawningRecord`, the atomic store, `EntitySpawningWatcher` (`observe`, `query`, `set`, `reset`, `is_ready`, `seen_since_start`, the ready hook with the env var)
+  - [x] 2.2: `ServerService`: one watcher; `_read_stream` feeds it after the player tracker in its own `try` (`console_reply_watcher_error`, type only); reset where the player tracker is reset
+  - [x] 2.3: Tests with a fake `send_command` and fed lines: matches, chat spoof, interleaved lines, timeout, fault, ready hook, env var, store load/save/corrupt
+  - [x] 2.4: Commit `refactor(story-25.3/task-2): read Entity Spawning replies from the game's console`
 
 - [ ] Task 3: Game Settings reads and sets it on the game (AC: 3, 4, 5, 7, 8)
   - [ ] 3.1: `ServerSetting.location`; EntitySpawning `location="game"`, no `default`; `SettingInfo` `source`/`observed_at`; `ServerConfigFile` drops `EntitySpawning`
@@ -124,11 +124,20 @@ Claude Opus 5.5 (claude-opus-5-5).
 
 ### Debug Log References
 
+### Implementation decisions
+
+- **A watcher for this setting, not a general `ConsoleReplyWatcher`** (ADR-4 decision 2 named one): only Entity Spawning needs a reply, so `EntitySpawningWatcher` owns its patterns, its waiters and its record. A second setting that needs replies would extract the waiter part.
+- **A reply is attributed by its waiters**: a `current` reply while a query waits is `via: query`, a `set` reply while a set waits is `via: set`, any other reply was typed in the console (`via: console`). A set ignores an interleaved query reply.
+- **`reset()` ends waits with a private exception**, not by cancelling the future, so a real cancellation of the caller is never swallowed.
+- **The game takes any value but true/on/1 as off**, so only `true`/`false` is ever sent (`set_command`).
+
 ### Completion Notes List
 
 - 2026-11-21 (create-story): created from Epic 25's Story 25.3 and ADR-4 to ADR-6. Found in creation (Task 1 run first): the reply names the label, not the key, so the planned patterns were wrong (ADR-4 decision 1 and `epics.md` corrected); a set while the game loads would not be answered, so a set is refused until the ready line (AC 5); the E2E check runs on the built image in a throwaway container instead of the dev stack.
 
 ### File List
+
+- `api/src/vintagestory_api/services/entity_spawning.py`, `api/tests/test_entity_spawning.py` (new); `api/src/vintagestory_api/services/server.py`, `api/tests/server/test_internal_methods.py` (modified); ADR-4 decision 1 and `epics.md` Story 25.3 (the recorded replies) (Tasks 1 and 2)
 
 ## Change Log
 

@@ -268,6 +268,48 @@ class TestReadStream:
         assert "second line" not in captured
         _assert_no_player_data(logs)
 
+    @pytest.mark.asyncio
+    async def test_read_stream_feeds_the_entity_spawning_watcher(
+        self, test_settings: Settings
+    ) -> None:
+        """Story 25.3 (AC 6): a reply on stdout reaches the watcher and its record."""
+        service = ServerService(test_settings)
+        line = "21.11.2026 01:32:30 [Server Notification] Entity spawning mode set to off"
+        stream = MagicMock(spec=asyncio.StreamReader)
+        stream.readline = AsyncMock(side_effect=[_encoded(line), b""])
+
+        await service._read_stream(stream, "stdout")
+
+        record = service.entity_spawning.record
+        assert record is not None
+        assert record.value is False
+        assert record.via == "console"
+        assert line in service.console_buffer.get_history()
+
+    @pytest.mark.asyncio
+    async def test_read_stream_survives_a_watcher_fault(
+        self, test_settings: Settings, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Story 25.3 (AC 9): a watcher that raises never stops console capture."""
+        service = ServerService(test_settings)
+
+        def failing_observe(line: str) -> None:
+            raise ValueError(f"cannot handle {line}")
+
+        monkeypatch.setattr(service.entity_spawning, "observe", failing_observe)
+        lines = ["first line", "second line"]
+        stream = MagicMock(spec=asyncio.StreamReader)
+        stream.readline = AsyncMock(side_effect=[*(_encoded(line) for line in lines), b""])
+
+        with capture_logs() as logs:
+            await service._read_stream(stream, "stdout")
+
+        for line in lines:
+            assert line in service.console_buffer.get_history()
+        errors = [log for log in logs if log["event"] == "console_reply_watcher_error"]
+        assert [log["error_type"] for log in errors] == ["ValueError", "ValueError"]
+        assert "second line" not in repr(logs)
+
 
 class TestUpdateModServiceServerState:
     """Tests for _update_mod_service_server_state() method."""

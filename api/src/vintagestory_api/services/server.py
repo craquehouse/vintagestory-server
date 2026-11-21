@@ -31,6 +31,7 @@ from vintagestory_api.services.config_files import changed_top_level_keys
 from vintagestory_api.services.config_init_service import ConfigInitService
 from vintagestory_api.services.config_parse import ConfigParseError, parse_config_text
 from vintagestory_api.services.console import ConsoleBuffer
+from vintagestory_api.services.entity_spawning import EntitySpawningWatcher
 from vintagestory_api.services.pending_config_edits import (
     PendingConfigEdit,
     PendingConfigEdits,
@@ -249,6 +250,9 @@ class ServerService:
         # Players online, counted from the game's output (Epic 22 ADR-1)
         self._player_tracker = PlayerTracker()
 
+        # Entity Spawning as the game reports it (Story 25.3, Epic 25 ADR-4, ADR-5)
+        self._entity_spawning = EntitySpawningWatcher(self._settings.state_dir, self.send_command)
+
         # Restart-required settings saved while a game process lives (Story 22.7, ADR-15);
         # the one store, read from disk on first use
         self._pending_config_edits = PendingConfigEdits(self._settings.state_dir)
@@ -289,6 +293,11 @@ class ServerService:
     def pending_config_edits(self) -> PendingConfigEdits:
         """Restart-required settings saved while a game process lived (Story 22.7)."""
         return self._pending_config_edits
+
+    @property
+    def entity_spawning(self) -> EntitySpawningWatcher:
+        """Entity Spawning as the running game reports it (Story 25.3)."""
+        return self._entity_spawning
 
     @property
     def players_online(self) -> int | None:
@@ -1228,6 +1237,7 @@ class ServerService:
         await self._cancel_background_tasks()
         # No name from an earlier run survives a start, and a failed spawn leaves 0
         self._player_tracker.reset()
+        self._entity_spawning.reset()
 
         try:
             # Story 22.7: pending config edits go into serverconfig.json right before the
@@ -1350,6 +1360,7 @@ class ServerService:
 
             # After the readers are cancelled, so no reader adds a name after the reset
             self._player_tracker.reset()
+            self._entity_spawning.reset()
 
             # Notify mod service that server is no longer running
             self._update_mod_service_server_state(False)
@@ -1392,6 +1403,7 @@ class ServerService:
         # The monitor left this exit to the stop (Story 22.7, "ADR against the code" 2)
         self._reapply_pending_config_edits("exit")
         self._player_tracker.reset()
+        self._entity_spawning.reset()
         self._update_mod_service_server_state(False)
 
     async def restart_server(self, timeout: float = 10.0) -> LifecycleResponse:
@@ -1479,6 +1491,7 @@ class ServerService:
             returncode = await self._process.wait()
             # The game exited: nobody is online, whatever the state (also during a stop)
             self._player_tracker.reset()
+            self._entity_spawning.reset()
 
             # Update state based on exit
             self._last_exit_code = returncode
@@ -1516,8 +1529,9 @@ class ServerService:
 
         This coroutine runs continuously until the stream is exhausted (process exits).
         Each line is decoded, stripped, and added to the console buffer with a timestamp,
-        then given to the player tracker, which counts the game's join and leave lines.
-        A tracker fault is logged and never stops console capture.
+        then given to the player tracker, which counts the game's join and leave lines, and
+        to the Entity Spawning watcher (Story 25.3). A fault in either is logged and never
+        stops console capture.
 
         Args:
             stream: The subprocess stdout or stderr stream.
@@ -1540,6 +1554,15 @@ class ServerService:
                     # A tracker fault must never stop console capture (Epic 22 ADR-1 decision 1).
                     logger.warning(
                         "player_tracker_error", stream=stream_name, error_type=type(e).__name__
+                    )
+                try:
+                    self._entity_spawning.observe(text)
+                except Exception as e:
+                    # Never stops console capture either (Epic 25 ADR-4 decision 5)
+                    logger.warning(
+                        "console_reply_watcher_error",
+                        stream=stream_name,
+                        error_type=type(e).__name__,
                     )
         except asyncio.CancelledError:
             # Stream reading cancelled during shutdown - expected
