@@ -171,6 +171,25 @@ class TestModPaths:
             {"given": None, "resolved": None, "status": "invalid", "problem": True}
         ]
 
+    def test_mod_paths_null_is_one_invalid_entry(self, settings: Settings) -> None:
+        """Review L1: an explicit null is not a list of strings."""
+        result = check(settings, {"ModPaths": None})
+
+        assert statuses(result) == ["invalid"]
+        assert result.mod_paths[0].problem is True
+
+    @pytest.mark.parametrize("given", ["a\u0000b", "a" * 5000], ids=["nul", "too-long"])
+    def test_an_unusable_entry_is_invalid_not_an_error(
+        self, settings: Settings, given: str
+    ) -> None:
+        """Review M1: a NUL byte or an over-long name is reported, not raised."""
+        result = check(settings, {"ModPaths": [given, "Mods"]})
+
+        assert statuses(result)[0] == "invalid"
+        assert result.mod_paths[0].given == given
+        assert result.mod_paths[0].resolved is not None
+        assert result.mod_paths[0].problem is True
+
     def test_paths_outside_the_data_directory_are_only_stated(
         self, settings: Settings, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -262,6 +281,23 @@ class TestSaveFile:
             result = check(settings, {"WorldConfig": {"SaveFileLocation": "ro/world.vcdbs"}})
 
         assert result.save_file.status == "not_writable"
+
+    def test_a_file_named_saves_is_a_problem_for_the_default(self, settings: Settings) -> None:
+        """Review M2: the game cannot create Saves when a file holds the name."""
+        settings.serverdata_dir.mkdir(parents=True)
+        (settings.serverdata_dir / "Saves").write_text("x")
+
+        result = check(settings, {})
+
+        assert result.save_file.status == "missing"
+        assert result.save_file.problem is True
+
+    @pytest.mark.parametrize("given", ["w\u0000.vcdbs", "a" * 5000], ids=["nul", "too-long"])
+    def test_an_unusable_save_location_is_invalid(self, settings: Settings, given: str) -> None:
+        result = check(settings, {"WorldConfig": {"SaveFileLocation": given}})
+
+        assert result.save_file.status == "invalid"
+        assert result.save_file.problem is True
 
     def test_a_save_location_of_the_wrong_type_is_invalid(self, settings: Settings) -> None:
         result = check(settings, {"WorldConfig": {"SaveFileLocation": 3}})
@@ -356,6 +392,17 @@ class TestRoute:
         response = TestClient(routed_app).get(URL, headers=admin_headers)
 
         assert response.json()["data"]["mod_paths"][0]["status"] == "not_installed"
+
+    def test_an_unusable_entry_answers_200(
+        self, routed_app: FastAPI, settings: Settings, admin_headers: dict[str, str]
+    ) -> None:
+        """Review M1: the check reports a NUL entry instead of answering 500."""
+        write_config(settings, '{"ModPaths": ["a\\u0000b"]}')
+
+        response = TestClient(routed_app).get(URL, headers=admin_headers)
+
+        assert response.status_code == 200
+        assert response.json()["data"]["mod_paths"][0]["status"] == "invalid"
 
     def test_no_key_is_401(self, routed_app: FastAPI, settings: Settings) -> None:
         write_config(settings, {})

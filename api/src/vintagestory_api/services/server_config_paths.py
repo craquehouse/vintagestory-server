@@ -47,7 +47,9 @@ def check_paths(
     """
     manager_folder = _norm(settings.serverdata_dir / "Mods")
     mod_paths: list[PathEntry]
-    if "ModPaths" in invalid_keys:
+    # An explicit null is not a list of strings either (Story 25.1 review L1)
+    explicit_null = "mod_paths" in model.model_fields_set and model.mod_paths is None
+    if "ModPaths" in invalid_keys or explicit_null:
         mod_paths = [_entry(None, None, "invalid")]
     else:
         mod_paths = [
@@ -76,16 +78,26 @@ def _is_under(path: str, directory: str) -> bool:
     return path == directory or path.startswith(directory.rstrip(os.sep) + os.sep)
 
 
+class _UnusablePathError(Exception):
+    """The path cannot name a file at all: a NUL byte, too long, or a symlink loop."""
+
+
 def _stat(path: str) -> os.stat_result | None:
     """`os.stat`, or None when the path does not exist (or a parent is not a directory).
 
     Raises:
         PermissionError: If a parent directory cannot be searched.
+        _UnusablePathError: If the path cannot be used (Story 25.1 review M1), so the
+            check reports it instead of answering 500.
     """
     try:
         return os.stat(path)
     except FileNotFoundError, NotADirectoryError:
         return None
+    except PermissionError:
+        raise
+    except (OSError, ValueError) as e:
+        raise _UnusablePathError from e
 
 
 def _mod_path(
@@ -96,6 +108,8 @@ def _mod_path(
         info = _stat(resolved)
     except PermissionError:
         return _entry(given, resolved, "not_readable")
+    except _UnusablePathError:
+        return _entry(given, resolved, "invalid")
     if info is None:
         if resolved == manager_folder:
             # Created by the first install, and by the game at start
@@ -130,9 +144,15 @@ def _save_file(given: str | None, settings: Settings) -> PathEntry:
         parent_info = _stat(parent)
     except PermissionError:
         return _entry(shown, resolved, "not_writable")
-    if parent_info is None or not stat.S_ISDIR(parent_info.st_mode):
+    except _UnusablePathError:
+        return _entry(shown, resolved, "invalid")
+    if parent_info is None:
         # The game creates its default Saves folder, and stops for any other
         return _entry(shown, resolved, "not_created_yet" if is_default else "missing")
+    if not stat.S_ISDIR(parent_info.st_mode):
+        # Something that is not a folder holds the name: the game cannot create it, even
+        # for the default save (Story 25.1 review M2)
+        return _entry(shown, resolved, "missing")
     if not os.access(parent, os.W_OK | os.X_OK):
         return _entry(shown, resolved, "not_writable")
     return _entry(shown, resolved, "ok")
