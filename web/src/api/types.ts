@@ -306,6 +306,15 @@ export interface GameSetting {
    * Story 17.6: the game's value when `value` is null; absent when unknown
    */
   default?: boolean;
+  /** The VS_CFG_* variable that manages the setting, when `envManaged` */
+  envVar?: string;
+  /**
+   * Story 25.3: for a setting the game keeps (EntitySpawning), where `value` came from:
+   * reported since this start, the last value reported, or none yet
+   */
+  source?: 'game' | 'last_seen' | 'unknown';
+  /** Story 25.3: when the game reported `value` (ISO 8601) */
+  observedAt?: string;
 }
 
 /**

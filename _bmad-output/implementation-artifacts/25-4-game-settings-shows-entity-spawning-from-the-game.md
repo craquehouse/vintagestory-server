@@ -43,12 +43,12 @@ so that **I know whether I can change it now**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: The field (AC: 1-5)
-  - [ ] 1.1: `GameSetting.source`, `observedAt`, `envVar`; `SettingField.unsetLabel`
-  - [ ] 1.2: `GameConfigPanel`: a game-kept setting is disabled unless `source: game`, with the description per source and "Not known yet"; `envVar` passed to every field
-  - [ ] 1.3: The settings refetch on a server state change, and on each status poll while running and not yet `game`
-  - [ ] 1.4: Tests: each source, Monitor, the revert on a failed save, the env badge, the refetch
-  - [ ] 1.5: Commit `fix(story-25.4/task-1): show Entity Spawning as the game reports it, and the last value seen while stopped`
+- [x] Task 1: The field (AC: 1-5)
+  - [x] 1.1: `GameSetting.source`, `observedAt`, `envVar`; `SettingField.unsetLabel`
+  - [x] 1.2: `GameConfigPanel`: a game-kept setting is disabled unless `source: game`, with the description per source and "Not known yet"; `envVar` passed to every field
+  - [x] 1.3: The settings refetch on a server state change, and on each status poll while running and not yet `game`
+  - [x] 1.4: Tests: each source, Monitor, the revert on a failed save, the env badge, the refetch
+  - [x] 1.5: Commit `fix(story-25.4/task-1): show Entity Spawning as the game reports it, and the last value seen while stopped`
 
 - [ ] Task 2: Validate and move the story to review (AC: 7)
   - [ ] 2.1: `just check` green; README sentence if needed
@@ -76,11 +76,20 @@ Claude Opus 5.5 (claude-opus-5-5).
 
 ### Debug Log References
 
+### Implementation decisions
+
+- **A game-kept setting is recognised by `source` in the response**, not by its key, so the panel needs no list of such settings.
+- **The refetch on every status poll (5 s) runs only while the server runs and the game has not reported** (`exact: true` on `['config', 'game']`, so the path check is not refetched with it). If the game never answers, the page keeps asking every 5 s while it is open; the API answers from memory.
+- **Story 17.6's default tests are kept**: the `gameDefault` mechanism stays for any bool the API gives a default; no setting has one today.
+- **No README change**: Story 25.3's "Entity Spawning" paragraph already describes what Game Settings shows.
+
 ### Completion Notes List
 
 - 2026-11-21 (create-story): created from Epic 25's Story 25.4 and ADR-5. Found in creation: the env badge guessed the variable name (`VS_CFG_ENTITYSPAWNING`), so every field now gets the API's `env_var` (AC 5); "Not known yet" applies while running but not yet reported too, so the description names both cases.
 
 ### File List
+
+- `web/src/api/types.ts`, `web/src/components/SettingField.tsx`, `web/src/features/game-server/GameConfigPanel.tsx`, `web/src/features/game-server/GameConfigPanel.test.tsx` (Task 1)
 
 ## Change Log
 
