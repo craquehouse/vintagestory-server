@@ -92,6 +92,8 @@ def mock_server_service() -> MagicMock:
     mock_status.state = ServerState.RUNNING
     service.get_server_status.return_value = mock_status
     service.send_command = AsyncMock(return_value=True)
+    # Story 25.3: no Entity Spawning value reported yet
+    service.entity_spawning.record = None
     return service
 
 
@@ -1513,10 +1515,6 @@ class TestMissingCoverage:
 # ==============================================================================
 
 
-def _write_raw_config(config_file: Path, config: dict[str, object]) -> None:
-    config_file.write_text(json.dumps(config, indent=2))
-
-
 class TestGameDefaults:
     """Story 17.6: a setting the game defaults carries `default`; no other does."""
 
@@ -1524,13 +1522,9 @@ class TestGameDefaults:
         setting = ServerSetting(key="TestSetting", value_type="bool")
         assert setting.default is None
 
-    def test_entity_spawning_is_the_only_setting_with_a_default(self) -> None:
-        defaults = {
-            key: setting.default
-            for key, setting in LIVE_SETTINGS.items()
-            if setting.default is not None
-        }
-        assert defaults == {"EntitySpawning": True}
+    def test_no_setting_has_a_default(self) -> None:
+        """Story 25.3: EntitySpawning, the only one, now comes from the game (ADR-6)."""
+        assert all(setting.default is None for setting in LIVE_SETTINGS.values())
 
     def test_no_secret_setting_has_a_default(self) -> None:
         assert all(setting.default is None for setting in LIVE_SETTINGS.values() if setting.secret)
@@ -1560,39 +1554,20 @@ class TestGameDefaults:
         assert info.to_dict()["default"] is False
 
     @pytest.mark.parametrize("role", ["admin", "monitor"])
-    def test_entity_spawning_default_with_a_value_in_the_file(
+    def test_entity_spawning_in_the_file_is_never_read(
         self,
         game_config_service: GameConfigService,
         config_file: Path,
         role: str,
     ) -> None:
-        settings = {
-            s["key"]: s for s in game_config_service.get_settings(role).to_dict()["settings"]
-        }
-
-        assert settings["EntitySpawning"]["value"] is True
-        assert settings["EntitySpawning"]["default"] is True
-        assert [key for key, s in settings.items() if "default" in s] == ["EntitySpawning"]
-
-    @pytest.mark.parametrize("role", ["admin", "monitor"])
-    def test_entity_spawning_missing_from_the_file(
-        self,
-        game_config_service: GameConfigService,
-        config_file: Path,
-        sample_config: dict[str, object],
-        role: str,
-    ) -> None:
-        """The game does not write EntitySpawning to serverconfig.json (1.22.7)."""
-        config = {k: v for k, v in sample_config.items() if k != "EntitySpawning"}
-        _write_raw_config(config_file, config)
-
+        """Story 25.3 (AC 7): the file's EntitySpawning (True in the sample) is ignored."""
         settings = {
             s["key"]: s for s in game_config_service.get_settings(role).to_dict()["settings"]
         }
 
         assert settings["EntitySpawning"]["value"] is None
-        assert settings["EntitySpawning"]["default"] is True
-        assert [key for key, s in settings.items() if "default" in s] == ["EntitySpawning"]
+        assert settings["EntitySpawning"]["source"] == "unknown"
+        assert [key for key, s in settings.items() if "default" in s] == []
 
 
 # ==============================================================================

@@ -56,6 +56,8 @@ class ErrorCode:
     SETTING_ENV_MANAGED = "SETTING_ENV_MANAGED"
     SETTING_UPDATE_FAILED = "SETTING_UPDATE_FAILED"
     SETTING_VALUE_INVALID = "SETTING_VALUE_INVALID"
+    # Story 25.3: a setting the game keeps changes only while it runs and is ready
+    SETTING_NEEDS_RUNNING_SERVER = "SETTING_NEEDS_RUNNING_SERVER"
 
     # API Settings (Story 6.3) - api-settings.json for management API configuration
     # These apply to API operational settings (auto_start, refresh intervals, etc.)

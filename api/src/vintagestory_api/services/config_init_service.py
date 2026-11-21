@@ -16,6 +16,7 @@ import structlog
 from vintagestory_api.config import Settings
 from vintagestory_api.services.config_init import (
     ENV_VAR_MAP,
+    GAME_KEPT_KEYS,
     get_config_key_path,
     parse_env_value,
 )
@@ -165,6 +166,9 @@ class ConfigInitService:
         overrides: dict[str, tuple[str, str, ValueType]] = {}
 
         for env_var, (config_key, value_type) in ENV_VAR_MAP.items():
+            if config_key in GAME_KEPT_KEYS:
+                # Applied through the console after each start instead (Story 25.3)
+                continue
             value = os.environ.get(env_var)
             if value is not None:
                 # Strip surrounding quotes (common docker-compose pattern)

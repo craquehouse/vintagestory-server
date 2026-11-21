@@ -75,12 +75,12 @@ so that **what I see and change is what the game does**.
   - [x] 2.3: Tests with a fake `send_command` and fed lines: matches, chat spoof, interleaved lines, timeout, fault, ready hook, env var, store load/save/corrupt
   - [x] 2.4: Commit `refactor(story-25.3/task-2): read Entity Spawning replies from the game's console`
 
-- [ ] Task 3: Game Settings reads and sets it on the game (AC: 3, 4, 5, 7, 8)
-  - [ ] 3.1: `ServerSetting.location`; EntitySpawning `location="game"`, no `default`; `SettingInfo` `source`/`observed_at`; `ServerConfigFile` drops `EntitySpawning`
-  - [ ] 3.2: `update_setting` for a game setting: env check, 409 `SETTING_NEEDS_RUNNING_SERVER` unless ready, the set, 502 on no reply; `ErrorCode.SETTING_NEEDS_RUNNING_SERVER`; router mappings
-  - [ ] 3.3: `config_init`: skip `EntitySpawning`
-  - [ ] 3.4: Tests: GET for each source, POST running/stopped/not ready/no reply/env-managed, config init, the file never touched
-  - [ ] 3.5: Commit `fix(story-25.3/task-3): read and change Entity Spawning on the running game, where the world keeps it`
+- [x] Task 3: Game Settings reads and sets it on the game (AC: 3, 4, 5, 7, 8)
+  - [x] 3.1: `ServerSetting.location`; EntitySpawning `location="game"`, no `default`; `SettingInfo` `source`/`observed_at`; `ServerConfigFile` drops `EntitySpawning`
+  - [x] 3.2: `update_setting` for a game setting: env check, 409 `SETTING_NEEDS_RUNNING_SERVER` unless ready, the set, 502 on no reply; `ErrorCode.SETTING_NEEDS_RUNNING_SERVER`; router mappings
+  - [x] 3.3: `config_init`: skip `EntitySpawning`
+  - [x] 3.4: Tests: GET for each source, POST running/stopped/not ready/no reply/env-managed, config init, the file never touched
+  - [x] 3.5: Commit `fix(story-25.3/task-3): read and change Entity Spawning on the running game, where the world keeps it`
 
 - [ ] Task 4: End to end and documentation (AC: 10)
   - [ ] 4.1: The AC 10 run on the built image in a throwaway container; record the commands and output in the Debug Log
@@ -129,6 +129,9 @@ Claude Opus 5.5 (claude-opus-5-5).
 - **A watcher for this setting, not a general `ConsoleReplyWatcher`** (ADR-4 decision 2 named one): only Entity Spawning needs a reply, so `EntitySpawningWatcher` owns its patterns, its waiters and its record. A second setting that needs replies would extract the waiter part.
 - **A reply is attributed by its waiters**: a `current` reply while a query waits is `via: query`, a `set` reply while a set waits is `via: set`, any other reply was typed in the console (`via: console`). A set ignores an interleaved query reply.
 - **`reset()` ends waits with a private exception**, not by cancelling the future, so a real cancellation of the caller is never swallowed.
+- **`GAME_KEPT_KEYS` lives in `config_init`**, which both `game_config` and `config_init_service` import; a test asserts it equals the `location="game"` settings, so the two cannot drift.
+- **`VS_CFG_ENTITY_SPAWNING` quotes are stripped** as config init strips them (a docker-compose habit).
+- **Test doubles get `entity_spawning.record = None`**: the existing `MagicMock` server services in `test_game_config.py` and `test_routers_config.py` otherwise produce an unserialisable value. Story 17.6's default tests now assert no setting has a default and the file's `EntitySpawning` is never read.
 - **The game takes any value but true/on/1 as off**, so only `true`/`false` is ever sent (`set_command`).
 
 ### Completion Notes List
@@ -138,6 +141,7 @@ Claude Opus 5.5 (claude-opus-5-5).
 ### File List
 
 - `api/src/vintagestory_api/services/entity_spawning.py`, `api/tests/test_entity_spawning.py` (new); `api/src/vintagestory_api/services/server.py`, `api/tests/server/test_internal_methods.py` (modified); ADR-4 decision 1 and `epics.md` Story 25.3 (the recorded replies) (Tasks 1 and 2)
+- `api/src/vintagestory_api/services/game_config.py`, `services/config_init.py`, `services/config_init_service.py`, `models/server_config.py`, `models/errors.py`, `routers/config.py` (modified); `api/tests/test_entity_spawning_settings.py` (new); `api/tests/test_game_config.py`, `api/tests/test_routers_config.py` (modified: test doubles, Story 17.6 default tests) (Task 3)
 
 ## Change Log
 

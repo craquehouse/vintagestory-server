@@ -8,6 +8,13 @@ Story 6.0: Epic 6 Technical Preparation
 
 from typing import Any, Literal
 
+GAME_KEPT_KEYS: frozenset[str] = frozenset({"EntitySpawning"})
+"""Keys the game keeps in the world save, not serverconfig.json (Story 25.3, Epic 25 ADR-6).
+
+Config init never writes them; their VS_CFG_* variable is applied through the console after
+each start. Must match the `location="game"` settings in game_config.LIVE_SETTINGS.
+"""
+
 # Complete mapping of VS_CFG_* environment variables to serverconfig.json keys
 # Based on DarkMatterProductions reference implementation + VintageStory defaults
 ENV_VAR_MAP: dict[str, tuple[str, Literal["string", "int", "bool", "float"]]] = {

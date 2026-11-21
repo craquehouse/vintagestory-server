@@ -150,6 +150,9 @@ def env_value() -> bool | None:
     raw = os.environ.get(ENV_VAR)
     if raw is None:
         return None
+    # Surrounding quotes are dropped, as config init does (a docker-compose habit)
+    if len(raw) >= 2 and raw[0] == raw[-1] and raw[0] in "\"'":
+        raw = raw[1:-1]
     try:
         value = parse_env_value(raw, "bool")
     except ValueError:

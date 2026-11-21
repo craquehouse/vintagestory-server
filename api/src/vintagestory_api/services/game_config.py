@@ -7,6 +7,7 @@ Story 6.2: Game Settings API
 Story 17.5: secret settings (Password) are withheld from every role but Admin (FR186)
 Story 17.6: a setting whose game default is known carries it (FR188)
 Story 25.1: serverconfig.json is read through one typed model (FR344, FR345)
+Story 25.3: Entity Spawning is read from and set on the running game (FR349 to FR353)
 """
 
 from __future__ import annotations
@@ -46,6 +47,13 @@ ValueType = Literal["string", "int", "bool", "float"]
 # Type alias for bool format
 BoolFormat = Literal["true_false", "0_1"]
 
+# Where a setting's value lives (Story 25.3, Epic 25 ADR-6 decision 1): serverconfig.json,
+# or the running game (the world save), read and set through the console only
+SettingLocation = Literal["file", "game"]
+
+# Where a game setting's value came from (ADR-5 decision 2)
+GameValueSource = Literal["game", "last_seen", "unknown"]
+
 
 class ServerSetting:
     """Definition of a server setting with update behavior."""
@@ -60,6 +68,7 @@ class ServerSetting:
     clear_command: str | None
     secret: bool
     default: bool | None
+    location: SettingLocation
 
     def __init__(
         self,
@@ -73,6 +82,7 @@ class ServerSetting:
         clear_command: str | None = None,
         secret: bool = False,
         default: bool | None = None,
+        location: SettingLocation = "file",
     ) -> None:
         """Initialize a server setting definition.
 
@@ -94,6 +104,8 @@ class ServerSetting:
             default: The value VintageStory uses when `serverconfig.json` has no value
                 for the setting; None when the manager does not know it. Story 17.6.
                 This table is the one place defaults live.
+            location: "file" (serverconfig.json) or "game": the value lives in the world
+                save and is read and set through the console only (Story 25.3).
         """
         self.key = key
         self.value_type = value_type
@@ -105,6 +117,7 @@ class ServerSetting:
         self.clear_command = clear_command
         self.secret = secret
         self.default = default
+        self.location = location
 
 
 # Settings that support live updates via console commands
@@ -176,9 +189,9 @@ LIVE_SETTINGS: dict[str, ServerSetting] = {
         console_command="/serverconfig entityspawning {value}",
         live_update=True,
         bool_format="true_false",
-        # Story 17.6: "default: on" per agentdocs/vs-serverconfig-commands.md; the game
-        # does not write this key to serverconfig.json, so it is usually null here
-        default=True,
+        # Story 25.3: the game keeps it in the world save and never in serverconfig.json
+        # (Epic 25 ADR-6); the value comes from the game's console replies
+        location="game",
     ),
     "PassTimeWhenEmpty": ServerSetting(
         key="PassTimeWhenEmpty",
@@ -353,6 +366,8 @@ class SettingInfo:
         secret: bool = False,
         configured: bool | None = None,
         default: bool | None = None,
+        source: GameValueSource | None = None,
+        observed_at: datetime | None = None,
     ) -> None:
         """Initialize setting info.
 
@@ -370,6 +385,9 @@ class SettingInfo:
                 is set. None when the value is included.
             default: The game's value when `value` is None, if the manager knows it
                 (Story 17.6). None when unknown.
+            source: For a game setting, where `value` came from (Story 25.3): "game"
+                (reported since this start), "last_seen" or "unknown".
+            observed_at: For a game setting, when the game reported `value`.
         """
         self.key = key
         self.value = value
@@ -381,6 +399,8 @@ class SettingInfo:
         self.secret = secret
         self.configured = configured
         self.default = default
+        self.source = source
+        self.observed_at = observed_at
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for API response."""
@@ -401,6 +421,10 @@ class SettingInfo:
             result["configured"] = self.configured
         if self.default is not None:
             result["default"] = self.default
+        if self.source is not None:
+            result["source"] = self.source
+        if self.observed_at is not None:
+            result["observed_at"] = self.observed_at.isoformat()
         return result
 
 
@@ -535,6 +559,29 @@ class LoadedServerConfig:
     model: ServerConfigFile
     invalid_keys: tuple[str, ...] = ()
     """Named keys read as missing because of their type (dotted, e.g. "ModPaths")."""
+
+
+class SettingNeedsRunningServerError(GameConfigError):
+    """A game setting changes only while the game runs and is ready (Story 25.3, 409)."""
+
+    def __init__(self, key: str) -> None:
+        super().__init__(
+            message=(
+                f"Setting '{key}' is kept by the running game: start the server and wait "
+                "until it is ready to change it"
+            ),
+            code="SETTING_NEEDS_RUNNING_SERVER",
+        )
+
+
+class SettingNoReplyError(GameConfigError):
+    """The game did not confirm a change in time (Story 25.3, 502)."""
+
+    def __init__(self, key: str) -> None:
+        super().__init__(
+            message=f"Failed to update setting '{key}': the game server did not confirm it",
+            code="SETTING_UPDATE_FAILED",
+        )
 
 
 class SettingValueInvalidError(GameConfigError):
@@ -672,6 +719,9 @@ class GameConfigService:
         settings_list: list[SettingInfo] = []
 
         for key, setting_def in LIVE_SETTINGS.items():
+            if setting_def.location == "game":
+                settings_list.append(self._game_setting_info(key, setting_def))
+                continue
             value = loaded.model.value_of(key)
             configured: bool | None = None
             if setting_def.secret and not reveal_secrets:
@@ -706,6 +756,32 @@ class GameConfigService:
             settings=settings_list,
             source_file=self.config_path.name,
             last_modified=last_modified,
+        )
+
+    def _game_setting_info(self, key: str, setting_def: ServerSetting) -> SettingInfo:
+        """A setting the game keeps, from its last console reply (Story 25.3, ADR-5)."""
+        value: bool | None = None
+        source: GameValueSource = "unknown"
+        observed_at: datetime | None = None
+        if self._server_service is not None:
+            watcher = self._server_service.entity_spawning
+            record = watcher.record
+            if record is not None:
+                value = record.value
+                observed_at = record.observed_at
+                running = self._server_service.game_server_pid is not None
+                source = "game" if running and watcher.seen_since_start else "last_seen"
+        env_var = self._get_env_var_for_setting(key)
+        return SettingInfo(
+            key=key,
+            value=value,
+            value_type=setting_def.value_type,
+            live_update=setting_def.live_update,
+            requires_restart=setting_def.requires_restart,
+            env_managed=env_var is not None,
+            env_var=env_var,
+            source=source,
+            observed_at=observed_at,
         )
 
     def get_max_clients(self) -> int | None:
@@ -850,6 +926,11 @@ class GameConfigService:
             if env_var is not None:
                 raise SettingEnvManagedError(key, env_var)
 
+        if setting_def.location == "game":
+            result = await self._update_game_setting(key, validated_value)
+            self._track_pending_edit(key, result)
+            return result
+
         # Determine update method
         server_running = self.is_server_running()
         use_console = server_running and setting_def.live_update
@@ -871,6 +952,29 @@ class GameConfigService:
         # Only after a successful update: a refused or failed one changes no pending edit
         self._track_pending_edit(key, result)
         return result
+
+    async def _update_game_setting(self, key: str, value: Any) -> UpdateResult:
+        """Set a setting the game keeps, through the console (Story 25.3, ADR-6 decision 2).
+
+        Only while the game runs and has logged that it is ready; the result carries the
+        value the game reported. serverconfig.json is never touched.
+
+        Raises:
+            SettingNeedsRunningServerError: The game is stopped or not ready yet.
+            SettingNoReplyError: The game did not confirm the change in time.
+        """
+        service = self._server_service
+        if service is None or not self.is_server_running() or not service.entity_spawning.is_ready:
+            raise SettingNeedsRunningServerError(key)
+        if not isinstance(value, bool):
+            raise SettingValueInvalidError(key, "Expected bool")
+        reported = await service.entity_spawning.set(value)
+        if reported is None:
+            raise SettingNoReplyError(key)
+        logger.info("setting_updated", key=key, method="console_command", value=reported)
+        return UpdateResult(
+            key=key, value=reported, method="console_command", pending_restart=False
+        )
 
     def _track_pending_edit(self, key: str, result: UpdateResult) -> None:
         """Record or drop the key's pending edit (Story 22.7, ADR-15 decisions 1 and 4).
