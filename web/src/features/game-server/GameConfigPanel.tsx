@@ -226,14 +226,20 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
     serverState === 'running' &&
     (data?.data?.settings ?? []).some((s) => s.source !== undefined && s.source !== 'game');
   const lastState = useRef(serverState);
+  const lastPoll = useRef(statusUpdatedAt);
+  const saving = updateMutation.isPending;
   useEffect(() => {
     const changed = lastState.current !== undefined && lastState.current !== serverState;
+    // Only a new status poll counts, not the settings arriving (Story 25.4 review L1)
+    const polled = lastPoll.current !== 0 && lastPoll.current !== statusUpdatedAt;
     lastState.current = serverState;
-    if (changed || waitingForGame) {
+    lastPoll.current = statusUpdatedAt;
+    // A refetch during a save could put an older value over the field being saved
+    // (review M1); a skipped poll is harmless, the next one comes 5 s later
+    if (!saving && (changed || (waitingForGame && polled))) {
       void queryClient.invalidateQueries({ queryKey: queryKeys.config.game, exact: true });
     }
-    // statusUpdatedAt: each status poll is a chance to see the game's report
-  }, [serverState, statusUpdatedAt, waitingForGame, queryClient]);
+  }, [serverState, statusUpdatedAt, waitingForGame, saving, queryClient]);
 
   // Handle save with toast notification
   const handleSave = async (params: { key: string; value: string | number | boolean }) => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import { GameConfigPanel, gameKeptDescription } from './GameConfigPanel';
@@ -981,6 +981,157 @@ describe('GameConfigPanel', () => {
       await queryClient.refetchQueries({ queryKey: queryKeys.server.status });
 
       await waitFor(() => expect(settingsCalls()).toBe(before + 1));
+    });
+  });
+
+  describe('Story 25.4 review', () => {
+    const OBSERVED = '2026-11-21T01:46:32Z';
+    const withEntity = (entity: Record<string, unknown>) => ({
+      ...mockGameConfig,
+      data: {
+        ...mockGameConfig.data,
+        settings: [
+          ...mockGameConfig.data.settings,
+          { key: 'EntitySpawning', type: 'bool', live_update: true, env_managed: false, ...entity },
+        ],
+      },
+    });
+
+    function mockFetch(
+      config: unknown,
+      post: (url: string) => Promise<unknown>,
+      state = 'running'
+    ) {
+      const fetchMock = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
+        if (url.includes('/server/status')) {
+          return { ok: true, json: () => Promise.resolve({ status: 'ok', data: { state } }) };
+        }
+        if (init?.method === 'POST') return post(url);
+        return { ok: true, json: () => Promise.resolve(config) };
+      });
+      globalThis.fetch = fetchMock;
+      return fetchMock;
+    }
+
+    const settingsCalls = (fetchMock: ReturnType<typeof vi.fn>) =>
+      fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/config/game')).length;
+
+    async function renderPanel() {
+      const queryClient = createTestQueryClient();
+      render(<GameConfigPanel />, { wrapper: createWrapper(queryClient) });
+      await screen.findByTestId('setting-state-EntitySpawning');
+      await waitFor(() => expect(queryClient.getQueryData(queryKeys.server.status)).toBeDefined());
+      return queryClient;
+    }
+
+    it('does not refetch the settings while a save is in flight (M1)', async () => {
+      let finishPost: (value: unknown) => void = () => {};
+      const fetchMock = mockFetch(
+        withEntity({ value: null, source: 'unknown' }),
+        () => new Promise((resolve) => (finishPost = resolve))
+      );
+      const queryClient = await renderPanel();
+
+      fireEvent.click(screen.getByRole('switch', { name: 'Allow PvP' }));
+      await waitFor(() =>
+        expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true)
+      );
+      const before = settingsCalls(fetchMock);
+      await queryClient.refetchQueries({ queryKey: queryKeys.server.status });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+      await queryClient.refetchQueries({ queryKey: queryKeys.server.status });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+
+      expect(settingsCalls(fetchMock)).toBe(before);
+      finishPost({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: {
+              key: 'AllowPvP',
+              value: true,
+              method: 'console_command',
+              pending_restart: false,
+            },
+          }),
+      });
+    });
+
+    it('does not refetch when the settings first arrive, only on a status poll (L1)', async () => {
+      const fetchMock = mockFetch(withEntity({ value: null, source: 'unknown' }), () =>
+        Promise.reject(new Error('no POST expected'))
+      );
+      await renderPanel();
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+
+      expect(settingsCalls(fetchMock)).toBe(1);
+    });
+
+    it('a successful change keeps the new value (AC 4)', async () => {
+      mockFetch(withEntity({ value: true, source: 'game', observed_at: OBSERVED }), async () => ({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: {
+              key: 'EntitySpawning',
+              value: false,
+              method: 'console_command',
+              pending_restart: false,
+            },
+          }),
+      }));
+      await renderPanel();
+      const toggle = screen.getByRole('switch', { name: 'Entity Spawning' });
+
+      fireEvent.click(toggle);
+
+      const { toast } = await import('sonner');
+      await waitFor(() => expect(toast.success).toHaveBeenCalled());
+      expect(toggle).not.toBeChecked();
+    });
+
+    it('a change the game did not confirm (502) puts the switch back (AC 4)', async () => {
+      mockFetch(withEntity({ value: true, source: 'game', observed_at: OBSERVED }), async () => ({
+        ok: false,
+        status: 502,
+        json: () =>
+          Promise.resolve({ detail: { code: 'SETTING_UPDATE_FAILED', message: 'no reply' } }),
+      }));
+      await renderPanel();
+      const toggle = screen.getByRole('switch', { name: 'Entity Spawning' });
+
+      fireEvent.click(toggle);
+      expect(toggle).not.toBeChecked();
+
+      const { toast } = await import('sonner');
+      await waitFor(() => expect(toast.error).toHaveBeenCalled());
+      await waitFor(() => expect(toggle).toBeChecked());
+    });
+
+    it("names a file setting's env var from the API too (AC 5)", async () => {
+      const config = {
+        ...mockGameConfig,
+        data: {
+          ...mockGameConfig.data,
+          settings: mockGameConfig.data.settings.map((setting) =>
+            setting.key === 'MaxClients'
+              ? { ...setting, env_managed: true, env_var: 'VS_CFG_MAX_CLIENTS' }
+              : setting
+          ),
+        },
+      };
+      mockFetch(config, () => Promise.reject(new Error('no POST expected')));
+      render(<GameConfigPanel />, { wrapper: createWrapper(createTestQueryClient()) });
+
+      expect(await screen.findByText('Env: VS_CFG_MAX_CLIENTS')).toBeInTheDocument();
     });
   });
 
