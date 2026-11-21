@@ -172,4 +172,6 @@ class PathCheck(BaseModel):
 
     mod_paths: list[PathEntry]
     save_file: PathEntry
+    manager_mods_folder: str
+    """The folder the manager installs mods into, `{serverdata}/Mods` (Story 25.2)."""
     manager_mods_folder_listed: bool

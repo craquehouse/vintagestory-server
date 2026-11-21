@@ -43,9 +43,9 @@ so that **I can fix it**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: `manager_mods_folder` in the path check (AC: 1)
-  - [ ] 1.1: `PathCheck.manager_mods_folder` (the resolved `{serverdata}/Mods`); tests; README sentence
-  - [ ] 1.2: Commit `refactor(story-25.2/task-1): name the manager's mods folder in the path check`
+- [x] Task 1: `manager_mods_folder` in the path check (AC: 1)
+  - [x] 1.1: `PathCheck.manager_mods_folder` (the resolved `{serverdata}/Mods`); tests; README sentence
+  - [x] 1.2: Commit `refactor(story-25.2/task-1): name the manager's mods folder in the path check`
 
 - [ ] Task 2: The warning (AC: 1-6)
   - [ ] 2.1: Types `ServerConfigPathEntry`, `ServerConfigPathCheck`; `fetchServerConfigPaths`; `queryKeys.config.gamePaths` (under `['config', 'game']`); `useServerConfigPaths` (30 s polling, no retry)
@@ -87,6 +87,8 @@ Claude Opus 5.5 (claude-opus-5-5).
 - 2026-11-21 (create-story): created from Epic 25's Story 25.2 and ADR-3. Found in creation: the file browser cannot be linked to a file, so the warning names the place (ADR-3 decision 3); the response needs the manager's folder to name it (`manager_mods_folder`); the check refreshes with the settings' polling rather than on a server status change.
 
 ### File List
+
+- `api/src/vintagestory_api/models/server_config.py`, `api/src/vintagestory_api/services/server_config_paths.py`, `api/tests/test_server_config_paths.py`, `README.md` (Task 1)
 
 ## Change Log
 

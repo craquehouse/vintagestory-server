@@ -154,6 +154,8 @@ class TestModPaths:
         result = check(settings, {"ModPaths": ["Mods"]})
 
         assert result.manager_mods_folder_listed is False
+        # Story 25.2: the response names the folder, so the warning can
+        assert result.manager_mods_folder == str(settings.serverdata_dir / "Mods")
 
     def test_no_mod_paths_lists_nothing(self, settings: Settings) -> None:
         result = check(settings, {})
@@ -377,6 +379,7 @@ class TestRoute:
         data = response.json()["data"]
         assert [entry["status"] for entry in data["mod_paths"]] == ["missing", "missing"]
         assert data["manager_mods_folder_listed"] is False
+        assert data["manager_mods_folder"] == str(settings.serverdata_dir / "Mods")
         assert data["save_file"]["status"] == "not_created_yet"
 
     def test_the_install_state_comes_from_the_server_service(
