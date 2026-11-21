@@ -7,7 +7,7 @@ Playwright tests against a running Docker stack (the API serving the built web U
 - `just test-e2e-ci` runs the set CI runs on every pull request, in two passes, and removes
   everything it started afterwards, also after a failure. It never touches the dev stack,
   `./data` or `dev/`, and starts no game server.
-  - First pass: the tests with no tag (239) and the API's E2E tests, against a throwaway
+  - First pass: the tests with no tag (251) and the API's E2E tests, against a throwaway
     container (`vintagestory-manager-e2e` on `127.0.0.1:18080`) from the image, seeded with
     `fixtures/serverconfig.json`, the empty directory `Logs/Archive`, placeholder keys and
     no game server. It exports `E2E_CONTAINER` for the one spec that creates a directory in
@@ -43,17 +43,18 @@ test that carries `@moddb-live`, `@install` or `@game-server`:
 |---|---|---|
 | `@moddb` | mod database answers, recorded or live (runs in CI on recordings) | `mod-browse-name-sort.spec.ts` |
 | `@moddb-live` | the live mod database: the test compares with live data (local only) | the live test of `browse-game-version.spec.ts` |
-| `@game-server` | a game server that is installed or has run: files it wrote, a running process | no test today |
+| `@game-server` | a game server that is installed or has run: files it wrote, a running process | `entity-spawning.spec.ts` |
 | `@install` | to install or remove a real mod (always with `@moddb`; local only) | the real-API block of `mod-install-release.spec.ts` |
 
 `@moddb-live` replaces `@moddb` on a test; the first pass's pattern `@moddb` leaves it out as
-well. Of the 270 tests, CI runs 266: 239 untagged and 27 `@moddb`. The four that stay
+well. Of the 283 tests, CI runs 278: 251 untagged and 27 `@moddb`. The five that stay
 local-only are the live test of `browse-game-version.spec.ts` (`@moddb-live`: on recorded
 answers and a stack with no game server its game version is null, so it would check
-nothing) and the three `@install` tests in `installed-status.spec.ts` and
-`mod-install-release.spec.ts` (they install a real mod).
+nothing), the three `@install` tests in `installed-status.spec.ts` and
+`mod-install-release.spec.ts` (they install a real mod), and the `@game-server` test in
+`entity-spawning.spec.ts` (Story 25.3: Entity Spawning comes from a game server's reply).
 
-Since Story 20.5 no test carries `@game-server`. It is the right tag for a test that needs a
+Story 25.3's `entity-spawning.spec.ts` is the one `@game-server` test. It is the right tag for a test that needs a
 running game server process, or files only a game server writes that the CI script cannot
 seed (for example a world save or a server log with content). A test that only needs a
 directory or a small file gets it seeded in `scripts/e2e-ci.sh` instead.

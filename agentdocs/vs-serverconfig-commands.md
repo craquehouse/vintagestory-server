@@ -28,7 +28,7 @@ These settings can be changed at runtime via console commands and take effect im
 | `/serverconfig allowpvp true/false` | AllowPvP | bool | Player vs player combat |
 | `/serverconfig allowfirespread true/false` | AllowFireSpread | bool | Fire propagation mechanics |
 | `/serverconfig allowfallingblocks true/false` | AllowFallingBlocks | bool | Gravity effects on blocks |
-| `/serverconfig entityspawning true/false` | EntitySpawning | bool | Creature spawning (default: on) |
+| `/serverconfig entityspawning true/false` | EntitySpawning | bool | Creature spawning (default: on). Kept in the world save, never in serverconfig.json (1.22.7). Replies: `Current Entity spawning mode is on`, `Entity spawning mode set to off`; any value but true/on/1 sets off (Epic 25 ADR-4) |
 | `/serverconfig WhitelistMode off/on/default` | WhitelistMode | enum | Connection restrictions |
 | `/serverconfig antiabuse Off/Basic/Pedantic` | AntiAbuse | enum | Anti-abuse protection level |
 | `/serverconfig tickrate N` | TickRate | int | Server tick rate (10-100) |

@@ -84,7 +84,14 @@ The maintainer named the scope: `VSS-7ap` (parse `serverconfig.json` into a type
 
 **Decision:**
 
-1. **Patterns.** Written against a recorded 1.22.7 sample, anchored at the end of the line, ignoring the timestamp and tag: `Current EntitySpawning is (?P<value>\S+)` and `EntitySpawning set to (?P<value>\S+)`. The value is parsed case-insensitively from `true`/`false`/`on`/`off`/`1`/`0`; anything else is not a match.
+1. **Patterns.** Recorded on 1.22.7 (Story 25.3 Task 1, throwaway container `vss-253-spawning`, 2026-11-21). The game prints the argument's label ("Entity spawning mode"), not the key, and `on`/`off`, tagged `[Server Notification]`:
+   ```
+   [Server Notification] Handling Console Command /serverconfig entityspawning
+   [Server Notification] Current Entity spawning mode is on
+   [Server Notification] Handling Console Command /serverconfig entityspawning false
+   [Server Notification] Entity spawning mode set to off
+   ```
+   So the patterns, anchored after the tag and at the end of the line, are `Current Entity spawning mode is (on|off)` and `Entity spawning mode set to (on|off)`. Any value other than true/on/1 is taken as off by the game (`bogus` gave "set to off"), so the manager only ever sends `true` or `false`. The value survived `/stop` and a new start, and `serverconfig.json` never held the key: it is in the world save. A new world starts with it on (Story 17.6's default was right).
 2. **Watcher.** `ConsoleReplyWatcher` is fed by `_read_stream` after the player tracker, inside its own `try`. It also sees `Dedicated Server now running`, which fires the ready hook (ADR-6 decision 3). It is reset when the process starts and stops.
 3. **Every set line counts.** A `set to` line updates the record (ADR-5) whether the manager sent the command or an administrator typed it.
 4. **Waiting.** `expect(pattern, timeout=5.0)` is registered before the command is sent and resolves on the first matching line after it. On timeout the caller gets `None`. A set that times out answers 502 `SETTING_UPDATE_FAILED`; a query that times out logs `entity_spawning_read_timeout` and keeps the record.

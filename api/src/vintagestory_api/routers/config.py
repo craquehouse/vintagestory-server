@@ -84,6 +84,8 @@ from vintagestory_api.services.game_config import (
     GameConfigService,
     ServerConfigInvalidError,
     SettingEnvManagedError,
+    SettingNeedsRunningServerError,
+    SettingNoReplyError,
     SettingUnknownError,
     SettingUpdateFailedError,
     SettingValueInvalidError,
@@ -296,7 +298,11 @@ async def update_game_setting(
         HTTPException: 403 if not Admin role
         HTTPException: 422 CONFIG_FILE_INVALID with parse_error if a file update finds
             serverconfig.json not valid JSON (Story 25.1); the file is untouched
+        HTTPException: 409 SETTING_NEEDS_RUNNING_SERVER for a setting the game keeps
+            (EntitySpawning) while the game is stopped or not ready (Story 25.3)
         HTTPException: 500 if update fails
+        HTTPException: 502 SETTING_UPDATE_FAILED when the game does not confirm a change
+            of a setting it keeps (Story 25.3)
     """
     try:
         result = await service.update_setting(key, request.value)
@@ -304,6 +310,18 @@ async def update_game_setting(
 
     except ServerConfigInvalidError as e:
         raise _serverconfig_invalid(e)
+
+    except SettingNeedsRunningServerError as e:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": ErrorCode.SETTING_NEEDS_RUNNING_SERVER, "message": e.message},
+        )
+
+    except SettingNoReplyError as e:
+        raise HTTPException(
+            status_code=502,
+            detail={"code": ErrorCode.SETTING_UPDATE_FAILED, "message": e.message},
+        )
 
     except SettingUnknownError as e:
         raise HTTPException(

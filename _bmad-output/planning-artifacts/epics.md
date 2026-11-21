@@ -8965,7 +8965,7 @@ So that **what I see and change is what the game does**.
 
 **Given** the game logs `Dedicated Server now running` and `VS_CFG_ENTITY_SPAWNING` is not set
 **When** the manager sees the line
-**Then** it sends `/serverconfig entityspawning`, reads `Current EntitySpawning is <value>` within 5 seconds, and records the value and the time
+**Then** it sends `/serverconfig entityspawning`, reads `Current Entity spawning mode is on|off` within 5 seconds (the reply recorded in ADR-4), and records the value and the time
 
 *(Covers FR349; ADR-4, ADR-5)*
 
@@ -8977,7 +8977,7 @@ So that **what I see and change is what the game does**.
 
 **Given** the game runs
 **When** `POST /config/game/settings/EntitySpawning` is called
-**Then** the command is sent, and the response and the record carry the value from `EntitySpawning set to <value>`; with no reply within 5 seconds the answer is 502 `SETTING_UPDATE_FAILED` and the record is unchanged
+**Then** the command is sent, and the response and the record carry the value from `Entity spawning mode set to on|off`; with no reply within 5 seconds the answer is 502 `SETTING_UPDATE_FAILED` and the record is unchanged
 
 *(Covers FR351; ADR-4 decision 4)*
 
@@ -8987,7 +8987,7 @@ So that **what I see and change is what the game does**.
 
 *(Covers FR351; ADR-6 decision 2)*
 
-**Given** any `EntitySpawning set to <value>` line on stdout, from the UI or typed in the console
+**Given** any `Entity spawning mode set to on|off` line on stdout, from the UI or typed in the console
 **When** the watcher sees it
 **Then** the record follows it
 

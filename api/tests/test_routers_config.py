@@ -124,6 +124,8 @@ def mock_server_service(temp_settings: Settings) -> MagicMock:
     mock_status.state = ServerState.RUNNING
     service.get_server_status.return_value = mock_status
     service.send_command = AsyncMock(return_value=True)
+    # Story 25.3: no Entity Spawning value reported yet
+    service.entity_spawning.record = None
     return service
 
 
@@ -2218,7 +2220,7 @@ class TestDependencyInjection:
 
 
 class TestGameSettingsDefault:
-    """GET /config/game: EntitySpawning carries `default: true`; no other setting does."""
+    """GET /config/game: no setting carries `default` (Story 25.3 replaced Story 17.6's)."""
 
     @pytest.mark.parametrize("api_key", [TEST_ADMIN_KEY, TEST_MONITOR_KEY])
     def test_entity_spawning_missing_from_the_file(
@@ -2236,8 +2238,8 @@ class TestGameSettingsDefault:
         assert response.status_code == 200
         settings = _settings_by_key(response.json())
         assert settings["EntitySpawning"]["value"] is None
-        assert settings["EntitySpawning"]["default"] is True
-        assert [key for key, s in settings.items() if "default" in s] == ["EntitySpawning"]
+        assert settings["EntitySpawning"]["source"] == "unknown"
+        assert [key for key, s in settings.items() if "default" in s] == []
         assert settings["AllowPvP"]["value"] is True
         assert "default" not in settings["AllowPvP"]
 
