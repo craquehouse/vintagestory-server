@@ -148,6 +148,46 @@ describe('GameConfigPanel', () => {
     });
   });
 
+  describe('path warning (Story 25.2)', () => {
+    it('shows the serverconfig.json path warning above the settings', async () => {
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string) => ({
+        ok: true,
+        json: () =>
+          Promise.resolve(
+            url.includes('/config/game/paths')
+              ? {
+                  status: 'ok',
+                  data: {
+                    mod_paths: [
+                      {
+                        given: 'Mods',
+                        resolved: '/data/server/Mods',
+                        status: 'ok',
+                        problem: false,
+                      },
+                    ],
+                    save_file: {
+                      given: null,
+                      resolved: '/data/serverdata/Saves/default.vcdbs',
+                      status: 'ok',
+                      problem: false,
+                    },
+                    manager_mods_folder: '/data/serverdata/Mods',
+                    manager_mods_folder_listed: false,
+                  },
+                }
+              : mockGameConfig
+          ),
+      }));
+
+      render(<GameConfigPanel />, { wrapper: createWrapper(createTestQueryClient()) });
+
+      const warning = await screen.findByTestId('server-config-paths-warning');
+      expect(warning).toHaveTextContent('ModPaths does not include /data/serverdata/Mods');
+      expect(screen.getByText('Server Info')).toBeInTheDocument();
+    });
+  });
+
   describe('rendering settings', () => {
     it('renders setting groups when loaded', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({

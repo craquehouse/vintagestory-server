@@ -26,6 +26,7 @@ import type {
   ConfigTextCheck,
   ConfigFileListData,
   ConfigFileContentData,
+  ServerConfigPathCheck,
 } from './types';
 
 const API_PREFIX = '/api/v1alpha1/config';
@@ -39,6 +40,15 @@ const API_PREFIX = '/api/v1alpha1/config';
  */
 export async function fetchGameConfig(): Promise<ApiResponse<GameConfigData>> {
   return apiClient<ApiResponse<GameConfigData>>(`${API_PREFIX}/game`);
+}
+
+/**
+ * Check the mod and save paths in serverconfig.json (Story 25.1, FR346, FR347).
+ *
+ * Accessible to both Admin and Monitor roles.
+ */
+export async function fetchServerConfigPaths(): Promise<ApiResponse<ServerConfigPathCheck>> {
+  return apiClient<ApiResponse<ServerConfigPathCheck>>(`${API_PREFIX}/game/paths`);
 }
 
 /**

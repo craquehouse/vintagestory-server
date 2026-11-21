@@ -318,6 +318,41 @@ export interface GameConfigData {
 }
 
 /**
+ * How a path in serverconfig.json stands (Story 25.1, Epic 25 ADR-2 decision 2).
+ * `not_installed` and `not_created_yet` are normal on a fresh install (values are not
+ * camel-cased; only keys are).
+ */
+export type ServerConfigPathStatus =
+  | 'ok'
+  | 'missing'
+  | 'not_a_directory'
+  | 'not_a_file'
+  | 'not_readable'
+  | 'not_writable'
+  | 'not_installed'
+  | 'not_created_yet'
+  | 'invalid';
+
+/** One `ModPaths` entry, or the save file (Story 25.1). */
+export interface ServerConfigPathEntry {
+  /** As written in serverconfig.json; null for a null save location or invalid ModPaths */
+  given: string | null;
+  /** The path the game uses; null when it cannot be resolved */
+  resolved: string | null;
+  status: ServerConfigPathStatus;
+  problem: boolean;
+}
+
+/** Response from GET /api/v1alpha1/config/game/paths (Story 25.1, FR346, FR347). */
+export interface ServerConfigPathCheck {
+  modPaths: ServerConfigPathEntry[];
+  saveFile: ServerConfigPathEntry;
+  /** The folder the manager installs mods into (Story 25.2) */
+  managerModsFolder: string;
+  managerModsFolderListed: boolean;
+}
+
+/**
  * Response from POST /api/v1alpha1/config/game/settings/{key}.
  */
 export interface GameSettingUpdateData {

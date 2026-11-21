@@ -9,7 +9,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/api/query-keys';
-import { fetchGameConfig, updateGameSetting } from '@/api/config';
+import { fetchGameConfig, fetchServerConfigPaths, updateGameSetting } from '@/api/config';
 import type { ApiResponse, GameConfigData, GameSetting } from '@/api/types';
 
 /**
@@ -46,6 +46,22 @@ export function useGameConfig() {
     queryFn: fetchGameConfig,
     refetchInterval: GAME_CONFIG_POLL_INTERVAL,
     refetchIntervalInBackground: false,
+  });
+}
+
+/**
+ * The serverconfig.json path check (Story 25.2, Epic 25 ADR-3).
+ *
+ * Its own query, so a failing check never affects the settings (ADR-3 decision 2). It
+ * polls with the settings and is not retried: a 404 or 422 is an answer, not a glitch.
+ */
+export function useServerConfigPaths() {
+  return useQuery({
+    queryKey: queryKeys.config.gamePaths,
+    queryFn: fetchServerConfigPaths,
+    refetchInterval: GAME_CONFIG_POLL_INTERVAL,
+    refetchIntervalInBackground: false,
+    retry: false,
   });
 }
 

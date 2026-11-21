@@ -565,6 +565,7 @@ describe('useSaveConfigFile', () => {
     });
     const queryClient = createTestQueryClient();
     queryClient.setQueryData(queryKeys.config.file('ModConfig/x.json'), { status: 'ok' });
+    queryClient.setQueryData(queryKeys.config.gamePaths, { status: 'ok' });
     const { result } = renderHook(() => useSaveConfigFile(), {
       wrapper: createWrapper(queryClient),
     });
@@ -580,6 +581,53 @@ describe('useSaveConfigFile', () => {
     expect(
       queryClient.getQueryState(queryKeys.config.file('ModConfig/x.json'))?.isInvalidated
     ).toBe(true);
+    // Story 25.2: only serverconfig.json refetches the game settings and the path check
+    expect(queryClient.getQueryState(queryKeys.config.gamePaths)?.isInvalidated).toBe(false);
+  });
+
+  it.each([['serverconfig.json'], ['ServerConfig.JSON']])(
+    'refetches the game settings and the path check after a save of %s (Story 25.2)',
+    async (name) => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ status: 'ok', data: { filename: name, version: 'v2' } }),
+      });
+      const queryClient = createTestQueryClient();
+      queryClient.setQueryData(queryKeys.config.game, { status: 'ok' });
+      queryClient.setQueryData(queryKeys.config.gamePaths, { status: 'ok' });
+      const { result } = renderHook(() => useSaveConfigFile(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync({ path: [name], text: '{}', version: 'v1' });
+      });
+
+      expect(queryClient.getQueryState(queryKeys.config.game)?.isInvalidated).toBe(true);
+      expect(queryClient.getQueryState(queryKeys.config.gamePaths)?.isInvalidated).toBe(true);
+    }
+  );
+
+  it('does not treat a nested serverconfig.json as the root one', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ status: 'ok', data: { filename: 'x', version: 'v2' } }),
+    });
+    const queryClient = createTestQueryClient();
+    queryClient.setQueryData(queryKeys.config.gamePaths, { status: 'ok' });
+    const { result } = renderHook(() => useSaveConfigFile(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        path: ['ModConfig', 'serverconfig.json'],
+        text: '{}',
+        version: 'v1',
+      });
+    });
+
+    expect(queryClient.getQueryState(queryKeys.config.gamePaths)?.isInvalidated).toBe(false);
   });
 });
 
@@ -722,5 +770,28 @@ describe('config history hooks', () => {
 
     expect(queryClient.getQueryState(['config', 'history', 'x.json'])?.isInvalidated).toBe(true);
     expect(queryClient.getQueryState(queryKeys.config.file('x.json'))?.isInvalidated).toBe(true);
+  });
+
+  it('refetches the path check after a restore of serverconfig.json (Story 25.2)', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({ status: 'ok', data: { filename: 'serverconfig.json', version: 'v2' } }),
+    });
+    const queryClient = createTestQueryClient();
+    queryClient.setQueryData(queryKeys.config.gamePaths, { status: 'ok' });
+    const { result } = renderHook(() => useRestoreConfigRevision(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        path: ['serverconfig.json'],
+        revision: 'r1',
+        version: 'v1',
+      });
+    });
+
+    expect(queryClient.getQueryState(queryKeys.config.gamePaths)?.isInvalidated).toBe(true);
   });
 });

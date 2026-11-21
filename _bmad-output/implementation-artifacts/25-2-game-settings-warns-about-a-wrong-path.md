@@ -1,0 +1,114 @@
+# Story 25.2: Game Settings Warns About a Wrong Path
+
+Status: done
+
+<!-- Implements FR348, Epic 25 ADR-3. Bead: VSS-7ap (API-012, closes with this story after merge). Branch story/25-2-game-settings-warns-about-a-wrong-path, stacked on story/25-1-serverconfig-is-read-through-one-typed-model-and-its-paths-are-checked (PR #223); the PR targets main and merges after 25.1's. Web, plus one API field (`manager_mods_folder`). -->
+
+## Story
+
+As an **administrator**,
+I want **Game Settings to tell me when a mod or save path is wrong**,
+so that **I can fix it**.
+
+## Acceptance Criteria
+
+1. **Given** a path entry with `problem: true`, or `manager_mods_folder_listed: false`
+   **When** Game Settings opens
+   **Then** a warning above the settings groups names each problem: the path as given and as resolved and what is wrong, and for the mods folder the folder the manager installs into (`manager_mods_folder`, new in the response)
+   *(FR348; ADR-3 decision 3)*
+
+2. **Given** an Admin key
+   **When** the warning shows
+   **Then** it says how to fix it: absolute paths such as `/data/serverdata/Mods`, edited in **Settings → File Manager → serverconfig.json** while the game server is stopped; a Monitor key gets "Ask an administrator to correct serverconfig.json." instead
+   *(FR348)*
+
+3. **Given** every entry has `problem: false` and the mods folder is listed
+   **When** Game Settings opens
+   **Then** no warning shows
+   *(FR348)*
+
+4. **Given** the check fails (404, 422, network) or its response has another shape
+   **When** Game Settings opens
+   **Then** the settings show as before, with no warning and no error from the check
+   *(FR348; ADR-3 decision 2)*
+
+5. **Given** a `serverconfig.json` saved or restored in the file browser
+   **When** the save succeeds
+   **Then** the settings and the path check are fetched again; otherwise the check refreshes with the settings' 30-second polling
+   *(ADR-3 decision 1)*
+
+6. The warning is a `role="alert"` region (announced once when it appears); it has no controls, so it adds no touch targets.
+
+7. **(Quality gates.)** `just check` green; no suppression added.
+
+## Tasks / Subtasks
+
+- [x] Task 1: `manager_mods_folder` in the path check (AC: 1)
+  - [x] 1.1: `PathCheck.manager_mods_folder` (the resolved `{serverdata}/Mods`); tests; README sentence
+  - [x] 1.2: Commit `refactor(story-25.2/task-1): name the manager's mods folder in the path check`
+
+- [x] Task 2: The warning (AC: 1-6)
+  - [x] 2.1: Types `ServerConfigPathEntry`, `ServerConfigPathCheck`; `fetchServerConfigPaths`; `queryKeys.config.gamePaths` (under `['config', 'game']`); `useServerConfigPaths` (30 s polling, no retry)
+  - [x] 2.2: `ServerConfigPathsWarning` (problem list, Admin fix text, Monitor text, renders nothing on error or another shape); placed in `GameConfigPanel` after the read-only note
+  - [x] 2.3: `useSaveConfigFile` and `useRestoreConfigRevision` invalidate `['config', 'game']` when the root `serverconfig.json` changes
+  - [x] 2.4: Tests: each status's text, the mods-folder line, the save line, no problem, failed check, other shape, Monitor, the invalidation
+  - [x] 2.5: README sentence (Game Settings shows the warning)
+  - [x] 2.6: Commit `feat(story-25.2/task-2): warn in Game Settings when a mod or save path in serverconfig.json is wrong`
+
+- [x] Task 3: Validate and move the story to review (AC: 7)
+  - [x] 3.1: `just check` green
+  - [x] 3.2: Status `review`; sprint status; Dev Agent Record and File List
+  - [x] 3.3: Commit `chore(story-25.2/task-3): validate and move story 25.2 to review`
+
+## Dev Notes
+
+### The code today (verified at 3f734626, the tip of 25.1)
+
+- `GET /config/game/paths` returns `{mod_paths, save_file, manager_mods_folder_listed}`; entries `{given, resolved, status, problem}` (`models/server_config.py`). The web client turns snake_case into camelCase (`web/src/api/client.ts`).
+- `GameConfigPanel` (`web/src/features/game-server/GameConfigPanel.tsx`) renders the read-only note then the groups; `useIsAdmin` gives the role. `useGameConfig` polls every 30 s (`hooks/use-game-config.ts`).
+- The file browser has no URL that opens a given file (Settings tabs and the selected file are component state), so the warning names where to go instead of linking (ADR-3 decision 3 as implemented).
+- `GameConfigPanel.test.tsx` mocks `fetch` to answer every URL with the settings response, so the warning must treat an unexpected shape as "no data".
+- `UnusedFilesNotice` (Story 24.6) is the nearest notice-with-a-list pattern; `ModUpdatesNotice` is a one-line link.
+
+### References
+
+- `epics.md` "Story 25.2"; `architecture/epic-25-server-config-read-correctly.md` ADR-2, ADR-3; Story 25.1
+
+## Dev Agent Record
+
+### Agent Model Used
+
+Claude Opus 5.5 (claude-opus-5-5).
+
+### Debug Log References
+
+- `just check` (2026-11-21): exit 0; API 4169 passed, web 3960 passed; Pyright 0/0; lints green. After review fixes: web 3963 passed, lint and typecheck green.
+
+### Completion Notes List
+
+- 2026-11-21 (dev-story): Tasks 1 to 3 done. `manager_mods_folder` in the path check; `ServerConfigPathsWarning` in Game Settings (Admin fix text, Monitor text, nothing on error or another shape); a `serverconfig.json` save or restore refetches `['config', 'game']`. 24 new web tests.
+
+- 2026-11-21 (create-story): created from Epic 25's Story 25.2 and ADR-3. Found in creation: the file browser cannot be linked to a file, so the warning names the place (ADR-3 decision 3); the response needs the manager's folder to name it (`manager_mods_folder`); the check refreshes with the settings' polling rather than on a server status change.
+
+### File List
+
+- `_bmad-output/planning-artifacts/architecture/epic-25-server-config-read-correctly.md` (ADR-3 as implemented); this file; `sprint-status.yaml` (through `just sprint set`)
+- `web/src/components/ServerConfigPathsWarning.tsx`, `web/src/components/ServerConfigPathsWarning.test.tsx` (new)
+- `web/src/api/types.ts`, `web/src/api/config.ts`, `web/src/api/query-keys.ts`, `web/src/hooks/use-game-config.ts`, `web/src/hooks/use-config-files.ts`, `web/src/hooks/use-config-files.test.tsx`, `web/src/features/game-server/GameConfigPanel.tsx`, `web/src/features/game-server/GameConfigPanel.test.tsx`, `README.md` (modified, Task 2)
+- `api/src/vintagestory_api/models/server_config.py`, `api/src/vintagestory_api/services/server_config_paths.py`, `api/tests/test_server_config_paths.py`, `README.md` (Task 1)
+
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode (read-only, 2026-11-21). Verdict: approve with changes. 0 HIGH, 2 MEDIUM, 3 LOW; four fixed, one kept with a reason:
+
+1. **MEDIUM: the save-file `missing` line was ungrammatical, and wrong when a file holds the folder's name** (Story 25.1 review M2 made that case `missing` too). Now "Save file "X" (path) cannot be created: its folder is missing or is not a folder, so the game server will not start." Tests updated.
+2. **MEDIUM: commit `81a3b588` is typed `refactor` but adds `manager_mods_folder` to the response.** Kept: the path check endpoint is new in this unreleased epic, so the field ships in the same release as the endpoint and its `feat` note ("check that serverconfig.json's mod and save paths exist") covers it; the README documents the field. Retyping would mean force-pushing an open PR's branch.
+3. **LOW: duplicate React keys for identical lines** (`ModPaths: ["/nowhere", "/nowhere"]`). Keys carry the index; a test that failed with the old key.
+4. **LOW: the warning could show the Monitor text, then change to the Admin text** while the role loads, so a `role="alert"` region was announced twice. It now renders only once the role is known (or failed). Test.
+5. **LOW: a rejected request (AC 4's network case) was untested.** Test.
+
+## Change Log
+
+- 2026-11-21: Story 25.2 created (create-story); status ready-for-dev.
+- 2026-11-21: Story 25.2 implemented (dev-story): Tasks 1 to 3; status review.
+- 2026-11-21: Code review (GLM-5.3-Flash via opencode): approve with changes; 0 HIGH, 2 MEDIUM, 3 LOW; four fixed, one kept with a reason (see "Review"). Status done.

@@ -60,7 +60,12 @@ def check_paths(
     given_save = model.world_config.save_file_location if model.world_config else None
     invalid_save = "WorldConfig.SaveFileLocation" in invalid_keys or "WorldConfig" in invalid_keys
     save_file = _entry(None, None, "invalid") if invalid_save else _save_file(given_save, settings)
-    return PathCheck(mod_paths=mod_paths, save_file=save_file, manager_mods_folder_listed=listed)
+    return PathCheck(
+        mod_paths=mod_paths,
+        save_file=save_file,
+        manager_mods_folder=manager_folder,
+        manager_mods_folder_listed=listed,
+    )
 
 
 def _norm(path: Path | str) -> str:
