@@ -272,7 +272,7 @@ development_status:
   epic-26-retrospective: optional
   epic-27: backlog
   epic-27-retrospective: optional
-  25-1-serverconfig-is-read-through-one-typed-model-and-its-paths-are-checked: in-progress
+  25-1-serverconfig-is-read-through-one-typed-model-and-its-paths-are-checked: review
   25-2-game-settings-warns-about-a-wrong-path: backlog
   25-3-entity-spawning-comes-from-the-running-game: backlog
   25-4-game-settings-shows-entity-spawning-from-the-game: backlog

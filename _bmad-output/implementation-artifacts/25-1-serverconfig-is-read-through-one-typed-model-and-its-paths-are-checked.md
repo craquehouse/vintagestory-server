@@ -1,6 +1,6 @@
 # Story 25.1: serverconfig.json Is Read Through One Typed Model, and Its Paths Are Checked
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR344, FR345, FR346, FR347, Epic 25 ADR-1, ADR-2. Bead: VSS-7ap (API-012, API half; closes in 25.2). Branch story/25-1-serverconfig-is-read-through-one-typed-model-and-its-paths-are-checked from main at 7224a181, carrying the Epic 25 planning commit. API only: `git diff` of `web/` stays empty except the E2E spec. -->
 
@@ -91,10 +91,10 @@ so that **I learn about a wrong path before I wonder why my mods do not load**.
   - [x] 4.1: README, Game Settings section: the path check and what each status means; `agentdocs/vs-server-troubleshooting.md`: the confirmed rules with the log lines that prove them
   - [x] 4.2: Commit `docs(story-25.1/task-4): explain the serverconfig.json path check`
 
-- [ ] Task 5: Validate and move the story to review (AC: 11)
-  - [ ] 5.1: `just check` green; `just changelog` lists Task 3's `feat` only
-  - [ ] 5.2: Status `review`; `just sprint set 25-1-serverconfig-is-read-through-one-typed-model-and-its-paths-are-checked review`; Dev Agent Record and File List
-  - [ ] 5.3: Commit `chore(story-25.1/task-5): validate and move story 25.1 to review`
+- [x] Task 5: Validate and move the story to review (AC: 11)
+  - [x] 5.1: `just check` green; `just changelog` lists Task 3's `feat` only
+  - [x] 5.2: Status `review`; `just sprint set 25-1-serverconfig-is-read-through-one-typed-model-and-its-paths-are-checked review`; Dev Agent Record and File List
+  - [x] 5.3: Commit `chore(story-25.1/task-5): validate and move story 25.1 to review`
 
 ## Dev Notes
 
@@ -131,8 +131,11 @@ so that **I learn about a wrong path before I wonder why my mods do not load**.
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5).
+
 ### Debug Log References
 
+- `just check` (2026-11-21): exit 0; API 4162 passed, web 3936 passed, script tests green; Pyright 0/0; lints green. `just changelog`: one feature (Task 3) and one fix (Task 2). `git diff 7224a181 -- web`: the E2E spec only.
 - `just test-api` (2026-11-21): 4162 passed. `just test-e2e-ci e2e/server-config-paths.spec.ts`: 2 passed (first pass), API E2E 4 passed; containers removed.
 
 ### Implementation decisions
@@ -148,6 +151,7 @@ so that **I learn about a wrong path before I wonder why my mods do not load**.
 
 ### Completion Notes List
 
+- 2026-11-21 (dev-story): Tasks 1 to 5 done. The typed read (`ServerConfigFile`, `GameConfigService.read_config`), 422 `CONFIG_FILE_INVALID` on the game settings routes, `GET /config/game/paths` with the eight statuses and `problem`, 59 new API tests and one E2E spec. Task 1 confirmed every path rule on a throwaway container.
 - 2026-11-20 (create-story): created from Epic 25's Story 25.1, ADR-1 and ADR-2. Found in creation and folded in (no bead): the `not_installed` and `not_created_yet` statuses and `problem`, so a fresh install shows no warning (ADR-2 decision 2); the `ModPaths` and null-save rules confirmed from the dev stack's log (ADR-2 decision 1); Pydantic's `populate_by_name` dropped (ADR-1 decision 1); `SETTING_ENV_MANAGED` is 400, not 409 (ADR-6 decision 4, proposal).
 
 ### File List
@@ -160,7 +164,10 @@ so that **I learn about a wrong path before I wonder why my mods do not load**.
 - `api/tests/test_routers_config.py` (modified: the config route sweep)
 - `README.md` (Config files: "Mod and save paths"), `agentdocs/vs-server-troubleshooting.md` (the confirmed rules)
 - `_bmad-output/planning-artifacts/architecture/epic-25-server-config-read-correctly.md` (ADR-2: Task 1's result, statuses as implemented)
+- `_bmad-output/implementation-artifacts/25-1-serverconfig-is-read-through-one-typed-model-and-its-paths-are-checked.md` (this file)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
 
 ## Change Log
 
 - 2026-11-20: Story 25.1 created (create-story); status ready-for-dev.
+- 2026-11-21: Story 25.1 implemented (dev-story): Tasks 1 to 5; status review.
