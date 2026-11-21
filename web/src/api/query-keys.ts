@@ -57,6 +57,9 @@ export const queryKeys = {
     file: (name: string) => ['config', 'files', 'content', name] as const,
     // Game settings (Story 6.4)
     game: ['config', 'game'] as const,
+    // serverconfig.json path check (Story 25.2); under `game`, so invalidating the game
+    // settings refetches it too
+    gamePaths: ['config', 'game', 'paths'] as const,
     // API settings (Story 6.4)
     api: ['config', 'api'] as const,
   },

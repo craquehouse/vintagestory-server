@@ -18,6 +18,8 @@
  * sends one (the secret branch above stays first; a secret never has a default).
  * Story 23.3: only an Admin key can change settings, so for any other key (and while the
  * role is loading or unknown) every field is disabled, with a note saying why.
+ * Story 25.2: a warning above the groups when a mod or save path in serverconfig.json is
+ * wrong (ServerConfigPathsWarning, its own query).
  */
 
 import { AlertCircle } from 'lucide-react';
@@ -25,6 +27,7 @@ import { toast } from 'sonner';
 import { SettingField } from '@/components/SettingField';
 import { SettingGroup } from '@/components/SettingGroup';
 import { SecretSettingStatus } from '@/components/SecretSettingStatus';
+import { ServerConfigPathsWarning } from '@/components/ServerConfigPathsWarning';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useGameConfig, useUpdateGameSetting } from '@/hooks/use-game-config';
 import { validators, type SettingValue, type Validator } from '@/hooks/use-setting-field';
@@ -324,6 +327,7 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
             {readOnlyNote}
           </p>
         )}
+        <ServerConfigPathsWarning />
         {renderGroup(
           'Server Info',
           'Basic server identification',

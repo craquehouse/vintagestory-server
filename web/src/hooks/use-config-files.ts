@@ -118,7 +118,16 @@ export interface SaveConfigFileVariables {
 }
 
 /**
- * Save a config file's text (Story 23.5); on success the file's read is refetched.
+ * Whether a path is the root serverconfig.json, which the API compares ignoring case
+ * (Story 25.2: its save also refetches the game settings and the path check).
+ */
+export function isRootServerConfig(path: readonly string[]): boolean {
+  return path.length === 1 && path[0].toLowerCase() === 'serverconfig.json';
+}
+
+/**
+ * Save a config file's text (Story 23.5); on success the file's read is refetched, and for
+ * serverconfig.json the game settings and the path check too (Story 25.2).
  */
 export function useSaveConfigFile() {
   const queryClient = useQueryClient();
@@ -127,8 +136,14 @@ export function useSaveConfigFile() {
       saveConfigFile(path, text, version),
     // The editor shows every refusal itself (Story 23.5 review L-1): no global toast
     onError: () => {},
-    onSuccess: (_data, { path }) =>
-      queryClient.invalidateQueries({ queryKey: queryKeys.config.file(path.join('/')) }),
+    onSuccess: async (_data, { path }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.config.file(path.join('/')) }),
+        isRootServerConfig(path)
+          ? queryClient.invalidateQueries({ queryKey: queryKeys.config.game })
+          : undefined,
+      ]);
+    },
   });
 }
 
@@ -194,7 +209,10 @@ export interface RestoreConfigRevisionVariables {
   version: string;
 }
 
-/** Restore an earlier version (Story 23.7); refetches the history and the read. */
+/**
+ * Restore an earlier version (Story 23.7); refetches the history and the read, and for
+ * serverconfig.json the game settings and the path check (Story 25.2).
+ */
 export function useRestoreConfigRevision() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -206,6 +224,9 @@ export function useRestoreConfigRevision() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: historyKey(path) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.config.file(path.join('/')) }),
+        isRootServerConfig(path)
+          ? queryClient.invalidateQueries({ queryKey: queryKeys.config.game })
+          : undefined,
       ]);
     },
   });

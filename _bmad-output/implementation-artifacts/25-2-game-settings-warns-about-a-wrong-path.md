@@ -47,13 +47,13 @@ so that **I can fix it**.
   - [x] 1.1: `PathCheck.manager_mods_folder` (the resolved `{serverdata}/Mods`); tests; README sentence
   - [x] 1.2: Commit `refactor(story-25.2/task-1): name the manager's mods folder in the path check`
 
-- [ ] Task 2: The warning (AC: 1-6)
-  - [ ] 2.1: Types `ServerConfigPathEntry`, `ServerConfigPathCheck`; `fetchServerConfigPaths`; `queryKeys.config.gamePaths` (under `['config', 'game']`); `useServerConfigPaths` (30 s polling, no retry)
-  - [ ] 2.2: `ServerConfigPathsWarning` (problem list, Admin fix text, Monitor text, renders nothing on error or another shape); placed in `GameConfigPanel` after the read-only note
-  - [ ] 2.3: `useSaveConfigFile` and `useRestoreConfigRevision` invalidate `['config', 'game']` when the root `serverconfig.json` changes
-  - [ ] 2.4: Tests: each status's text, the mods-folder line, the save line, no problem, failed check, other shape, Monitor, the invalidation
-  - [ ] 2.5: README sentence (Game Settings shows the warning)
-  - [ ] 2.6: Commit `feat(story-25.2/task-2): warn in Game Settings when a mod or save path in serverconfig.json is wrong`
+- [x] Task 2: The warning (AC: 1-6)
+  - [x] 2.1: Types `ServerConfigPathEntry`, `ServerConfigPathCheck`; `fetchServerConfigPaths`; `queryKeys.config.gamePaths` (under `['config', 'game']`); `useServerConfigPaths` (30 s polling, no retry)
+  - [x] 2.2: `ServerConfigPathsWarning` (problem list, Admin fix text, Monitor text, renders nothing on error or another shape); placed in `GameConfigPanel` after the read-only note
+  - [x] 2.3: `useSaveConfigFile` and `useRestoreConfigRevision` invalidate `['config', 'game']` when the root `serverconfig.json` changes
+  - [x] 2.4: Tests: each status's text, the mods-folder line, the save line, no problem, failed check, other shape, Monitor, the invalidation
+  - [x] 2.5: README sentence (Game Settings shows the warning)
+  - [x] 2.6: Commit `feat(story-25.2/task-2): warn in Game Settings when a mod or save path in serverconfig.json is wrong`
 
 - [ ] Task 3: Validate and move the story to review (AC: 7)
   - [ ] 3.1: `just check` green
@@ -88,6 +88,8 @@ Claude Opus 5.5 (claude-opus-5-5).
 
 ### File List
 
+- `web/src/components/ServerConfigPathsWarning.tsx`, `web/src/components/ServerConfigPathsWarning.test.tsx` (new)
+- `web/src/api/types.ts`, `web/src/api/config.ts`, `web/src/api/query-keys.ts`, `web/src/hooks/use-game-config.ts`, `web/src/hooks/use-config-files.ts`, `web/src/hooks/use-config-files.test.tsx`, `web/src/features/game-server/GameConfigPanel.tsx`, `web/src/features/game-server/GameConfigPanel.test.tsx`, `README.md` (modified, Task 2)
 - `api/src/vintagestory_api/models/server_config.py`, `api/src/vintagestory_api/services/server_config_paths.py`, `api/tests/test_server_config_paths.py`, `README.md` (Task 1)
 
 ## Change Log
