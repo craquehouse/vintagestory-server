@@ -13,7 +13,7 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 # Renovate updates this line (renovate.json customManagers); test-semgrep.sh pins its form
-SEMGREP_VERSION="1.185.0"
+SEMGREP_VERSION="1.186.0"
 PACKS=(p/python p/typescript p/react p/secrets p/github-actions p/dockerfile)
 PATHS=(api/src web/src .github Dockerfile scripts)
 
