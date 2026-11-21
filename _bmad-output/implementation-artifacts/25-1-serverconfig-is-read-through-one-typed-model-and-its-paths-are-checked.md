@@ -1,6 +1,6 @@
 # Story 25.1: serverconfig.json Is Read Through One Typed Model, and Its Paths Are Checked
 
-Status: review
+Status: done
 
 <!-- Implements FR344, FR345, FR346, FR347, Epic 25 ADR-1, ADR-2. Bead: VSS-7ap (API-012, API half; closes in 25.2). Branch story/25-1-serverconfig-is-read-through-one-typed-model-and-its-paths-are-checked from main at 7224a181, carrying the Epic 25 planning commit. API only: `git diff` of `web/` stays empty except the E2E spec. -->
 
@@ -136,7 +136,7 @@ Claude Opus 5.5 (claude-opus-5-5).
 ### Debug Log References
 
 - `just check` (2026-11-21): exit 0; API 4162 passed, web 3936 passed, script tests green; Pyright 0/0; lints green. `just changelog`: one feature (Task 3) and one fix (Task 2). `git diff 7224a181 -- web`: the E2E spec only.
-- `just test-api` (2026-11-21): 4162 passed. `just test-e2e-ci e2e/server-config-paths.spec.ts`: 2 passed (first pass), API E2E 4 passed; containers removed.
+- `just test-api` (2026-11-21): 4162 passed; after the review fixes 4169 passed, lint and Pyright green. `just test-e2e-ci e2e/server-config-paths.spec.ts`: 2 passed (first pass), API E2E 4 passed; containers removed.
 
 ### Implementation decisions
 
@@ -167,7 +167,17 @@ Claude Opus 5.5 (claude-opus-5-5).
 - `_bmad-output/implementation-artifacts/25-1-serverconfig-is-read-through-one-typed-model-and-its-paths-are-checked.md` (this file)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (through `just sprint set` only)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode (read-only, 2026-11-21). Verdict: approve with changes. 0 HIGH, 2 MEDIUM, 2 LOW; three fixed, one left as house style:
+
+1. **MEDIUM: `GET /config/game/paths` answered 500 for a `ModPaths` entry with a NUL byte or an over-long name** (`ValueError`, `OSError` ENAMETOOLONG escaped `_stat`). `_stat` now raises `_UnusablePathError` for any `OSError` but a permission error, and for `ValueError`; the entry is `invalid` with its resolved path, for mod paths and the save file. Unit tests for both kinds and a route test (200, not 500).
+2. **MEDIUM: the default save was `not_created_yet` (no problem) when a file named `Saves` existed**, a state that is fatal to the game. Only a missing parent is "the game will create it"; a parent that is not a folder is `missing` for the default too. Test.
+3. **LOW: `"ModPaths": null` read as absent, not `invalid`.** An explicit null is now one `invalid` entry (ADR-2 decision 5 notes it). Test.
+4. **LOW: `except FileNotFoundError, NotADirectoryError:` (PEP 758) reads like Python 2.** Not changed: `ruff format` with the project's Python 3.14 target removes the parentheses again, and the form is used in five other places in `src`.
+
 ## Change Log
 
 - 2026-11-20: Story 25.1 created (create-story); status ready-for-dev.
 - 2026-11-21: Story 25.1 implemented (dev-story): Tasks 1 to 5; status review.
+- 2026-11-21: Code review (GLM-5.3-Flash via opencode): approve with changes; 0 HIGH, 2 MEDIUM, 2 LOW; three fixed, one left as house style (see "Review"). Status done.
