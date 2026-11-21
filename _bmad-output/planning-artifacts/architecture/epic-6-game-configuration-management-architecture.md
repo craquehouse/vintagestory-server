@@ -49,7 +49,7 @@ Settings the API server can update via console commands while game server is run
 | AllowPvP | `/serverconfig allowpvp true/false` | Immediate |
 | AllowFireSpread | `/serverconfig allowfirespread true/false` | Immediate |
 | AllowFallingBlocks | `/serverconfig allowfallingblocks true/false` | Immediate |
-| EntitySpawning | `/serverconfig entityspawning true/false` | Immediate |
+| EntitySpawning | `/serverconfig entityspawning true/false` | Immediate (the value lives in the world save, not `serverconfig.json`: see Epic 25 ADR-6) |
 | WhitelistMode | `/serverconfig WhitelistMode off/on/default` | Immediate |
 | AntiAbuse | `/serverconfig antiabuse Off/Basic/Pedantic` | Immediate |
 | TickRate | `/serverconfig tickrate N` (10-100) | Immediate |

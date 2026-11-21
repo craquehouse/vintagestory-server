@@ -7,6 +7,8 @@ inputDocuments:
 lastUpdated: '2026-11-20'
 updates:
   - date: '2026-11-20'
+    description: 'Added Epic 25 (4 stories) for Server Config Read Correctly; FR344-FR353, with the maintainer''s four answers of the same day (VSS-7ap, VSS-egi)'
+  - date: '2026-11-20'
     description: 'Added Epic 24 (8 stories) for Mod Management Follow-ups; FR327-FR343, with the maintainer''s five answers of the same day (VSS-2bp, VSS-uhek and VSS-koo1 folded in)'
   - date: '2026-11-19'
     description: 'Added Epic 23 (7 stories) for Config File Editing; FR309-FR326, with the maintainer''s eight answers of the same day (VSS-o8s and VSS-7z3 pulled in)'
@@ -567,6 +569,16 @@ This document provides the complete epic and story breakdown for vintagestory-se
 | FR341 | Epic 24 | Installed mods can be filtered |
 | FR342 | Epic 24 | Installed filters are kept in the URL |
 | FR343 | Epic 24 | Blocked description media shows a note |
+| FR344 | Epic 25 | serverconfig.json is read through one typed model |
+| FR345 | Epic 25 | A malformed serverconfig.json reports line and column |
+| FR346 | Epic 25 | Mod and save paths are checked |
+| FR347 | Epic 25 | A mods folder missing from ModPaths is reported |
+| FR348 | Epic 25 | Game Settings warns about a wrong path |
+| FR349 | Epic 25 | Entity Spawning shows the running game's value |
+| FR350 | Epic 25 | Entity Spawning shows the last value seen while stopped |
+| FR351 | Epic 25 | Entity Spawning is changed through the console only |
+| FR352 | Epic 25 | VS_CFG_ENTITY_SPAWNING is applied after each start |
+| FR353 | Epic 25 | A console change to Entity Spawning is reflected |
 
 ## Epic List
 
@@ -2086,7 +2098,8 @@ So that **I can monitor background task status**.
 | Epic 22: Server Operations and Metrics | 22.1, 22.2, 22.3, 22.4, 22.5, 22.6, 22.7, 22.8 | 8 |
 | Epic 23: Config File Editing | 23.1, 23.2, 23.3, 23.4, 23.5, 23.6, 23.7 | 7 |
 | Epic 24: Mod Management Follow-ups | 24.1, 24.2, 24.3, 24.4, 24.5, 24.6, 24.7, 24.8 | 8 |
-| **Total** | | **151** |
+| Epic 25: Server Config Read Correctly | 25.1, 25.2, 25.3, 25.4 | 4 |
+| **Total** | | **155** |
 
 ---
 
@@ -8773,3 +8786,290 @@ So that **I know something is missing instead of seeing a silent gap**.
 - [ ] `web/src/lib/mod-description.ts`: the note for the media elements and the attribute removals; unit tests for each element and attribute (ADR-7)
 - [ ] A `fix(web)` commit "show a note in place of video, audio and other media a mod description cannot load"
 - [ ] `just check` green
+
+---
+
+## Epic 25: Server Config Read Correctly
+
+**Goal:** An administrator is told when a mod or save path in `serverconfig.json` is wrong, including when the folder the manager installs mods into is not one the game loads. Entity Spawning shows the value the running game reports and is changed where the game keeps it, the world save. Two open beads are closed.
+
+**Architecture:** `architecture/epic-25-server-config-read-correctly.md` (ADR-1 to ADR-6, with the facts checked at `7224a181`). There is no preparation story.
+
+**Decided by the maintainer (Matt, 2026-11-20):** the scope `VSS-7ap` and `VSS-egi` (epic bead `VSS-m1qc`). Four answers in one round (`sprint-change-proposal-2026-11-20-epic-25.md`, section 5):
+
+1. Entity Spawning is asked of the running game through the console, changed through the console, and never written to `serverconfig.json` again (ADR-4, ADR-6).
+2. While the game is stopped, Entity Spawning shows the last value seen, read-only, with a note; "Not known yet" before the first read (ADR-5).
+3. `VS_CFG_ENTITY_SPAWNING` is applied through the console after each start, and the setting shows as env-managed (ADR-6).
+4. `VSS-7ap` gets a check endpoint and a warning in Game Settings; the typed model is internal, with no endpoint for the whole typed config (ADR-1, ADR-3).
+
+Planner decisions not reviewed yet: four stories (API then web per bead), a 5-second reply timeout with 502 `SETTING_UPDATE_FAILED` (ADR-4), the new code `SETTING_NEEDS_RUNNING_SERVER` (409, ADR-6), paths outside `/data` reported by `stat` only (ADR-2), `OnlyWhitelisted` and `WhitelistMode` named in the model for Epic 27 (ADR-1), and an existing `EntitySpawning` key left in the file (ADR-6).
+
+**Order:** 25.1, 25.2, 25.3, 25.4.
+
+**Dependencies:**
+
+- Story 25.2 comes after 25.1 and calls its route.
+- Story 25.3 comes after 25.1: it removes EntitySpawning from the model's file reads.
+- Story 25.4 comes after 25.3 and reads its fields.
+- Stories are run one after another. Each branch starts from the previous story's branch, each pull request targets `main`, and the merge order is the story order.
+
+**Beads:** two in scope, each closed with an AAR by its story after merge: `VSS-7ap` in 25.2 (25.1 carries the API half), `VSS-egi` in 25.4 (25.3 carries the API half, 25.4 the Story 17.6 review note). What planning found is in the stories (the change proposal lists it), not in new beads.
+
+**Product changes:**
+
+- New route: `GET /config/game/paths`, Admin and Monitor.
+- `GET /config/game` answers 422 `CONFIG_FILE_INVALID` with line and column for a malformed `serverconfig.json` (was 500). EntitySpawning gets `source` and `observed_at` and loses `default`.
+- `POST /config/game/settings/EntitySpawning` works only while the game runs; 409 `SETTING_NEEDS_RUNNING_SERVER` while stopped (a new error code); 502 `SETTING_UPDATE_FAILED` when the game does not reply.
+- `VS_CFG_ENTITY_SPAWNING` is applied through the console after each start and no longer written to `serverconfig.json`.
+- One new state file, `state/entity_spawning.json`.
+- No dependency is added, no route is removed, and nothing is breaking: the old EntitySpawning write never reached the game.
+
+### Current State
+
+- `serverconfig.json` is read as a plain dict; a malformed file answers 500
+- Nothing checks `ModPaths` or `SaveFileLocation`; a mods folder missing from `ModPaths` silently stops every installed mod from loading
+- Entity Spawning reads a key game 1.22.7 never writes, so it always shows "Enabled (default)"; a change while stopped writes a key the game ignores, and a change while running is never shown
+- `VS_CFG_ENTITY_SPAWNING` writes the same ignored key
+
+### Target State
+
+- `serverconfig.json` is read through one typed model; writes keep every key; a malformed file is reported with its line and column
+- Game Settings warns about a wrong mod or save path, and about the manager's mods folder missing from `ModPaths`
+- Entity Spawning shows what the running game reports, the last value seen while stopped, or "Not known yet"; it is changed through the console only
+- `VS_CFG_ENTITY_SPAWNING` takes effect after each start
+
+---
+
+### Story 25.1: serverconfig.json Is Read Through One Typed Model, and Its Paths Are Checked
+
+**Sprint key:** `25-1-serverconfig-is-read-through-one-typed-model-and-its-paths-are-checked`
+**Beads:** `VSS-7ap` (API-012, API half)
+**FRs:** FR344, FR345, FR346, FR347
+
+As an **administrator**,
+I want **the manager to check the mod and save paths in `serverconfig.json`**,
+So that **I learn about a wrong path before I wonder why my mods do not load**.
+
+**Acceptance Criteria:**
+
+**Given** a `serverconfig.json` written by game 1.22.7
+**When** the API reads it
+**Then** it is parsed with `config_parse`'s strict mode into a `ServerConfigFile` model that names the keys the manager uses (the `LIVE_SETTINGS` keys, `ModPaths`, `WorldConfig.SaveFileLocation`, `OnlyWhitelisted`, `WhitelistMode`) and allows every other key
+
+*(Covers FR344; ADR-1)*
+
+**Given** a setting change
+**When** the file is written
+**Then** every key other than the changed one is unchanged, keys the model does not name included (a round-trip test on a 1.22.7 sample)
+
+*(Covers FR344; ADR-1 decision 2)*
+
+**Given** a `serverconfig.json` that is not valid JSON
+**When** `GET /config/game` runs
+**Then** it answers 422 `CONFIG_FILE_INVALID` with the line and column of the error
+
+*(Covers FR345)*
+
+**Given** the file
+**When** `GET /config/game/paths` runs with an Admin or Monitor key
+**Then** each `ModPaths` entry and the save file come back with `given`, `resolved`, `status` (`ok`, `missing`, `not_a_directory`, `not_a_file`, `not_readable`, `not_writable`, `not_installed`, `not_created_yet`) and `problem`; a save file that does not exist yet is reported by its parent folder, and a fresh install (no game installed, never started) has no problem
+
+*(Covers FR346; ADR-2)*
+
+**Given** `ModPaths` without the manager's mods folder (compared by resolved path)
+**When** the check runs
+**Then** the response has `manager_mods_folder_listed: false`
+
+*(Covers FR347; ADR-2 decision 3)*
+
+**Given** a path with `..` that resolves outside `/data`
+**When** the check runs
+**Then** it is reported with its resolved path and status, and nothing is listed or read beyond a `stat` and an access check
+
+*(Covers FR346; ADR-2 decision 4)*
+
+**Tasks:**
+
+- [ ] Confirm on a throwaway container how a relative `ModPaths` entry and a null or relative `SaveFileLocation` resolve; record the rule in ADR-2 before the check is written
+- [ ] `ServerConfigFile` model; `GameConfigService` reads through `config_parse` strict mode and the model; writes keep editing the parsed dict
+- [ ] Round-trip test on a committed 1.22.7 sample (Password and StartupCommands blanked)
+- [ ] The path check service and `GET /config/game/paths`; unit tests for every status, a traversal path and the mods-folder comparison
+- [ ] 422 `CONFIG_FILE_INVALID` mapping for `GET /config/game`
+- [ ] An E2E check in the CI set (throwaway container, no game installed) that the route answers for the fixture's paths with no problem: `Mods` `not_installed`, the manager's folder listed, the save file `not_created_yet` (ADR-2 decision 2)
+- [ ] README (Game Settings) and `agentdocs/vs-server-troubleshooting.md`; a `feat(api)` commit "check that serverconfig.json's mod and save paths exist"; `just check` green
+
+---
+
+### Story 25.2: Game Settings Warns About a Wrong Path
+
+**Sprint key:** `25-2-game-settings-warns-about-a-wrong-path`
+**Beads:** `VSS-7ap` (API-012, closes)
+**FRs:** FR348
+
+As an **administrator**,
+I want **Game Settings to tell me when a mod or save path is wrong**,
+So that **I can fix it**.
+
+**Acceptance Criteria:**
+
+**Given** a path whose status is not `ok`, or `manager_mods_folder_listed: false`
+**When** Game Settings opens
+**Then** a warning names each problem, the path as given and as resolved, and the fix (an absolute path such as `/data/serverdata/Mods`), with a link to `serverconfig.json` in the file browser for an Admin key
+
+*(Covers FR348; ADR-3)*
+
+**Given** every path is `ok` and the mods folder is listed
+**When** Game Settings opens
+**Then** no warning shows
+
+*(Covers FR348)*
+
+**Given** the path check fails or `serverconfig.json` is missing
+**When** Game Settings opens
+**Then** it shows as today, with no warning and no error from the check
+
+*(Covers FR348; ADR-3 decision 2)*
+
+**Given** a Monitor key
+**When** the warning shows
+**Then** it has no file browser link
+
+*(Covers FR348)*
+
+**Tasks:**
+
+- [ ] `useServerConfigPaths` query and the API client call
+- [ ] The warning in `GameConfigPanel`, following `ModUpdatesNotice`; announced once to screen readers; 44px targets on phones
+- [ ] Unit tests for each status, the mods-folder warning, the failed check and the Monitor view
+- [ ] A `feat(web)` commit "warn in Game Settings when a mod or save path in serverconfig.json is wrong"; `just check` green
+
+---
+
+### Story 25.3: Entity Spawning Comes from the Running Game
+
+**Sprint key:** `25-3-entity-spawning-comes-from-the-running-game`
+**Beads:** `VSS-egi` (API-080, API half)
+**FRs:** FR349, FR350, FR351, FR352, FR353
+
+As an **administrator**,
+I want **Entity Spawning to be the value the world uses**,
+So that **what I see and change is what the game does**.
+
+**Acceptance Criteria:**
+
+**Given** a running 1.22.7 server on a throwaway container
+**When** `/serverconfig entityspawning` and `/serverconfig entityspawning false` are sent
+**Then** the replies (tag and bool spelling) are recorded in ADR-4, and the parser is written against them
+
+*(ADR-4 decision 1)*
+
+**Given** the game logs `Dedicated Server now running` and `VS_CFG_ENTITY_SPAWNING` is not set
+**When** the manager sees the line
+**Then** it sends `/serverconfig entityspawning`, reads `Current EntitySpawning is <value>` within 5 seconds, and records the value and the time
+
+*(Covers FR349; ADR-4, ADR-5)*
+
+**Given** `VS_CFG_ENTITY_SPAWNING` is set
+**When** the game is ready
+**Then** the manager sends `/serverconfig entityspawning <value>` and records the reply, and the setting is `env_managed`
+
+*(Covers FR352; ADR-6 decision 3)*
+
+**Given** the game runs
+**When** `POST /config/game/settings/EntitySpawning` is called
+**Then** the command is sent, and the response and the record carry the value from `EntitySpawning set to <value>`; with no reply within 5 seconds the answer is 502 `SETTING_UPDATE_FAILED` and the record is unchanged
+
+*(Covers FR351; ADR-4 decision 4)*
+
+**Given** the game is stopped
+**When** the same `POST` is called
+**Then** it answers 409 `SETTING_NEEDS_RUNNING_SERVER` and `serverconfig.json` is not touched
+
+*(Covers FR351; ADR-6 decision 2)*
+
+**Given** any `EntitySpawning set to <value>` line on stdout, from the UI or typed in the console
+**When** the watcher sees it
+**Then** the record follows it
+
+*(Covers FR353; ADR-4 decision 3)*
+
+**Given** `GET /config/game`
+**When** it answers
+**Then** EntitySpawning has `value` from the record, `source` (`game` while running and read since the start, `last_seen` otherwise, `unknown` with `value: null` before any read), `observed_at`, and no `default`
+
+*(Covers FR349, FR350; ADR-5)*
+
+**Given** a watcher fault or a reply timeout
+**When** it happens
+**Then** console capture and the start go on; the log line carries no console text
+
+*(ADR-4 decision 5)*
+
+**Tasks:**
+
+- [ ] Record the reply sample (throwaway container)
+- [ ] `ConsoleReplyWatcher` fed by `_read_stream` next to the player tracker; tests with a fake stream (match, interleaved lines, timeout, fault)
+- [ ] `state/entity_spawning.json` record, written atomically; tests for load, save and a corrupt file
+- [ ] The ready hook: the query, or the env var's set
+- [ ] The set through the console, the 502 and the 409; `ErrorCode.SETTING_NEEDS_RUNNING_SERVER`
+- [ ] `GET /config/game` fields; EntitySpawning out of the file reads and writes; `default` removed
+- [ ] `config_init`: `VS_CFG_ENTITY_SPAWNING` no longer written to the file
+- [ ] An E2E check tagged `@game-server` (local only; the CI set starts no game server): after start, EntitySpawning has `source: game`
+- [ ] README and `agentdocs/vs-serverconfig-commands.md`; `fix(api)` commits "read and change Entity Spawning on the running game, where the world keeps it" and "apply VS_CFG_ENTITY_SPAWNING after each start"; `just check` green
+
+---
+
+### Story 25.4: Game Settings Shows Entity Spawning from the Game
+
+**Sprint key:** `25-4-game-settings-shows-entity-spawning-from-the-game`
+**Beads:** `VSS-egi` (API-080, closes)
+**FRs:** FR349, FR350, FR352
+
+As an **administrator**,
+I want **to see where the Entity Spawning value comes from**,
+So that **I know whether I can change it now**.
+
+**Acceptance Criteria:**
+
+**Given** `source: game`
+**When** Game Settings shows Entity Spawning
+**Then** the toggle shows the value and is enabled for an Admin key
+
+*(Covers FR349)*
+
+**Given** `source: last_seen`
+**When** it shows
+**Then** the toggle shows the value, is disabled, and the note says "Last reported by the game <relative time>. Changes only while the server runs."
+
+*(Covers FR350)*
+
+**Given** `source: unknown`
+**When** it shows
+**Then** the field says "Not known yet" and is disabled while stopped; this replaces Story 17.6's "Enabled (default)" for this setting (the Story 17.6 review note on `VSS-egi`)
+
+*(Covers FR350)*
+
+**Given** a change while the game runs
+**When** the API answers
+**Then** the field shows the value from the response; a 502 shows the error and keeps the previous value
+
+*(Covers FR349)*
+
+**Given** `env_managed`
+**When** it shows
+**Then** the field is locked with the env var's name, as other env-managed settings are
+
+*(Covers FR352)*
+
+**Given** the server starts or stops
+**When** the status changes
+**Then** the field updates without a reload
+
+*(Covers FR349, FR350)*
+
+**Tasks:**
+
+- [ ] `SettingField` and `GameConfigPanel`: the three sources, the note, the disabled state
+- [ ] The settings query is invalidated on a server state change
+- [ ] Unit tests for each source, the 502 and the env-managed lock
+- [ ] A `fix(web)` commit "show Entity Spawning as the game reports it, and the last value seen while stopped"; `just check` green
