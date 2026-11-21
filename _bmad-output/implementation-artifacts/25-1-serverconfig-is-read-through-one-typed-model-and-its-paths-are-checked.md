@@ -66,18 +66,18 @@ so that **I learn about a wrong path before I wonder why my mods do not load**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Confirm the relative `SaveFileLocation` rule (AC: 7)
-  - [ ] 1.1: On a throwaway container with a game installed (`vss-251-paths`, removed afterwards per the `docker-test-cleanup` memory), set `SaveFileLocation` to a relative path and read the "Savegame … loaded" line. Never on the dev stack
-  - [ ] 1.2: Record the rule in ADR-2 decision 1. If it cannot be run (no network for the game download), keep the `unverified` status for a relative save path and say so in the ADR and the Dev Agent Record
-  - [ ] 1.3: No commit on its own; goes with Task 3's ADR update
+- [x] Task 1: Confirm the relative `SaveFileLocation` rule (AC: 7)
+  - [x] 1.1: On a throwaway container with a game installed (`vss-251-paths`, removed afterwards per the `docker-test-cleanup` memory), set `SaveFileLocation` to a relative path and read the "Savegame … loaded" line. Never on the dev stack
+  - [x] 1.2: Record the rule in ADR-2 decision 1. If it cannot be run (no network for the game download), keep the `unverified` status for a relative save path and say so in the ADR and the Dev Agent Record
+  - [x] 1.3: No commit on its own; goes with Task 3's ADR update
 
-- [ ] Task 2: The typed model and the strict read (AC: 1, 2, 3, 4)
-  - [ ] 2.1: `models/server_config.py`: `WorldConfigFile` and `ServerConfigFile`, fields optional, aliases in PascalCase, `extra="allow"`; a wrong-typed field becomes `None` (a `field_validator(mode="wrap")` or a per-field `TypeAdapter`, logging `serverconfig_field_invalid` with the key only)
-  - [ ] 2.2: `GameConfigService`: one `_read_config()` returning `(raw: dict, model: ServerConfigFile)` via `parse_config_text(strict=True)`; `get_settings`, `get_max_clients` and `_update_config_file` use it; writes keep editing `raw`
-  - [ ] 2.3: `ServerConfigInvalidError` (wrapping `ParseErrorInfo`; also for a top-level value that is not an object); routes map it to 422 `CONFIG_FILE_INVALID` with `parse_error`, like `_config_file_error` (`routers/config.py:747`)
-  - [ ] 2.4: `get_max_clients` keeps its contract: `None` when the file is missing or the value is not an int; it now also returns `None` (logged) for a malformed file instead of raising, so `/metrics` never fails on it (check `prometheus_metrics.py:115` and its tests)
-  - [ ] 2.5: Tests: `tests/fixtures/serverconfig-1.22.7.json` (the dev stack's file, `Password` and `StartupCommands` null, `ServerName` and `ServerIdentifier` replaced), round-trip on a setting update, wrong types, malformed text, a JSON array
-  - [ ] 2.6: Commit `refactor(story-25.1/task-2): read serverconfig.json through one typed model`
+- [x] Task 2: The typed model and the strict read (AC: 1, 2, 3, 4)
+  - [x] 2.1: `models/server_config.py`: `WorldConfigFile` and `ServerConfigFile`, fields optional, aliases in PascalCase, `extra="allow"`; a wrong-typed field becomes `None` (a `field_validator(mode="wrap")` or a per-field `TypeAdapter`, logging `serverconfig_field_invalid` with the key only)
+  - [x] 2.2: `GameConfigService`: one `_read_config()` returning `(raw: dict, model: ServerConfigFile)` via `parse_config_text(strict=True)`; `get_settings`, `get_max_clients` and `_update_config_file` use it; writes keep editing `raw`
+  - [x] 2.3: `ServerConfigInvalidError` (wrapping `ParseErrorInfo`; also for a top-level value that is not an object); routes map it to 422 `CONFIG_FILE_INVALID` with `parse_error`, like `_config_file_error` (`routers/config.py:747`)
+  - [x] 2.4: `get_max_clients` keeps its contract: `None` when the file is missing or the value is not an int; it now also returns `None` (logged) for a malformed file instead of raising, so `/metrics` never fails on it (check `prometheus_metrics.py:115` and its tests)
+  - [x] 2.5: Tests: `tests/fixtures/serverconfig-1.22.7.json` (the dev stack's file, `Password` and `StartupCommands` null, `ServerName` and `ServerIdentifier` replaced), round-trip on a setting update, wrong types, malformed text, a JSON array
+  - [x] 2.6: Commit `fix(story-25.1/task-2): answer a malformed serverconfig.json with the error's line and column` (planned as `refactor`; the 422 is user-visible and in the epic's release notes as a fix)
 
 - [ ] Task 3: The path check and its route (AC: 5, 6, 7, 8, 9, 10)
   - [ ] 3.1: `services/server_config_paths.py`: `check_paths(model, settings, game_installed) -> PathCheck`; resolution per ADR-2 decision 1; statuses and `problem` per decision 2; only `Path.stat`, `os.access`, `os.path.normpath`
@@ -133,11 +133,24 @@ so that **I learn about a wrong path before I wonder why my mods do not load**.
 
 ### Debug Log References
 
+### Implementation decisions
+
+- **Task 1 result (ADR-2 decision 1).** On `vss-251-paths` (the image, the dev stack's 1.22.7 install copied in, the manager's start command `cd /data && dotnet server/VintagestoryServer.dll --dataPath serverdata`): a relative `SaveFileLocation` resolves against `/data`; a missing save folder is fatal ("Unable to open or create savegame"); the game creates `serverdata/Saves` and `serverdata/Mods` itself. So no `unverified` status is needed. The container and the copied files were removed.
+- **2.4 changed: `get_max_clients` still raises for a malformed file**, now `ServerConfigInvalidError`, because the metrics collector already logs and skips a failing source (Epic 22 ADR-3 decision 5) and `test_one_failing_source_leaves_the_others` relies on it. Only the expected error type changed in that test.
+- **The scrape reads without logging a wrong-typed key** (`read_config(log_invalid=False)`): `test_players_max_absent_when_not_a_whole_number` requires a scrape with a bad `MaxClients` to log no warning. Game Settings reads log it.
+- **`from_raw` drops wrong-typed keys from a copy and validates again** (at most four passes), rather than a wildcard wrap validator: it reports the dotted key names for the log and never touches the parsed dict that is written back.
+- **New route tests take the keys from the `admin_headers`/`monitor_headers` fixtures** instead of importing `conftest` with a type-ignore, so no suppression is added.
+
 ### Completion Notes List
 
 - 2026-11-20 (create-story): created from Epic 25's Story 25.1, ADR-1 and ADR-2. Found in creation and folded in (no bead): the `not_installed` and `not_created_yet` statuses and `problem`, so a fresh install shows no warning (ADR-2 decision 2); the `ModPaths` and null-save rules confirmed from the dev stack's log (ADR-2 decision 1); Pydantic's `populate_by_name` dropped (ADR-1 decision 1); `SETTING_ENV_MANAGED` is 400, not 409 (ADR-6 decision 4, proposal).
 
 ### File List
+
+- `api/src/vintagestory_api/models/server_config.py` (new)
+- `api/src/vintagestory_api/services/game_config.py`, `api/src/vintagestory_api/routers/config.py` (modified)
+- `api/tests/test_server_config_read.py`, `api/tests/fixtures/serverconfig-1.22.7.json` (new)
+- `api/tests/test_game_config.py`, `api/tests/test_prometheus_metrics.py` (modified: the expected error type)
 
 ## Change Log
 

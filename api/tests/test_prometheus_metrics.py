@@ -377,7 +377,7 @@ def raising_process(pid: int) -> psutil.Process:
         ("server_status", "RuntimeError"),
         ("players", "RuntimeError"),
         ("pending_restart", "RuntimeError"),
-        ("max_clients", "JSONDecodeError"),
+        ("max_clients", "ServerConfigInvalidError"),  # Story 25.1: the typed read
         ("game_process", "AccessDenied"),
     ],
 )

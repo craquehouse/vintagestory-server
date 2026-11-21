@@ -6,12 +6,14 @@ via console commands (live updates) or file updates (restart-required settings).
 Story 6.2: Game Settings API
 Story 17.5: secret settings (Password) are withheld from every role but Admin (FR186)
 Story 17.6: a setting whose game default is known carries it (FR188)
+Story 25.1: serverconfig.json is read through one typed model (FR344, FR345)
 """
 
 from __future__ import annotations
 
 import json
 import os
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, TypeGuard
@@ -22,7 +24,13 @@ import structlog
 from vintagestory_api.config import Settings
 from vintagestory_api.middleware.auth import UserRole
 from vintagestory_api.models.server import ServerState
+from vintagestory_api.models.server_config import ServerConfigFile
 from vintagestory_api.services.config_init import ENV_VAR_MAP, parse_env_value
+from vintagestory_api.services.config_parse import (
+    ConfigParseError,
+    ParseErrorInfo,
+    parse_config_text,
+)
 from vintagestory_api.services.mod_update_alerts import DISCORD_HOSTS
 
 if TYPE_CHECKING:
@@ -504,6 +512,29 @@ class SettingUpdateFailedError(GameConfigError):
         )
 
 
+class ServerConfigInvalidError(Exception):
+    """serverconfig.json is not valid JSON or not a JSON object (Story 25.1, FR345).
+
+    `info` is the `parse_error` of the 422 CONFIG_FILE_INVALID response.
+    """
+
+    def __init__(self, info: ParseErrorInfo) -> None:
+        super().__init__(info.message)
+        self.info = info
+        self.message = f"serverconfig.json could not be read: {info.message}"
+
+
+NOT_AN_OBJECT_MESSAGE = "The file is not a JSON object"
+
+
+@dataclass(frozen=True)
+class LoadedServerConfig:
+    """serverconfig.json as parsed (`raw`, the one that is written) and as typed (`model`)."""
+
+    raw: dict[str, Any]
+    model: ServerConfigFile
+
+
 class SettingValueInvalidError(GameConfigError):
     """Raised when a setting value fails validation."""
 
@@ -577,20 +608,32 @@ class GameConfigService:
         status = self._server_service.get_server_status()
         return status.state == ServerState.RUNNING
 
-    def _load_config(self) -> dict[str, Any]:
-        """Load the serverconfig.json file.
+    def read_config(self, *, log_invalid: bool = True) -> LoadedServerConfig:
+        """Read serverconfig.json through the typed model (Story 25.1, Epic 25 ADR-1).
 
-        Returns:
-            Configuration dictionary.
+        The text is parsed as strict JSON (Epic 23 ADR-1). A named key whose value has the
+        wrong type is read as missing and, when `log_invalid`, logged with its name only
+        (ADR-1 decision 3). The Prometheus scrape reads without logging, so a scrape every
+        few seconds does not repeat the warning (Story 22.2's no-warning rule).
 
         Raises:
-            FileNotFoundError: If config file does not exist.
+            FileNotFoundError: If the file does not exist.
+            ServerConfigInvalidError: If it is not valid JSON or not a JSON object.
+            OSError: If it cannot be read.
         """
         if not self.config_path.exists():
             raise FileNotFoundError(f"Config file not found: {self.config_path}")
-
-        with self.config_path.open("r") as f:
-            return json.load(f)
+        text = self.config_path.read_text(encoding="utf-8")
+        try:
+            parsed = parse_config_text(text, strict=True)
+        except ConfigParseError as e:
+            raise ServerConfigInvalidError(e.info) from None
+        if not _is_json_object(parsed):
+            raise ServerConfigInvalidError(ParseErrorInfo(NOT_AN_OBJECT_MESSAGE, None, None))
+        read = ServerConfigFile.from_raw(parsed)
+        for key in read.invalid_keys if log_invalid else ():
+            logger.warning("serverconfig_field_invalid", key=key)
+        return LoadedServerConfig(raw=parsed, model=read.model)
 
     def _get_config_mtime(self) -> datetime:
         """Get the last modification time of serverconfig.json.
@@ -617,15 +660,17 @@ class GameConfigService:
 
         Raises:
             FileNotFoundError: If serverconfig.json does not exist.
+            ServerConfigInvalidError: If it is not valid JSON or not an object (Story 25.1).
         """
-        config = self._load_config()
+        loaded = self.read_config()
+        config = loaded.raw
         last_modified = self._get_config_mtime()
 
         reveal_secrets = role == UserRole.ADMIN
         settings_list: list[SettingInfo] = []
 
         for key, setting_def in LIVE_SETTINGS.items():
-            value = config.get(key)
+            value = loaded.model.value_of(key)
             configured: bool | None = None
             if setting_def.secret and not reveal_secrets:
                 folded = key.casefold()
@@ -665,14 +710,12 @@ class GameConfigService:
         """MaxClients from serverconfig.json (Epic 22 ADR-4).
 
         None when the file does not exist yet or the value is not a whole number.
-        Raises when the file exists but cannot be read or is not valid JSON.
+        Raises when the file exists but cannot be read, or ServerConfigInvalidError when it
+        is not valid JSON (the metrics collector logs and skips a failing source).
         """
         if not self.config_path.exists():
             return None
-        value = self._load_config().get("MaxClients")
-        if isinstance(value, int) and not isinstance(value, bool):
-            return value
-        return None
+        return self.read_config(log_invalid=False).model.max_clients
 
     def _validate_value(
         self, key: str, value: Any, value_type: ValueType, nullable: bool = False
@@ -944,10 +987,12 @@ class GameConfigService:
             UpdateResult for the update.
 
         Raises:
+            ServerConfigInvalidError: If serverconfig.json is not valid JSON (Story 25.1);
+                the file is not touched.
             SettingUpdateFailedError: If the file update fails.
         """
         try:
-            config = self._load_config()
+            config = self.read_config().raw
             config[key] = value
 
             # Atomic write using temp file + rename
@@ -989,6 +1034,8 @@ class GameConfigService:
                 pending_restart=pending_restart,
             )
 
+        except ServerConfigInvalidError:
+            raise
         except Exception as e:
             logger.error("config_file_update_failed", key=key, error=str(e))
             raise SettingUpdateFailedError(key, str(e)) from e

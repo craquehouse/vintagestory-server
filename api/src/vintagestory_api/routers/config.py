@@ -82,6 +82,7 @@ from vintagestory_api.services.config_history import (
 )
 from vintagestory_api.services.game_config import (
     GameConfigService,
+    ServerConfigInvalidError,
     SettingEnvManagedError,
     SettingUnknownError,
     SettingUpdateFailedError,
@@ -98,12 +99,27 @@ from vintagestory_api.services.server import (
 
 router = APIRouter(prefix="/config", tags=["Config"])
 
+
 # Type alias for authenticated user (Admin or Monitor)
 RequireAuth = Annotated[str, Depends(get_current_user)]
 
 # Story 17.5: the read endpoints answer depending on the key's role, so no response
 # of theirs, error responses included, may be cached (Story 19.1: the listings too)
 NO_STORE = {"Cache-Control": "no-store"}
+
+
+def _serverconfig_invalid(e: ServerConfigInvalidError) -> HTTPException:
+    """422 CONFIG_FILE_INVALID for a serverconfig.json that does not parse (Story 25.1, FR345)."""
+    return HTTPException(
+        status_code=422,
+        detail={
+            "code": ErrorCode.CONFIG_FILE_INVALID,
+            "message": e.message,
+            "parse_error": e.info.to_dict(),
+        },
+        headers=NO_STORE,
+    )
+
 
 logger = structlog.get_logger()
 
@@ -175,11 +191,15 @@ async def get_game_settings(
     Raises:
         HTTPException: 401 if not authenticated
         HTTPException: 404 if serverconfig.json not found
+        HTTPException: 422 CONFIG_FILE_INVALID with parse_error if it is not valid JSON
+            (Story 25.1)
     """
     response.headers.update(NO_STORE)
     try:
         settings = service.get_settings(role)
         return ApiResponse(status="ok", data=settings.to_dict())
+    except ServerConfigInvalidError as e:
+        raise _serverconfig_invalid(e)
     except FileNotFoundError:
         raise HTTPException(
             status_code=404,
@@ -232,11 +252,16 @@ async def update_game_setting(
         HTTPException: 400 if setting unknown or env-managed
         HTTPException: 401 if not authenticated
         HTTPException: 403 if not Admin role
+        HTTPException: 422 CONFIG_FILE_INVALID with parse_error if a file update finds
+            serverconfig.json not valid JSON (Story 25.1); the file is untouched
         HTTPException: 500 if update fails
     """
     try:
         result = await service.update_setting(key, request.value)
         return ApiResponse(status="ok", data=result.to_dict())
+
+    except ServerConfigInvalidError as e:
+        raise _serverconfig_invalid(e)
 
     except SettingUnknownError as e:
         raise HTTPException(

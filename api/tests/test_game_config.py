@@ -26,6 +26,7 @@ from vintagestory_api.services.game_config import (
     REDACTED,
     SECRET_SETTING_KEYS,
     GameConfigService,
+    ServerConfigInvalidError,
     ServerSetting,
     SettingEnvManagedError,
     SettingInfo,
@@ -1630,7 +1631,8 @@ class TestGetMaxClients:
     def test_invalid_json_raises(self, temp_settings: Settings) -> None:
         temp_settings.serverdata_dir.mkdir(parents=True, exist_ok=True)
         (temp_settings.serverdata_dir / "serverconfig.json").write_text("{not json")
-        with pytest.raises(json.JSONDecodeError):
+        # Story 25.1: the typed error of the one strict read (was json.JSONDecodeError)
+        with pytest.raises(ServerConfigInvalidError):
             GameConfigService(settings=temp_settings).get_max_clients()
 
 
