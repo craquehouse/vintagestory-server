@@ -12,7 +12,7 @@ A named key whose value has the wrong JSON type is read as missing, not as a fai
 
 import copy
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr, ValidationError
 
@@ -130,3 +130,46 @@ def _remove_invalid(data: dict[str, Any], error: ValidationError) -> list[str]:
             del data[top]
             removed.append(top)
     return removed
+
+
+# ==============================================================================
+# The path check (Story 25.1, Epic 25 ADR-2)
+# ==============================================================================
+
+PathStatus = Literal[
+    "ok",
+    "missing",
+    "not_a_directory",
+    "not_a_file",
+    "not_readable",
+    "not_writable",
+    "not_installed",
+    "not_created_yet",
+    "invalid",
+]
+"""How a path in serverconfig.json stands (ADR-2 decision 2)."""
+
+PROBLEM_STATUSES: frozenset[str] = frozenset(
+    {"missing", "not_a_directory", "not_a_file", "not_readable", "not_writable", "invalid"}
+)
+"""Statuses Game Settings warns about. `not_installed` and `not_created_yet` are expected on
+a fresh install, so they are not problems (ADR-2 decision 2)."""
+
+
+class PathEntry(BaseModel):
+    """One `ModPaths` entry, or the save file."""
+
+    given: str | None
+    """The value in serverconfig.json; None for a null save location or invalid ModPaths."""
+    resolved: str | None
+    """The path the game uses; None when `given` cannot be resolved (invalid ModPaths)."""
+    status: PathStatus
+    problem: bool
+
+
+class PathCheck(BaseModel):
+    """The response of GET /config/game/paths."""
+
+    mod_paths: list[PathEntry]
+    save_file: PathEntry
+    manager_mods_folder_listed: bool

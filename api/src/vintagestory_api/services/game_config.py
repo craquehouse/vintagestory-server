@@ -533,6 +533,8 @@ class LoadedServerConfig:
 
     raw: dict[str, Any]
     model: ServerConfigFile
+    invalid_keys: tuple[str, ...] = ()
+    """Named keys read as missing because of their type (dotted, e.g. "ModPaths")."""
 
 
 class SettingValueInvalidError(GameConfigError):
@@ -633,7 +635,7 @@ class GameConfigService:
         read = ServerConfigFile.from_raw(parsed)
         for key in read.invalid_keys if log_invalid else ():
             logger.warning("serverconfig_field_invalid", key=key)
-        return LoadedServerConfig(raw=parsed, model=read.model)
+        return LoadedServerConfig(raw=parsed, model=read.model, invalid_keys=read.invalid_keys)
 
     def _get_config_mtime(self) -> datetime:
         """Get the last modification time of serverconfig.json.

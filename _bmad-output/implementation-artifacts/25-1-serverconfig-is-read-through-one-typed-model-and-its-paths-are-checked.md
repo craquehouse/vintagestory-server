@@ -79,13 +79,13 @@ so that **I learn about a wrong path before I wonder why my mods do not load**.
   - [x] 2.5: Tests: `tests/fixtures/serverconfig-1.22.7.json` (the dev stack's file, `Password` and `StartupCommands` null, `ServerName` and `ServerIdentifier` replaced), round-trip on a setting update, wrong types, malformed text, a JSON array
   - [x] 2.6: Commit `fix(story-25.1/task-2): answer a malformed serverconfig.json with the error's line and column` (planned as `refactor`; the 422 is user-visible and in the epic's release notes as a fix)
 
-- [ ] Task 3: The path check and its route (AC: 5, 6, 7, 8, 9, 10)
-  - [ ] 3.1: `services/server_config_paths.py`: `check_paths(model, settings, game_installed) -> PathCheck`; resolution per ADR-2 decision 1; statuses and `problem` per decision 2; only `Path.stat`, `os.access`, `os.path.normpath`
-  - [ ] 3.2: Models `PathEntry`, `PathCheck` (`models/server_config.py`); `GET /config/game/paths` in `routers/config.py`, `RequireAuth`, `NO_STORE`, 404 and 422 as `GET /config/game`; `game_installed` from `ServerService.is_installed()`
-  - [ ] 3.3: Unit tests for every status, both relative and absolute forms of the manager's folder, a traversal path, `ModPaths` invalid; route tests for Admin, Monitor, no key, missing file, malformed file
-  - [ ] 3.4: `web/e2e/server-config-paths.spec.ts` (untagged, CI set): the AC 10 response. Run `just test-e2e-ci e2e/server-config-paths.spec.ts`
-  - [ ] 3.5: ADR-2 decision 1 (Task 1's result) and any decision changed in implementation
-  - [ ] 3.6: Commit `feat(story-25.1/task-3): check that serverconfig.json's mod and save paths exist`
+- [x] Task 3: The path check and its route (AC: 5, 6, 7, 8, 9, 10)
+  - [x] 3.1: `services/server_config_paths.py`: `check_paths(model, settings, game_installed) -> PathCheck`; resolution per ADR-2 decision 1; statuses and `problem` per decision 2; only `Path.stat`, `os.access`, `os.path.normpath`
+  - [x] 3.2: Models `PathEntry`, `PathCheck` (`models/server_config.py`); `GET /config/game/paths` in `routers/config.py`, `RequireAuth`, `NO_STORE`, 404 and 422 as `GET /config/game`; `game_installed` from `ServerService.is_installed()`
+  - [x] 3.3: Unit tests for every status, both relative and absolute forms of the manager's folder, a traversal path, `ModPaths` invalid; route tests for Admin, Monitor, no key, missing file, malformed file
+  - [x] 3.4: `web/e2e/server-config-paths.spec.ts` (untagged, CI set): the AC 10 response. Run `just test-e2e-ci e2e/server-config-paths.spec.ts`
+  - [x] 3.5: ADR-2 decision 1 (Task 1's result) and any decision changed in implementation
+  - [x] 3.6: Commit `feat(story-25.1/task-3): check that serverconfig.json's mod and save paths exist`
 
 - [ ] Task 4: Documentation (AC: all)
   - [ ] 4.1: README, Game Settings section: the path check and what each status means; `agentdocs/vs-server-troubleshooting.md`: the confirmed rules with the log lines that prove them
@@ -133,12 +133,17 @@ so that **I learn about a wrong path before I wonder why my mods do not load**.
 
 ### Debug Log References
 
+- `just test-api` (2026-11-21): 4162 passed. `just test-e2e-ci e2e/server-config-paths.spec.ts`: 2 passed (first pass), API E2E 4 passed; containers removed.
+
 ### Implementation decisions
 
 - **Task 1 result (ADR-2 decision 1).** On `vss-251-paths` (the image, the dev stack's 1.22.7 install copied in, the manager's start command `cd /data && dotnet server/VintagestoryServer.dll --dataPath serverdata`): a relative `SaveFileLocation` resolves against `/data`; a missing save folder is fatal ("Unable to open or create savegame"); the game creates `serverdata/Saves` and `serverdata/Mods` itself. So no `unverified` status is needed. The container and the copied files were removed.
 - **2.4 changed: `get_max_clients` still raises for a malformed file**, now `ServerConfigInvalidError`, because the metrics collector already logs and skips a failing source (Epic 22 ADR-3 decision 5) and `test_one_failing_source_leaves_the_others` relies on it. Only the expected error type changed in that test.
 - **The scrape reads without logging a wrong-typed key** (`read_config(log_invalid=False)`): `test_players_max_absent_when_not_a_whole_number` requires a scrape with a bad `MaxClients` to log no warning. Game Settings reads log it.
 - **`from_raw` drops wrong-typed keys from a copy and validates again** (at most four passes), rather than a wildcard wrap validator: it reports the dotted key names for the log and never touches the parsed dict that is written back.
+- **The route sweep lists the new route.** `TestOtherConfigPathsWithAPassword.test_every_config_route_a_monitor_may_read` names every config GET by hand; `/config/game/paths` is added as Monitor-readable (it states paths, never a value).
+- **Statuses as implemented** are recorded in ADR-2 decision 5: wrong-typed `SaveFileLocation` is `invalid`; no `ModPaths` key lists nothing; an unsearchable parent is `not_readable` (mod path) or `not_writable` (save).
+- **The E2E spec asserts the fresh-install statuses only in the throwaway container**; on another stack (the dev stack, with a game) it asserts no problem and the listed mods folder.
 - **New route tests take the keys from the `admin_headers`/`monitor_headers` fixtures** instead of importing `conftest` with a type-ignore, so no suppression is added.
 
 ### Completion Notes List
@@ -151,6 +156,9 @@ so that **I learn about a wrong path before I wonder why my mods do not load**.
 - `api/src/vintagestory_api/services/game_config.py`, `api/src/vintagestory_api/routers/config.py` (modified)
 - `api/tests/test_server_config_read.py`, `api/tests/fixtures/serverconfig-1.22.7.json` (new)
 - `api/tests/test_game_config.py`, `api/tests/test_prometheus_metrics.py` (modified: the expected error type)
+- `api/src/vintagestory_api/services/server_config_paths.py`, `api/tests/test_server_config_paths.py`, `web/e2e/server-config-paths.spec.ts` (new)
+- `api/tests/test_routers_config.py` (modified: the config route sweep)
+- `_bmad-output/planning-artifacts/architecture/epic-25-server-config-read-correctly.md` (ADR-2: Task 1's result, statuses as implemented)
 
 ## Change Log
 

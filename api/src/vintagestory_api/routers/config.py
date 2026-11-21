@@ -96,6 +96,7 @@ from vintagestory_api.services.server import (
     ServerService,
     get_server_service,
 )
+from vintagestory_api.services.server_config_paths import check_paths
 
 router = APIRouter(prefix="/config", tags=["Config"])
 
@@ -209,6 +210,47 @@ async def get_game_settings(
             },
             headers=NO_STORE,
         )
+
+
+@router.get("/game/paths", response_model=ApiResponse, summary="Check serverconfig.json paths")
+async def get_game_paths(
+    _: RequireAuth,
+    response: Response,
+    service: GameConfigService = Depends(get_game_config_service),
+    server_service: Any = Depends(get_server_service),
+) -> ApiResponse:
+    """Check the mod and save paths in serverconfig.json (Story 25.1, FR346, FR347).
+
+    Admin and Monitor. Each `ModPaths` entry and the save file come back with `given`,
+    `resolved`, `status` and `problem`, plus `manager_mods_folder_listed` (Epic 25 ADR-2).
+    Only `stat` and access checks are made; nothing is listed or read. Never cached.
+
+    Raises:
+        HTTPException: 401 if not authenticated
+        HTTPException: 404 CONFIG_NOT_FOUND if serverconfig.json does not exist
+        HTTPException: 422 CONFIG_FILE_INVALID with parse_error if it is not valid JSON
+    """
+    response.headers.update(NO_STORE)
+    try:
+        loaded = service.read_config()
+    except ServerConfigInvalidError as e:
+        raise _serverconfig_invalid(e)
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": ErrorCode.CONFIG_NOT_FOUND,
+                "message": "Server configuration file not found. Start the server first.",
+            },
+            headers=NO_STORE,
+        )
+    result = check_paths(
+        loaded.model,
+        loaded.invalid_keys,
+        server_service.settings,
+        game_installed=server_service.is_installed(),
+    )
+    return ApiResponse(status="ok", data=result.model_dump(mode="json"))
 
 
 @router.post(
