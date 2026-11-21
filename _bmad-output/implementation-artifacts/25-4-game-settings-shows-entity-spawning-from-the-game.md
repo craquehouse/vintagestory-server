@@ -106,8 +106,13 @@ Reviewer: GLM-5.3-Flash via opencode (read-only, 2026-11-21). Verdict: approve w
 4. **LOW: test gaps for AC 4 and AC 5.** Tests for a successful change keeping its value, a 502 putting the switch back (asserting the optimistic flip and the final state), and a file setting's badge naming the API's `env_var`.
 5. **LOW: "Changes only while the server runs" while the server runs but the game has not reported since this start.** Kept: the wording is ADR-5 decision 3's; a later story can tell the two apart if the watcher learns to.
 
+### After review: CI E2E
+
+PR #226's E2E job failed in `settings-as-saved.spec.ts` (Story 17.6): its stub copied the real Entity Spawning setting, which now has `source: 'unknown'`, and added `default: true`, so the field was read-only "Not known yet" instead of "Enabled (default)". The spec now shows the default on a file setting (Pass Time When Empty, default added by the stub) and checks Entity Spawning's "Not known yet" on the stack without a game. `just test-e2e-ci e2e/settings-as-saved.spec.ts e2e/game-settings-read-only.spec.ts`: 14 passed. File: `web/e2e/settings-as-saved.spec.ts`.
+
 ## Change Log
 
 - 2026-11-21: Story 25.4 created (create-story); status ready-for-dev.
 - 2026-11-21: Story 25.4 implemented (dev-story): Tasks 1 and 2; status review.
 - 2026-11-21: Code review (GLM-5.3-Flash via opencode): approve with changes; 0 HIGH, 1 MEDIUM, 4 LOW; three fixed, two kept with a reason (see "Review"). After the fixes web 3979 passed. Status done.
+- 2026-11-21: CI E2E failure in `settings-as-saved.spec.ts` fixed (the Story 17.6 spec moved to a file setting).
