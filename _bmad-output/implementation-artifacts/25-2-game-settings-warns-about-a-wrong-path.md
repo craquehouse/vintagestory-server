@@ -1,6 +1,6 @@
 # Story 25.2: Game Settings Warns About a Wrong Path
 
-Status: review
+Status: done
 
 <!-- Implements FR348, Epic 25 ADR-3. Bead: VSS-7ap (API-012, closes with this story after merge). Branch story/25-2-game-settings-warns-about-a-wrong-path, stacked on story/25-1-serverconfig-is-read-through-one-typed-model-and-its-paths-are-checked (PR #223); the PR targets main and merges after 25.1's. Web, plus one API field (`manager_mods_folder`). -->
 
@@ -82,7 +82,7 @@ Claude Opus 5.5 (claude-opus-5-5).
 
 ### Debug Log References
 
-- `just check` (2026-11-21): exit 0; API 4169 passed, web 3960 passed; Pyright 0/0; lints green.
+- `just check` (2026-11-21): exit 0; API 4169 passed, web 3960 passed; Pyright 0/0; lints green. After review fixes: web 3963 passed, lint and typecheck green.
 
 ### Completion Notes List
 
@@ -97,7 +97,18 @@ Claude Opus 5.5 (claude-opus-5-5).
 - `web/src/api/types.ts`, `web/src/api/config.ts`, `web/src/api/query-keys.ts`, `web/src/hooks/use-game-config.ts`, `web/src/hooks/use-config-files.ts`, `web/src/hooks/use-config-files.test.tsx`, `web/src/features/game-server/GameConfigPanel.tsx`, `web/src/features/game-server/GameConfigPanel.test.tsx`, `README.md` (modified, Task 2)
 - `api/src/vintagestory_api/models/server_config.py`, `api/src/vintagestory_api/services/server_config_paths.py`, `api/tests/test_server_config_paths.py`, `README.md` (Task 1)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode (read-only, 2026-11-21). Verdict: approve with changes. 0 HIGH, 2 MEDIUM, 3 LOW; four fixed, one kept with a reason:
+
+1. **MEDIUM: the save-file `missing` line was ungrammatical, and wrong when a file holds the folder's name** (Story 25.1 review M2 made that case `missing` too). Now "Save file "X" (path) cannot be created: its folder is missing or is not a folder, so the game server will not start." Tests updated.
+2. **MEDIUM: commit `81a3b588` is typed `refactor` but adds `manager_mods_folder` to the response.** Kept: the path check endpoint is new in this unreleased epic, so the field ships in the same release as the endpoint and its `feat` note ("check that serverconfig.json's mod and save paths exist") covers it; the README documents the field. Retyping would mean force-pushing an open PR's branch.
+3. **LOW: duplicate React keys for identical lines** (`ModPaths: ["/nowhere", "/nowhere"]`). Keys carry the index; a test that failed with the old key.
+4. **LOW: the warning could show the Monitor text, then change to the Admin text** while the role loads, so a `role="alert"` region was announced twice. It now renders only once the role is known (or failed). Test.
+5. **LOW: a rejected request (AC 4's network case) was untested.** Test.
+
 ## Change Log
 
 - 2026-11-21: Story 25.2 created (create-story); status ready-for-dev.
 - 2026-11-21: Story 25.2 implemented (dev-story): Tasks 1 to 3; status review.
+- 2026-11-21: Code review (GLM-5.3-Flash via opencode): approve with changes; 0 HIGH, 2 MEDIUM, 3 LOW; four fixed, one kept with a reason (see "Review"). Status done.
