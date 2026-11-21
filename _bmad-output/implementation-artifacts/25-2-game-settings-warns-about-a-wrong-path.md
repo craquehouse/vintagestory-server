@@ -1,6 +1,6 @@
 # Story 25.2: Game Settings Warns About a Wrong Path
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR348, Epic 25 ADR-3. Bead: VSS-7ap (API-012, closes with this story after merge). Branch story/25-2-game-settings-warns-about-a-wrong-path, stacked on story/25-1-serverconfig-is-read-through-one-typed-model-and-its-paths-are-checked (PR #223); the PR targets main and merges after 25.1's. Web, plus one API field (`manager_mods_folder`). -->
 
@@ -55,10 +55,10 @@ so that **I can fix it**.
   - [x] 2.5: README sentence (Game Settings shows the warning)
   - [x] 2.6: Commit `feat(story-25.2/task-2): warn in Game Settings when a mod or save path in serverconfig.json is wrong`
 
-- [ ] Task 3: Validate and move the story to review (AC: 7)
-  - [ ] 3.1: `just check` green
-  - [ ] 3.2: Status `review`; sprint status; Dev Agent Record and File List
-  - [ ] 3.3: Commit `chore(story-25.2/task-3): validate and move story 25.2 to review`
+- [x] Task 3: Validate and move the story to review (AC: 7)
+  - [x] 3.1: `just check` green
+  - [x] 3.2: Status `review`; sprint status; Dev Agent Record and File List
+  - [x] 3.3: Commit `chore(story-25.2/task-3): validate and move story 25.2 to review`
 
 ## Dev Notes
 
@@ -82,12 +82,17 @@ Claude Opus 5.5 (claude-opus-5-5).
 
 ### Debug Log References
 
+- `just check` (2026-11-21): exit 0; API 4169 passed, web 3960 passed; Pyright 0/0; lints green.
+
 ### Completion Notes List
+
+- 2026-11-21 (dev-story): Tasks 1 to 3 done. `manager_mods_folder` in the path check; `ServerConfigPathsWarning` in Game Settings (Admin fix text, Monitor text, nothing on error or another shape); a `serverconfig.json` save or restore refetches `['config', 'game']`. 24 new web tests.
 
 - 2026-11-21 (create-story): created from Epic 25's Story 25.2 and ADR-3. Found in creation: the file browser cannot be linked to a file, so the warning names the place (ADR-3 decision 3); the response needs the manager's folder to name it (`manager_mods_folder`); the check refreshes with the settings' polling rather than on a server status change.
 
 ### File List
 
+- `_bmad-output/planning-artifacts/architecture/epic-25-server-config-read-correctly.md` (ADR-3 as implemented); this file; `sprint-status.yaml` (through `just sprint set`)
 - `web/src/components/ServerConfigPathsWarning.tsx`, `web/src/components/ServerConfigPathsWarning.test.tsx` (new)
 - `web/src/api/types.ts`, `web/src/api/config.ts`, `web/src/api/query-keys.ts`, `web/src/hooks/use-game-config.ts`, `web/src/hooks/use-config-files.ts`, `web/src/hooks/use-config-files.test.tsx`, `web/src/features/game-server/GameConfigPanel.tsx`, `web/src/features/game-server/GameConfigPanel.test.tsx`, `README.md` (modified, Task 2)
 - `api/src/vintagestory_api/models/server_config.py`, `api/src/vintagestory_api/services/server_config_paths.py`, `api/tests/test_server_config_paths.py`, `README.md` (Task 1)
@@ -95,3 +100,4 @@ Claude Opus 5.5 (claude-opus-5-5).
 ## Change Log
 
 - 2026-11-21: Story 25.2 created (create-story); status ready-for-dev.
+- 2026-11-21: Story 25.2 implemented (dev-story): Tasks 1 to 3; status review.

@@ -76,7 +76,7 @@ The maintainer named the scope: `VSS-7ap` (parse `serverconfig.json` into a type
 
 1. **Query.** `useServerConfigPaths` calls `GET /config/game/paths`, separate from the settings query, and refetches when the server status changes and when a config file is saved.
 2. **Failure is silent.** An error from the check (including 404) shows no warning and no error; Game Settings is unchanged.
-3. **Placement.** Above the settings groups in `GameConfigPanel`, following `ModUpdatesNotice` (an alert with a list). Each problem names the path as given and as resolved and suggests an absolute path. An Admin key gets a link to `serverconfig.json` in the file browser.
+3. **Placement.** Above the settings groups in `GameConfigPanel`, following `ModUpdatesNotice` (an alert with a list). Each problem names the path as given and as resolved and suggests an absolute path. An Admin key gets a link to `serverconfig.json` in the file browser. *(As implemented in Story 25.2: the file browser has no URL that opens a given file, so the warning names the place, "Settings → File Manager", for an Admin key; a Monitor key is told to ask an administrator. The query polls with the settings (30 s) and is refetched when the root `serverconfig.json` is saved or restored, instead of on a server status change; the response gained `manager_mods_folder` so the warning can name it.)*
 
 ## ADR-4: Reading a Reply from the Console
 
