@@ -274,7 +274,7 @@ development_status:
   epic-27-retrospective: optional
   25-1-serverconfig-is-read-through-one-typed-model-and-its-paths-are-checked: done
   25-2-game-settings-warns-about-a-wrong-path: done
-  25-3-entity-spawning-comes-from-the-running-game: in-progress
+  25-3-entity-spawning-comes-from-the-running-game: review
   25-4-game-settings-shows-entity-spawning-from-the-game: backlog
 # RETRO ACTION ITEMS
 # Action items from retrospectives are now tracked in beads with the RETRO label.

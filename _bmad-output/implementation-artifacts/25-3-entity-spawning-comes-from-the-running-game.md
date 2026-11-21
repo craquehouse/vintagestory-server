@@ -1,6 +1,6 @@
 # Story 25.3: Entity Spawning Comes from the Running Game
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR349, FR350, FR351, FR352, FR353, Epic 25 ADR-4, ADR-5, ADR-6. Bead: VSS-egi (API-080, API half; closes in 25.4). Branch story/25-3-entity-spawning-comes-from-the-running-game, stacked on story/25-2-game-settings-warns-about-a-wrong-path (PR #224); the PR targets main and merges after 25.2's. API only. -->
 
@@ -88,10 +88,10 @@ so that **what I see and change is what the game does**.
   - [x] 4.3: README (Game Settings, `VS_CFG_ENTITY_SPAWNING`), `agentdocs/vs-serverconfig-commands.md`
   - [x] 4.4: Commit `docs(story-25.3/task-4): explain where Entity Spawning comes from`
 
-- [ ] Task 5: Validate and move the story to review (AC: 11)
-  - [ ] 5.1: `just check` green; `just changelog`
-  - [ ] 5.2: Status `review`; sprint status; Dev Agent Record and File List
-  - [ ] 5.3: Commit `chore(story-25.3/task-5): validate and move story 25.3 to review`
+- [x] Task 5: Validate and move the story to review (AC: 11)
+  - [x] 5.1: `just check` green; `just changelog`
+  - [x] 5.2: Status `review`; sprint status; Dev Agent Record and File List
+  - [x] 5.3: Commit `chore(story-25.3/task-5): validate and move story 25.3 to review`
 
 ## Dev Notes
 
@@ -124,6 +124,8 @@ Claude Opus 5.5 (claude-opus-5-5).
 
 ### Debug Log References
 
+- `just check` (2026-11-21): exit 0; API 4225 passed, web 3963 passed; Pyright 0/0; lints green. `just changelog`: the two Story 25.3 fixes.
+
 - AC 10 (2026-11-21), image `vss-253-e2e` built from this branch, container `vss-253-e2e` with the dev stack's 1.22.7 install copied in (never the dev stack); all removed afterwards:
   1. Stopped, before any run: `{'value': None, 'source': 'unknown'}`; a change: `409 SETTING_NEEDS_RUNNING_SERVER`.
   2. `POST /server/start`; after about 25 s: `{'value': True, 'source': 'game'}` (`entity_spawning_observed via=query`).
@@ -145,6 +147,8 @@ Claude Opus 5.5 (claude-opus-5-5).
 
 ### Completion Notes List
 
+- 2026-11-21 (dev-story): Tasks 1 to 5 done. `EntitySpawningWatcher` (patterns, record, ready hook, query and set with a 5 s wait) fed by the stream reader; EntitySpawning is a `location="game"` setting with `source`/`observed_at`, set through the console only when ready (409, 502); config init skips it. 56 new API tests; AC 10 run on the built image with a game.
+
 - 2026-11-21 (create-story): created from Epic 25's Story 25.3 and ADR-4 to ADR-6. Found in creation (Task 1 run first): the reply names the label, not the key, so the planned patterns were wrong (ADR-4 decision 1 and `epics.md` corrected); a set while the game loads would not be answered, so a set is refused until the ready line (AC 5); the E2E check runs on the built image in a throwaway container instead of the dev stack.
 
 ### File List
@@ -152,7 +156,9 @@ Claude Opus 5.5 (claude-opus-5-5).
 - `api/src/vintagestory_api/services/entity_spawning.py`, `api/tests/test_entity_spawning.py` (new); `api/src/vintagestory_api/services/server.py`, `api/tests/server/test_internal_methods.py` (modified); ADR-4 decision 1 and `epics.md` Story 25.3 (the recorded replies) (Tasks 1 and 2)
 - `api/src/vintagestory_api/services/game_config.py`, `services/config_init.py`, `services/config_init_service.py`, `models/server_config.py`, `models/errors.py`, `routers/config.py` (modified); `api/tests/test_entity_spawning_settings.py` (new); `api/tests/test_game_config.py`, `api/tests/test_routers_config.py` (modified: test doubles, Story 17.6 default tests) (Task 3)
 - `web/e2e/entity-spawning.spec.ts` (new); `web/e2e/README.md` (tags and counts), `README.md` (Entity Spawning), `agentdocs/vs-serverconfig-commands.md` (Task 4)
+- this file; `sprint-status.yaml` (through `just sprint set`)
 
 ## Change Log
 
 - 2026-11-21: Story 25.3 created (create-story); status ready-for-dev.
+- 2026-11-21: Story 25.3 implemented (dev-story): Tasks 1 to 5; status review.
