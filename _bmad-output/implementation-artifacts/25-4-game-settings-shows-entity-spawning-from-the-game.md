@@ -1,6 +1,6 @@
 # Story 25.4: Game Settings Shows Entity Spawning from the Game
 
-Status: review
+Status: done
 
 <!-- Implements FR349, FR350, FR352, Epic 25 ADR-5 decision 3. Bead: VSS-egi (API-080, closes with this story after merge, with the Story 17.6 review note). Branch story/25-4-game-settings-shows-entity-spawning-from-the-game, stacked on story/25-3-entity-spawning-comes-from-the-running-game (PR #225); the PR targets main and merges after 25.3's. Web only. -->
 
@@ -96,7 +96,18 @@ Claude Opus 5.5 (claude-opus-5-5).
 - `web/src/api/types.ts`, `web/src/components/SettingField.tsx`, `web/src/features/game-server/GameConfigPanel.tsx`, `web/src/features/game-server/GameConfigPanel.test.tsx` (Task 1)
 - this file; `sprint-status.yaml` (through `just sprint set`)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode (read-only, 2026-11-21). Verdict: approve with changes. 0 HIGH, 1 MEDIUM, 4 LOW; three fixed, two kept with a reason:
+
+1. **MEDIUM: the 5-second refetch while waiting for the game could overwrite a pending save of another setting** (a GET started after the save's `cancelQueries`, answered before the POST, snaps the field back). The refetch is skipped while a save is in flight; the next poll comes 5 s later. Test (fails without the guard).
+2. **LOW: a second GET right after the first, when the settings arrive and `waitingForGame` turns true.** While waiting, only a new status poll (`dataUpdatedAt` changed) refetches. Test (fails without the change).
+3. **LOW: polling every 5 s for as long as the game never reports.** Kept: recorded in Implementation decisions; the API answers from memory, and only while the page is open with the server running.
+4. **LOW: test gaps for AC 4 and AC 5.** Tests for a successful change keeping its value, a 502 putting the switch back (asserting the optimistic flip and the final state), and a file setting's badge naming the API's `env_var`.
+5. **LOW: "Changes only while the server runs" while the server runs but the game has not reported since this start.** Kept: the wording is ADR-5 decision 3's; a later story can tell the two apart if the watcher learns to.
+
 ## Change Log
 
 - 2026-11-21: Story 25.4 created (create-story); status ready-for-dev.
 - 2026-11-21: Story 25.4 implemented (dev-story): Tasks 1 and 2; status review.
+- 2026-11-21: Code review (GLM-5.3-Flash via opencode): approve with changes; 0 HIGH, 1 MEDIUM, 4 LOW; three fixed, two kept with a reason (see "Review"). After the fixes web 3979 passed. Status done.
