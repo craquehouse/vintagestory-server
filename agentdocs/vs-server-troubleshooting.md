@@ -40,6 +40,17 @@ The `ModPaths` array in `serverconfig.json` contains paths that are resolved rel
 - `"Mods"` resolves to `/data/server/Mods` (core game mods)
 - `"../serverdata/Mods"` resolves to `/data/serverdata/Mods` (user mods)
 
+### Confirmed on game 1.22.7 (Story 25.1, 2026-11-21)
+
+The manager starts the game with `cwd=/data` and `--dataPath serverdata`.
+
+- `"Mods"` in `ModPaths` is searched as `/data/server/Mods` (server-main.log: "Will search the following paths for mods:" followed by `/data/server/Mods`).
+- `SaveFileLocation: null` loads `serverdata/Saves/default.vcdbs` (relative to `/data`); the game creates `serverdata/Saves` (and `serverdata/Mods`) at start if missing.
+- A relative `SaveFileLocation` resolves against the working directory: `"relsaves/rel.vcdbs"` loaded `/data/relsaves/rel.vcdbs`.
+- A save file whose folder does not exist stops the server: "[Fatal] Unable to open or create savegame" (`SQLiteDBConnection.HaveWriteAccessFolder`).
+
+The manager checks these paths at `GET /api/v1alpha1/config/game/paths` (Epic 25 ADR-2).
+
 ### Double-Path Bug
 
 **Symptom:** Log shows paths like `/data/data/serverdata/Mods (Not found?)`

@@ -87,9 +87,9 @@ so that **I learn about a wrong path before I wonder why my mods do not load**.
   - [x] 3.5: ADR-2 decision 1 (Task 1's result) and any decision changed in implementation
   - [x] 3.6: Commit `feat(story-25.1/task-3): check that serverconfig.json's mod and save paths exist`
 
-- [ ] Task 4: Documentation (AC: all)
-  - [ ] 4.1: README, Game Settings section: the path check and what each status means; `agentdocs/vs-server-troubleshooting.md`: the confirmed rules with the log lines that prove them
-  - [ ] 4.2: Commit `docs(story-25.1/task-4): explain the serverconfig.json path check`
+- [x] Task 4: Documentation (AC: all)
+  - [x] 4.1: README, Game Settings section: the path check and what each status means; `agentdocs/vs-server-troubleshooting.md`: the confirmed rules with the log lines that prove them
+  - [x] 4.2: Commit `docs(story-25.1/task-4): explain the serverconfig.json path check`
 
 - [ ] Task 5: Validate and move the story to review (AC: 11)
   - [ ] 5.1: `just check` green; `just changelog` lists Task 3's `feat` only
@@ -158,6 +158,7 @@ so that **I learn about a wrong path before I wonder why my mods do not load**.
 - `api/tests/test_game_config.py`, `api/tests/test_prometheus_metrics.py` (modified: the expected error type)
 - `api/src/vintagestory_api/services/server_config_paths.py`, `api/tests/test_server_config_paths.py`, `web/e2e/server-config-paths.spec.ts` (new)
 - `api/tests/test_routers_config.py` (modified: the config route sweep)
+- `README.md` (Config files: "Mod and save paths"), `agentdocs/vs-server-troubleshooting.md` (the confirmed rules)
 - `_bmad-output/planning-artifacts/architecture/epic-25-server-config-read-correctly.md` (ADR-2: Task 1's result, statuses as implemented)
 
 ## Change Log
