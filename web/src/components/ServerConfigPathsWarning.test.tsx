@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import { queryKeys } from '@/api/query-keys';
@@ -86,7 +86,11 @@ function camelCheck(overrides: Partial<ServerConfigPathCheck> = {}): ServerConfi
 describe('pathProblem', () => {
   it.each([
     ['missing', 'mod', 'does not exist'],
-    ['missing', 'save', 'its folder does not exist, so the game server will not start'],
+    [
+      'missing',
+      'save',
+      'cannot be created: its folder is missing or is not a folder, so the game server will not start',
+    ],
     ['not_a_directory', 'mod', 'is a file, not a folder'],
     ['not_a_file', 'save', 'is a folder, not a file'],
     ['not_readable', 'mod', 'cannot be read by the game server'],
@@ -154,7 +158,7 @@ describe('pathProblemLines', () => {
     });
 
     expect(pathProblemLines(check)).toEqual([
-      'Save file "worlds/a.vcdbs" (/data/worlds/a.vcdbs) its folder does not exist, so the game server will not start.',
+      'Save file "worlds/a.vcdbs" (/data/worlds/a.vcdbs) cannot be created: its folder is missing or is not a folder, so the game server will not start.',
     ]);
   });
 });
@@ -216,6 +220,42 @@ describe('ServerConfigPathsWarning', () => {
 
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
     expect(screen.queryByTestId('server-config-paths-warning')).not.toBeInTheDocument();
+  });
+
+  it('shows nothing when the request fails (review L3)', async () => {
+    globalThis.fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+    renderWarning();
+
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
+    expect(screen.queryByTestId('server-config-paths-warning')).not.toBeInTheDocument();
+  });
+
+  it('waits for the role before showing the warning (review L2)', async () => {
+    answer(apiCheck({ manager_mods_folder_listed: false }));
+    const queryClient = renderWarning(null);
+
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
+    expect(screen.queryByTestId('server-config-paths-warning')).not.toBeInTheDocument();
+
+    await act(async () => {
+      queryClient.setQueryData(queryKeys.auth.me, { status: 'ok', data: { role: 'admin' } });
+    });
+    expect(await screen.findByTestId('server-config-paths-fix')).toHaveTextContent(
+      'Settings → File Manager'
+    );
+  });
+
+  it('keys identical lines apart (review L1)', async () => {
+    const missing = { given: '/nowhere', resolved: '/nowhere', status: 'missing', problem: true };
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    answer(apiCheck({ mod_paths: [missing, missing] }));
+    renderWarning();
+
+    const warning = await screen.findByTestId('server-config-paths-warning');
+    expect(warning.querySelectorAll('li')).toHaveLength(2);
+    const messages = errors.mock.calls.map((call) => call.map(String).join(' '));
+    expect(messages.filter((message) => message.includes('same key'))).toEqual([]);
+    errors.mockRestore();
   });
 
   it('shows nothing for a response of another shape', async () => {

@@ -18,8 +18,10 @@ import { useServerConfigPaths } from '@/hooks/use-game-config';
 export function pathProblem(entry: ServerConfigPathEntry, kind: 'mod' | 'save'): string {
   switch (entry.status) {
     case 'missing':
+      // For the save file, `missing` also covers a file holding the folder's name
+      // (Story 25.1 review M2), so the text names both (Story 25.2 review M1)
       return kind === 'save'
-        ? 'its folder does not exist, so the game server will not start'
+        ? 'cannot be created: its folder is missing or is not a folder, so the game server will not start'
         : 'does not exist';
     case 'not_a_directory':
       return 'is a file, not a folder';
@@ -77,10 +79,12 @@ export function pathProblemLines(check: ServerConfigPathCheck): string[] {
 
 export function ServerConfigPathsWarning() {
   const { data, isError } = useServerConfigPaths();
-  const { isAdmin } = useIsAdmin();
+  const { isAdmin, isKnown, isError: roleError } = useIsAdmin();
   const check = data?.data;
 
-  if (isError || !isPathCheck(check)) {
+  // Wait for the role (Story 25.2 review L2): the fix line depends on it, and changing a
+  // role="alert" region's text would announce the whole warning twice
+  if (isError || !isPathCheck(check) || (!isKnown && !roleError)) {
     return null;
   }
   const lines = pathProblemLines(check);
@@ -102,8 +106,9 @@ export function ServerConfigPathsWarning() {
             : 'serverconfig.json has path problems'}
         </p>
         <ul className="list-disc space-y-1 pl-5 break-words">
-          {lines.map((line) => (
-            <li key={line}>{line}</li>
+          {lines.map((line, index) => (
+            // Two entries can give the same line (Story 25.2 review L1)
+            <li key={`${index}-${line}`}>{line}</li>
           ))}
         </ul>
         <p className="text-muted-foreground" data-testid="server-config-paths-fix">
