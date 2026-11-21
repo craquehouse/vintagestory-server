@@ -1,6 +1,6 @@
 # Story 25.3: Entity Spawning Comes from the Running Game
 
-Status: review
+Status: done
 
 <!-- Implements FR349, FR350, FR351, FR352, FR353, Epic 25 ADR-4, ADR-5, ADR-6. Bead: VSS-egi (API-080, API half; closes in 25.4). Branch story/25-3-entity-spawning-comes-from-the-running-game, stacked on story/25-2-game-settings-warns-about-a-wrong-path (PR #224); the PR targets main and merges after 25.2's. API only. -->
 
@@ -158,7 +158,18 @@ Claude Opus 5.5 (claude-opus-5-5).
 - `web/e2e/entity-spawning.spec.ts` (new); `web/e2e/README.md` (tags and counts), `README.md` (Entity Spawning), `agentdocs/vs-serverconfig-commands.md` (Task 4)
 - this file; `sprint-status.yaml` (through `just sprint set`)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode (read-only, 2026-11-21). Verdict: approve with changes. 0 HIGH, 0 MEDIUM, 5 LOW; three fixed, two answered:
+
+1. **LOW: `reset()` during the ready hook's send left `_ProcessEndedError` unretrieved** ("Future exception was never retrieved" with a traceback, when the game exits right after it is ready). `_ask`'s `finally` marks a finished future's exception retrieved. Test with a slow `send_command` and the loop's exception handler; it fails without the fix.
+2. **LOW: two waiters of one kind shared the first reply**, so two concurrent sets could both report the first value. A reply now answers only the oldest waiter of its kind (the game answers in order). Test.
+3. **LOW: after the manager is killed and the game is orphaned, a change answers 409 telling the admin to start the server.** Not re-synced here: an orphaned game already breaks status and the console (the game is the manager's child process). The 409 message now says the manager must have seen the game start and become ready, which is true in that case too.
+4. **LOW: a set to the value the world already has might not be answered** (502). Answered by Task 1's sample: `/serverconfig entityspawning on` while already on replied "Entity spawning mode set to on". A test pins the behaviour of the watcher for two identical sets.
+5. **LOW: test gaps** (reset during the hook's send, reset cancelling the hook, two same-kind waiters): tests added.
+
 ## Change Log
 
 - 2026-11-21: Story 25.3 created (create-story); status ready-for-dev.
 - 2026-11-21: Story 25.3 implemented (dev-story): Tasks 1 to 5; status review.
+- 2026-11-21: Code review (GLM-5.3-Flash via opencode): approve with changes; 0 HIGH, 0 MEDIUM, 5 LOW; three fixed, two answered (see "Review"). After the fixes `just test-api` 4229 passed. Status done.
