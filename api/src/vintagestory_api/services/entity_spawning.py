@@ -222,15 +222,22 @@ class EntitySpawningWatcher:
         if reply is None:
             return
         kind, value = reply
-        waiting = [future for waiting_kind, future in self._waiters if waiting_kind == kind]
-        # A reply nobody waits for was typed in the console (ADR-4 decision 3)
+        # The game answers commands in order, so a reply belongs to the oldest waiter of its
+        # kind (Story 25.3 review L2); one nobody waits for was typed in the console
+        waiting = next(
+            (
+                future
+                for waiting_kind, future in self._waiters
+                if waiting_kind == kind and not future.done()
+            ),
+            None,
+        )
         via: Via = ("query" if kind == "current" else "set") if waiting else "console"
         self._store.observe(value, via)
         self._seen_since_start = True
         logger.info("entity_spawning_observed", value=value, via=via)
-        for future in waiting:
-            if not future.done():
-                future.set_result(value)
+        if waiting is not None:
+            waiting.set_result(value)
 
     async def query(self) -> bool | None:
         """Ask the game; the value it reported, or None without a reply in time."""
@@ -257,6 +264,10 @@ class EntitySpawningWatcher:
         finally:
             if entry in self._waiters:
                 self._waiters.remove(entry)
+            if future.done() and not future.cancelled():
+                # reset() may have ended the wait while the command was still being sent
+                # and the caller was cancelled: mark the exception retrieved (review L1)
+                future.exception()
 
     async def _on_ready(self) -> None:
         """Apply the env var, or ask for the value (ADR-6 decision 3)."""

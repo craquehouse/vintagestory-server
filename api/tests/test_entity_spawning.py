@@ -6,6 +6,7 @@ The lines are the game's own, recorded on 1.22.7 in Story 25.3 Task 1.
 from __future__ import annotations
 
 import asyncio
+import gc
 import json
 from datetime import UTC, datetime
 from pathlib import Path
@@ -240,6 +241,71 @@ class TestWatcher:
 
         assert watcher.record is not None and watcher.record.value is False
         assert not watcher.seen_since_start
+
+
+class TestReviewFixes:
+    async def test_reset_while_the_hook_sends_leaves_no_unretrieved_exception(
+        self, tmp_path: Path
+    ) -> None:
+        """Review L1: the game exits while the ready hook's command is being written."""
+        sending = asyncio.Event()
+        release = asyncio.Event()
+
+        async def slow_send(_: str) -> bool:
+            sending.set()
+            await release.wait()
+            return True
+
+        loop = asyncio.get_running_loop()
+        problems: list[str] = []
+        loop.set_exception_handler(lambda _loop, context: problems.append(context["message"]))
+        watcher = EntitySpawningWatcher(tmp_path, slow_send, now=lambda: NOW, timeout=1.0)
+
+        watcher.observe(READY)
+        await sending.wait()
+        watcher.reset()
+        await asyncio.sleep(0.01)
+        gc.collect()
+        await asyncio.sleep(0)
+        loop.set_exception_handler(None)
+
+        assert problems == []
+        assert not watcher.is_ready
+
+    async def test_reset_cancels_the_ready_hook(self, tmp_path: Path) -> None:
+        watcher, game = make(tmp_path, FakeGame(answer=False), timeout=5.0)
+        watcher.observe(READY)
+        await asyncio.sleep(0)
+
+        watcher.reset()
+        await asyncio.sleep(0.01)
+
+        assert game.commands == ["/serverconfig entityspawning"]
+        assert watcher.record is None
+
+    async def test_each_reply_answers_one_waiter_in_order(self, tmp_path: Path) -> None:
+        """Review L2: two sets at once get their own replies."""
+        watcher, _ = make(tmp_path, FakeGame(answer=False), timeout=1.0)
+        first = asyncio.create_task(watcher.set(False))
+        second = asyncio.create_task(watcher.set(True))
+        await asyncio.sleep(0)
+
+        watcher.observe(SET_OFF)
+        watcher.observe(SET_ON)
+
+        assert await first is False
+        assert await second is True
+        assert watcher.record is not None
+        assert watcher.record.value is True
+        assert watcher.record.via == "set"
+
+    async def test_a_set_to_the_current_value_is_answered(self, tmp_path: Path) -> None:
+        """Review L4: Task 1's sample shows the game replies to a no-op set ("set to on")."""
+        watcher, game = make(tmp_path)
+
+        assert await watcher.set(True) is True
+        assert await watcher.set(True) is True
+        assert game.commands == ["/serverconfig entityspawning true"] * 2
 
 
 class TestReadyHook:

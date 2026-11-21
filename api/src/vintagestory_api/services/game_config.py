@@ -567,8 +567,8 @@ class SettingNeedsRunningServerError(GameConfigError):
     def __init__(self, key: str) -> None:
         super().__init__(
             message=(
-                f"Setting '{key}' is kept by the running game: start the server and wait "
-                "until it is ready to change it"
+                f"Setting '{key}' is kept by the running game and changes only after the "
+                "manager has seen the game server start and become ready"
             ),
             code="SETTING_NEEDS_RUNNING_SERVER",
         )
