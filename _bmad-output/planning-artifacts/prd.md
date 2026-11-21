@@ -14,6 +14,8 @@ documentCounts:
 lastUpdated: '2026-11-20'
 updates:
   - date: '2026-11-20'
+    description: 'Added FR344-FR353 for Epic 25 (Server Config Read Correctly), with the maintainer''s four answers of the same day (VSS-7ap, VSS-egi)'
+  - date: '2026-11-20'
     description: 'Added FR327-FR343 for Epic 24 (Mod Management Follow-ups), with the maintainer''s five answers of the same day (VSS-2bp, VSS-uhek and VSS-koo1 folded in)'
   - date: '2026-11-19'
     description: 'Added FR309-FR326 for Epic 23 (Config File Editing), with the maintainer''s eight answers of the same day (VSS-o8s and VSS-7z3 pulled in)'
@@ -1007,3 +1009,21 @@ If trivial to implement:
 - FR341: The Installed tab filters by name or mod ID (any part, ignoring case), by compatibility status and by "update available"; the filters combine and apply to both the table and the cards
 - FR342: The filters are kept in the URL, so a reload or a bookmark keeps them and Back restores the previous filter; with filters on, the tab says how many mods are shown and offers Clear filters, also when nothing matches
 - FR343: In a mod description, video, audio, `<source>`, SVG images and the `poster`, `background` and inline `url()` media that the Content-Security-Policy would block are replaced with a note or removed, as images are; the policy itself is not widened
+
+### Epic 25: Server Config Read Correctly
+
+#### Config Paths (Matt, 2026-11-20)
+
+- FR344: The API reads `serverconfig.json` through one typed model; keys the model does not name are kept when the manager writes the file
+- FR345: A `serverconfig.json` that is not valid JSON is reported with the error's line and column, not as a server error
+- FR346: The API reports, for each `ModPaths` entry and for the save file, the path as given, the path it resolves to, and whether it exists and is usable
+- FR347: The API reports when the folder the manager installs mods into is not in `ModPaths`
+- FR348: Game Settings shows a warning when a path is wrong or the manager's mods folder is missing from `ModPaths`, naming the path and how to fix it
+
+#### Entity Spawning (Matt, 2026-11-20)
+
+- FR349: While the game runs, Entity Spawning shows the value the game reports, read after each start and after each change
+- FR350: While the game is stopped, Entity Spawning shows the last value the game reported and when, read-only, with a note that it changes only while the server runs; before any report it shows "Not known yet"
+- FR351: Entity Spawning is changed through the game's console and never written to `serverconfig.json`
+- FR352: `VS_CFG_ENTITY_SPAWNING` is applied through the console after each start, and the setting shows as managed by it
+- FR353: A value set in the console by hand is reflected in Entity Spawning

@@ -1950,6 +1950,8 @@ class TestOtherConfigPathsWithAPassword:
         """
         monitor_routes = [
             "/api/v1alpha1/config/game",
+            # Story 25.1: the path check states paths only, never a value
+            "/api/v1alpha1/config/game/paths",
             "/api/v1alpha1/config/files",
             "/api/v1alpha1/config/directories",
             "/api/v1alpha1/config/files/serverconfig.json",
@@ -1978,6 +1980,7 @@ class TestOtherConfigPathsWithAPassword:
         }
         assert config_get_routes == {
             "/api/v1alpha1/config/game",
+            "/api/v1alpha1/config/game/paths",
             "/api/v1alpha1/config/api",
             "/api/v1alpha1/config/directories",
             "/api/v1alpha1/config/files",
@@ -1996,6 +1999,7 @@ class TestOtherConfigPathsWithAPassword:
         }
         assert router_get_routes == {
             "/config/game",
+            "/config/game/paths",
             "/config/api",
             "/config/directories",
             "/config/files",
