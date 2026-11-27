@@ -1,6 +1,6 @@
 # Story 28.3: A Mod Can Be Installed from an HTTPS Link
 
-Status: review
+Status: done
 
 <!-- Implements FR360 to FR362, Epic 28 ADR-1 decision 4 and ADR-5. Bead: VSS-guzf.2 (API-101), closes with this story after merge. Branch story/28-3-a-mod-can-be-installed-from-an-https-link, stacked on story/28-2-a-mod-can-be-installed-by-uploading-its-file (PR #236); the PR targets main and merges after 28.2's. API only. -->
 
@@ -93,7 +93,21 @@ Claude Opus 5.5 (claude-opus-5-5).
 - `README.md`, `.env.example`
 - this file; `sprint-status.yaml` (through `just sprint set`)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode (read-only, 2026-11-27). Verdict: approve with changes. 0 HIGH, 1 MEDIUM, 5 LOW; all six fixed. The reviewer probed DNS rebinding, numeric and IPv6 host forms, redirects, pooled-connection reuse across hosts, TLS by host name when connecting by IP, proxies, HTTP/2 and the unix-socket path, and found no way past the address check.
+
+1. **MEDIUM: a refused link was logged with its user name and password** (`_loggable_link` dropped only the query and fragment). It now drops user info too, and an unparsable link logs as `<unparsable link>`. Test (checked to fail without the fix).
+2. **LOW: any 3xx was followed** (`is_redirect`), so a 304 read as "a redirect without a location". Only 301, 302, 303, 307 and 308 are followed (`has_redirect_location`); a 304 is an error answer naming its status. Test.
+3. **LOW: no test at exactly five redirects.** Added (followed, six requests).
+4. **LOW: no test for credentials in a redirect.** Added (422, one request).
+5. **LOW: NAT64, 6to4 and Teredo forms not pinned.** `64:ff9b::7f00:1` (reserved), `2002:7f00:1::` and `2001::7f00:1` (private) added to the address tests.
+6. **LOW: a mod whose ID and version give no usable name was stored as `download.zip`.** It gets `mod_<random>.zip`.
+
+After the fixes `just check` exit 0: API 4355 passed, web 3986 passed.
+
 ## Change Log
 
 - 2026-11-27: Story 28.3 created (create-story).
 - 2026-11-27: Story 28.3 implemented (dev-story): Tasks 1 to 4; status review.
+- 2026-11-27: Code review (GLM-5.3-Flash via opencode): approve with changes; 0 HIGH, 1 MEDIUM, 5 LOW; all fixed (see "Review"). Status done.
