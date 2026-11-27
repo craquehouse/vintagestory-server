@@ -12,10 +12,11 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
-import { Loader2, RefreshCw, ArrowUpCircle, FolderSearch } from 'lucide-react';
+import { Loader2, RefreshCw, ArrowUpCircle, FolderSearch, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ModTable } from '@/components/ModTable';
 import { UpdateAllDialog } from '@/components/UpdateAllDialog';
+import { AddModDialog } from '@/components/AddModDialog';
 import { UnusedFilesNotice } from '@/components/UnusedFilesNotice';
 import { InstalledModsFilterBar } from '@/components/InstalledModsFilterBar';
 import {
@@ -38,6 +39,7 @@ import { useCheckModUpdates, useModUpdates, useMods, useRescanMods } from '@/hoo
  * - Check for and apply updates (Story 14.3), or all compatible updates (Story 14.4)
  * - Rescan the mods folder and see files it does not use, Admin only (Story 24.6)
  * - Filter by name, compatibility and available update, kept in the URL (Story 24.7)
+ * - Add a mod from a file or a link, Admin only (Story 28.4)
  *
  * For discovering and installing new mods, use the Browse tab.
  */
@@ -69,6 +71,8 @@ export function InstalledTab() {
   );
   const lastChecked = updatesData?.data?.checkedAt;
   const [updateAllOpen, setUpdateAllOpen] = useState(false);
+  // Story 28.4: install a mod from a file or a link
+  const [addOpen, setAddOpen] = useState(false);
   const offeredUpdates = (updatesData?.data?.mods ?? []).filter(
     (item) => item.status === 'update_available'
   );
@@ -174,6 +178,18 @@ export function InstalledTab() {
               variant="outline"
               size="sm"
               className="max-lg:h-11"
+              onClick={() => setAddOpen(true)}
+              data-testid="mods-add-from-file-or-link"
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Add from file or link
+            </Button>
+          )}
+          {isAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="max-lg:h-11"
               onClick={handleRescan}
               disabled={isRescanning}
               title="Pick up mods copied into the mods folder by hand"
@@ -204,6 +220,7 @@ export function InstalledTab() {
         filters={filters}
         onClearFilters={() => setFilters(EMPTY_FILTERS, false)}
       />
+      {isAdmin && <AddModDialog open={addOpen} onOpenChange={setAddOpen} />}
       <UpdateAllDialog
         open={updateAllOpen}
         onOpenChange={setUpdateAllOpen}

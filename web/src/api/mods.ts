@@ -14,6 +14,7 @@ import type {
   ModsListData,
   ModLookupData,
   ModInstallData,
+  ModFileInstallData,
   ModEnableDisableData,
   ModRemoveData,
   ModTagsData,
@@ -74,6 +75,41 @@ export async function installMod(
   return apiClient<ApiResponse<ModInstallData>>(API_PREFIX, {
     method: 'POST',
     body: { slug, version },
+  });
+}
+
+/**
+ * Install a mod by uploading its zip as the request body (Story 28.2).
+ *
+ * @param file - The mod's zip; its name is kept as the mod's file name
+ * @param replace - Replace the installed mod with the same mod ID
+ *
+ * Requires Admin role.
+ */
+export async function uploadMod(
+  file: File,
+  replace = false
+): Promise<ApiResponse<ModFileInstallData>> {
+  const query = new URLSearchParams({ filename: file.name });
+  if (replace) query.set('replace', 'true');
+  return apiClient<ApiResponse<ModFileInstallData>>(`${API_PREFIX}/upload?${query}`, {
+    method: 'POST',
+    rawBody: file,
+  });
+}
+
+/**
+ * Install a mod from an HTTPS link the server downloads (Story 28.3).
+ *
+ * Requires Admin role.
+ */
+export async function installModFromUrl(
+  url: string,
+  replace = false
+): Promise<ApiResponse<ModFileInstallData>> {
+  return apiClient<ApiResponse<ModFileInstallData>>(`${API_PREFIX}/install-from-url`, {
+    method: 'POST',
+    body: { url, replace },
   });
 }
 
