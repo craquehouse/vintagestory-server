@@ -276,7 +276,7 @@ development_status:
   25-2-game-settings-warns-about-a-wrong-path: done
   25-3-entity-spawning-comes-from-the-running-game: done
   25-4-game-settings-shows-entity-spawning-from-the-game: done
-  epic-28: in-progress
+  epic-28: done
   epic-28-retrospective: optional
   28-1-each-installed-mod-records-where-it-came-from: done
   28-2-a-mod-can-be-installed-by-uploading-its-file: done
