@@ -775,6 +775,7 @@ export type ModUpdateUnknownReason =
   | 'not_checked'
   | 'not_in_database'
   | 'manual_install'
+  | 'release_asset_not_matched'
   | 'installed_release_not_listed'
   | 'version_unparsable';
 

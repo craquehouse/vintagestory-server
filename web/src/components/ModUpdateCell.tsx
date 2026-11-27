@@ -8,6 +8,7 @@
  * Story 18.4: the Update button wraps under the version when the column is narrow.
  * Story 24.4: a mod the mod database does not know (`not_in_database`) is a "Local mod".
  * Story 28.1: an uploaded or linked mod (`manual_install`) says where it came from.
+ * Story 28.5: a release mod whose latest release has no matching file says so.
  */
 
 import { Loader2 } from 'lucide-react';
@@ -19,6 +20,8 @@ const UNKNOWN_REASONS: Record<ModUpdateUnknownReason, string> = {
   not_in_database:
     'Not in the mod database: it has no mod database page and gets no update offers.',
   manual_install: 'Not from the mod database: it gets no update offers.',
+  release_asset_not_matched:
+    "The repo's latest release has no file matching the installed one, so no update is offered.",
   installed_release_not_listed: 'The installed version is not listed in the mod database.',
   version_unparsable: 'The installed version could not be compared with newer releases.',
 };
@@ -160,7 +163,9 @@ export function ModUpdateCell({
               ? 'Not checked yet'
               : status.reason === 'not_in_database'
                 ? 'Local mod'
-                : 'Unknown'
+                : status.reason === 'release_asset_not_matched'
+                  ? 'No matching file'
+                  : 'Unknown'
           }
           title={withError(
             (status.reason && UNKNOWN_REASONS[status.reason]) || 'Update status is unknown.',
