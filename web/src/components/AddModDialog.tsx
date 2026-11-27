@@ -95,6 +95,8 @@ export function AddModDialog({ open, onOpenChange }: AddModDialogProps) {
   const canInstall = !isPending && (tab === 'file' ? file !== null : link !== '');
 
   const install = (replace: boolean) => {
+    // While the replace prompt shows, the only way on is "Replace it" (Story 28.4 review)
+    if (conflict !== null && !replace) return;
     const request =
       tab === 'file' ? (file ? { file, replace } : null) : link ? { url: link, replace } : null;
     if (!request) return;
@@ -155,7 +157,11 @@ export function AddModDialog({ open, onOpenChange }: AddModDialogProps) {
                 event.preventDefault();
                 setDragging(true);
               }}
-              onDragLeave={() => setDragging(false)}
+              onDragLeave={(event) => {
+                // Leaving for a child of the zone is not leaving the zone
+                if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+                setDragging(false);
+              }}
               onDrop={handleDrop}
               data-testid="add-mod-drop"
             >

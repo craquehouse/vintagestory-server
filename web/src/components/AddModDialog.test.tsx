@@ -165,6 +165,40 @@ describe('AddModDialog (Story 28.4)', () => {
     expect(toast.success).toHaveBeenCalledWith('Replaced demo 1.0.1', { description: undefined });
   });
 
+  it('replaces from a link with replace: true, and Enter does not resend meanwhile', async () => {
+    const user = userEvent.setup();
+    fetchMock
+      .mockResolvedValueOnce(
+        refused(409, {
+          code: 'MOD_ALREADY_INSTALLED',
+          message: "Mod 'demo' is already installed (version 1.0.0)",
+          slug: 'demo',
+          installed_version: '1.0.0',
+          source: 'url',
+        })
+      )
+      .mockResolvedValueOnce(installed({ source: 'url', replaced: true }));
+    renderDialog();
+    await user.click(screen.getByTestId('add-mod-tab-link'));
+    await user.type(screen.getByTestId('add-mod-url-input'), 'https://example.com/demo.zip{Enter}');
+    expect(await screen.findByTestId('add-mod-installed')).toHaveTextContent(
+      '(installed from a link). Replace it with this download?'
+    );
+
+    await user.type(screen.getByTestId('add-mod-url-input'), '{Enter}');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('add-mod-installed')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('add-mod-replace'));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    const [url, init] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(url).toMatch(/\/mods\/install-from-url$/);
+    expect(JSON.parse(String(init.body))).toEqual({
+      url: 'https://example.com/demo.zip',
+      replace: true,
+    });
+  });
+
   it('shows any other error and keeps the input', async () => {
     fetchMock.mockResolvedValue(
       refused(422, {
