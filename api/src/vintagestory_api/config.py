@@ -55,6 +55,9 @@ class Settings(BaseSettings):
     mod_cache_max_size_mb: int = 500  # Maximum size of mod cache in MB (0 to disable)
     # VS_MOD_UPLOAD_MAX_MB: largest mod file an upload or a link install takes (Epic 28 ADR-3)
     mod_upload_max_mb: int = 200
+    # VS_MOD_URL_PRIVATE_HOSTS: comma-separated hosts a link install may reach on a private
+    # network, for a self-hosted Forgejo on the LAN (Epic 28 ADR-5 decision 4)
+    mod_url_private_hosts: str = ""
     # VS_CSP_MODE: how the web UI's Content-Security-Policy is sent (Epic 19 ADR-6):
     # enforce (default), report-only or off. Blank means unset
     csp_mode: str = "enforce"
