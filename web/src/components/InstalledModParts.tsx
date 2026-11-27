@@ -30,9 +30,20 @@ export interface ModTableRow extends ModInfo {
   compatibilityKnown?: boolean;
 }
 
-/** Whether the mod database does not know this mod (Story 24.4, FR335). */
+/**
+ * Whether the mod was uploaded or installed from a link, so the mod database is never
+ * asked about it (Story 28.1, Epic 28 ADR-2).
+ */
+export function isManualMod(mod: Pick<ModInfo, 'source'>): boolean {
+  return mod.source === 'upload' || mod.source === 'url';
+}
+
+/**
+ * Whether the mod has no mod database page: the database does not know it (Story 24.4,
+ * FR335), or it was uploaded or installed from a link (Story 28.1).
+ */
 export function isLocalMod(mod: ModTableRow): boolean {
-  return mod.updateStatus?.reason === 'not_in_database';
+  return isManualMod(mod) || mod.updateStatus?.reason === 'not_in_database';
 }
 
 function modDatabaseUrl(mod: ModInfo): string {

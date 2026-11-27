@@ -60,6 +60,7 @@ import {
   ModEnableToggle,
   ModNameLink,
   isLocalMod,
+  isManualMod,
   ModRemoveButton,
   type ModTableRow,
 } from '@/components/InstalledModParts';
@@ -81,7 +82,7 @@ import {
   useModUpdates,
 } from '@/hooks/use-mods';
 import { usePreferences, type InstalledModsSort } from '@/contexts/PreferencesContext';
-import type { ModInfo } from '@/api/types';
+import type { ModCompatibility as ModCompatibilityInfo, ModInfo } from '@/api/types';
 import { compareVersions } from '@/lib/version-compare';
 import { ariaSort } from '@/lib/table-aria-sort';
 
@@ -140,6 +141,17 @@ function SortableHeader({
  *   onToggled={(slug, enabled) => toast.success(`${slug} ${enabled ? 'enabled' : 'disabled'}`)}
  * />
  */
+/** Story 28.1: an uploaded or linked mod's compatibility is never looked up. */
+function manualModCompatibility(mod: ModInfo): ModCompatibilityInfo {
+  return {
+    status: 'not_verified',
+    gameVersion: null,
+    modVersion: mod.version,
+    message: 'Not from the mod database',
+    latestSupportedGameVersion: null,
+  };
+}
+
 export function ModTable({ onRemoved, onToggled, filters, onClearFilters }: ModTableProps) {
   const [modToRemove, setModToRemove] = useState<ModInfo | null>(null);
 
@@ -162,7 +174,10 @@ export function ModTable({ onRemoved, onToggled, filters, onClearFilters }: ModT
   // VSS-j3c: Fetch compatibility status for all installed mods
   // VSS-qal: Also fetch side info for SideBadge display
   // Story 16.3: for the installed release, not the newest one
-  const { compatibilityMap, compatibilityDetails, sideMap } = useModsCompatibility(mods);
+  // Story 28.1 (Epic 28 ADR-2): uploaded and linked mods are never looked up, since
+  // their mod ID may name another mod in the database
+  const lookedUpMods = useMemo(() => mods.filter((mod) => !isManualMod(mod)), [mods]);
+  const { compatibilityMap, compatibilityDetails, sideMap } = useModsCompatibility(lookedUpMods);
 
   // Story 14.3: update status for the Available column
   const { data: updatesData } = useModUpdates();
@@ -205,8 +220,10 @@ export function ModTable({ onRemoved, onToggled, filters, onClearFilters }: ModT
     return mods.map((mod) => ({
       ...mod,
       compatibilityStatus: compatibilityMap.get(mod.slug) ?? 'not_verified',
-      compatibilityKnown: compatibilityMap.has(mod.slug),
-      compatibility: compatibilityDetails.get(mod.slug),
+      compatibilityKnown: isManualMod(mod) || compatibilityMap.has(mod.slug),
+      compatibility: isManualMod(mod)
+        ? manualModCompatibility(mod)
+        : compatibilityDetails.get(mod.slug),
       // Use API side if available, fall back to sideMap for legacy data
       side: mod.side ?? sideMap.get(mod.slug) ?? null,
       updateStatus: updateMap.get(mod.slug),
@@ -333,6 +350,8 @@ export function ModTable({ onRemoved, onToggled, filters, onClearFilters }: ModT
           cell: ({ row }) => (
             <ModUpdateCell
               status={row.original.updateStatus}
+              source={row.original.source}
+              sourceUrl={row.original.sourceUrl}
               gameVersion={gameVersion}
               onUpdate={() => handleUpdate(row.original)}
               isUpdating={isChangingVersion(row.original.slug)}

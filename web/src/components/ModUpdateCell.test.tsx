@@ -96,6 +96,57 @@ describe('ModUpdateCell', () => {
     expect(label).toHaveAttribute('title', text);
   });
 
+  // Story 28.1 (FR355, Epic 28 ADR-2 decision 3)
+  it('shows an uploaded mod as an uploaded file', () => {
+    render(
+      <ModUpdateCell
+        status={item({ status: 'unknown', reason: 'manual_install' })}
+        source="upload"
+        onUpdate={vi.fn()}
+      />
+    );
+
+    const label = screen.getByTestId('mod-update-carryon');
+    expect(label).toHaveTextContent(/^Uploaded file/);
+    expect(label).toHaveAttribute(
+      'title',
+      'Uploaded file; not from the mod database, so it gets no update offers.'
+    );
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('shows a linked mod as installed from a link, naming the host', () => {
+    render(
+      <ModUpdateCell
+        status={item({ status: 'unknown', reason: 'manual_install' })}
+        source="url"
+        sourceUrl="https://github.com/me/mod/releases/download/v1/mod.zip"
+      />
+    );
+
+    const label = screen.getByTestId('mod-update-carryon');
+    expect(label).toHaveTextContent(/^Installed from a link/);
+    expect(label).toHaveAttribute(
+      'title',
+      'Installed from github.com; not from the mod database, so it gets no update offers.'
+    );
+  });
+
+  it('says "a link" when the stored link does not parse', () => {
+    render(
+      <ModUpdateCell
+        status={item({ status: 'unknown', reason: 'manual_install' })}
+        source="url"
+        sourceUrl="not a url"
+      />
+    );
+
+    expect(screen.getByTestId('mod-update-carryon')).toHaveAttribute(
+      'title',
+      'Installed from a link; not from the mod database, so it gets no update offers.'
+    );
+  });
+
   // Story 24.4 (FR335, Epic 24 ADR-1 decision 4)
   it('shows a mod the mod database does not know as a local mod', () => {
     render(<ModUpdateCell status={item({ status: 'unknown', reason: 'not_in_database' })} />);

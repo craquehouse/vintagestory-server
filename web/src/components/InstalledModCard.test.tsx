@@ -32,6 +32,8 @@ function row(overrides: Partial<ModTableRow> = {}): ModTableRow {
     authors: [],
     description: null,
     side: 'Both',
+    source: 'folder',
+    sourceUrl: null,
     compatibilityStatus: 'not_verified',
     ...overrides,
   };
@@ -69,5 +71,27 @@ describe('InstalledModCard local mods (Story 24.4, FR335)', () => {
       'href',
       'https://mods.vintagestory.at/playercorpse'
     );
+  });
+
+  // Story 28.1 (FR355)
+  it('shows an uploaded mod without a mod database link, with its source', () => {
+    renderCard(
+      row({
+        source: 'upload',
+        compatibility: {
+          status: 'not_verified',
+          gameVersion: null,
+          modVersion: '1.11.1',
+          message: 'Not from the mod database',
+          latestSupportedGameVersion: null,
+        },
+        updateStatus: updateStatus({ reason: 'manual_install' }),
+      })
+    );
+
+    expect(screen.queryByTestId('mod-link-playercorpse')).not.toBeInTheDocument();
+    expect(screen.getByTestId('mod-name-playercorpse')).toHaveTextContent('Player Corpse');
+    expect(screen.getByTestId('mod-update-playercorpse')).toHaveTextContent(/^Uploaded file/);
+    expect(screen.getByText('Not from the mod database')).toBeInTheDocument();
   });
 });

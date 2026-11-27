@@ -556,6 +556,8 @@ describe('fetchMods', () => {
           authors: ['TestAuthor'],
           description: 'A test mod',
           side: 'Both',
+          source: 'moddb',
+          sourceUrl: null,
         },
       ],
       pendingRestart: false,
