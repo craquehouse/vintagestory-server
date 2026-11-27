@@ -1,6 +1,6 @@
 # Story 28.2: A Mod Can Be Installed by Uploading Its File
 
-Status: review
+Status: done
 
 <!-- Implements FR356 to FR359, Epic 28 ADR-3 and ADR-4. Bead: VSS-cxuu (API-099), closes with this story after merge. Branch story/28-2-a-mod-can-be-installed-by-uploading-its-file, stacked on story/28-1-each-installed-mod-records-where-it-came-from (PR #235); the PR targets main and merges after 28.1's. API only. -->
 
@@ -96,7 +96,20 @@ Claude Opus 5.5 (claude-opus-5-5).
 - `README.md` (Task 2)
 - this file; `sprint-status.yaml` (through `just sprint set`)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode (read-only, 2026-11-27). Verdict: approve with changes. 0 HIGH, 2 MEDIUM, 3 LOW; all five fixed:
+
+1. **MEDIUM: a name of at most 255 characters can be over 255 bytes** (`"é" * 130 + ".zip"`), which ext4 refuses: a bare 500 instead of 422. `safe_archive_name` now counts UTF-8 bytes. Test.
+2. **MEDIUM: any-case `.zip` was accepted, but `is_archive_name` and the game on Linux load only lowercase `.zip`**, so `CarryOn.ZIP` would be listed and never loaded. Only lowercase `.zip` is accepted (422 otherwise); README and the ADR-3 note say so. Tests.
+3. **LOW: `.env.example` lacked `VS_MOD_UPLOAD_MAX_MB`.** Added.
+4. **LOW: a write failure (full disk) was a bare 500.** The upload answers 500 `MOD_FILE_WRITE_FAILED` (new code) with the OS message, and nothing is left. Test. `POST /mods` keeps its behaviour (out of scope; same as before the epic).
+5. **LOW: no test for a `modinfo.json` without a name, nor a route-level name conflict.** Both added.
+
+After the fixes `just check` exit 0: API 4294 passed, web 3986 passed.
+
 ## Change Log
 
 - 2026-11-27: Story 28.2 created (create-story).
 - 2026-11-27: Story 28.2 implemented (dev-story): Tasks 1 to 3; status review.
+- 2026-11-27: Code review (GLM-5.3-Flash via opencode): approve with changes; 0 HIGH, 2 MEDIUM, 3 LOW; all fixed (see "Review"). Status done.

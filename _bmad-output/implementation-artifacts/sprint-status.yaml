@@ -279,7 +279,7 @@ development_status:
   epic-28: in-progress
   epic-28-retrospective: optional
   28-1-each-installed-mod-records-where-it-came-from: done
-  28-2-a-mod-can-be-installed-by-uploading-its-file: review
+  28-2-a-mod-can-be-installed-by-uploading-its-file: done
   28-3-a-mod-can-be-installed-from-an-https-link: backlog
   28-4-the-mods-page-adds-a-mod-from-a-file-or-a-link: backlog
   28-5-mods-from-github-and-forgejo-releases-get-updates: backlog

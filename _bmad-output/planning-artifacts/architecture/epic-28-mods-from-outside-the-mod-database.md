@@ -69,7 +69,7 @@ The maintainer named the scope on 2026-11-27: install a mod that is not on the m
 1. **Route.** `POST /mods/upload?filename=<name>&replace=<bool>`, Admin only. The body is the file (`application/zip` or `application/octet-stream`). No multipart, so no new dependency, and the size limit applies while reading.
 2. **Size.** `VS_MOD_UPLOAD_MAX_MB` (default 200, at least 1). A `Content-Length` over the limit is refused before reading; the stream is counted and stopped at the limit. Answer 413 `MOD_FILE_TOO_LARGE`.
 3. **Working file.** The body is written to a working file in `{cache_dir}/incoming/`, deleted on every exit. A leftover from a crash is deleted at start-up (with the other working files).
-4. **The name.** The base name only; it must end in `.zip` (any case), be at most 255 characters, have no path separators or control characters and not start with a dot. Otherwise 422 `MOD_FILE_INVALID`.
+4. **The name.** The base name only; it must end in `.zip` (any case), be at most 255 characters, have no path separators or control characters and not start with a dot. Otherwise 422 `MOD_FILE_INVALID`. *(As implemented in Story 28.2, after its review: `.zip` in lowercase only, since `is_archive_name` and the game on Linux load only that, and at most 255 bytes in UTF-8, the volume's limit. A failure to write the file is 500 `MOD_FILE_WRITE_FAILED`.)*
 5. **The archive.** It must be a zip with a readable `modinfo.json` that has a mod ID and a version (`read_modinfo`). Otherwise 422 `MOD_FILE_INVALID`, saying which. The rest of the archive is never extracted.
 
 ## ADR-4: One Install Path for Files, with Replace
