@@ -66,17 +66,24 @@ def incoming_root(cache_dir: Path) -> Path:
 
 
 @contextmanager
+def incoming_folder(cache_dir: Path) -> Generator[Path]:
+    """A new working folder under the incoming folder, deleted on every exit."""
+    folder = incoming_root(cache_dir) / uuid.uuid4().hex
+    folder.mkdir(parents=True)
+    try:
+        yield folder
+    finally:
+        shutil.rmtree(folder, ignore_errors=True)
+
+
+@contextmanager
 def incoming_file(cache_dir: Path, name: str) -> Generator[Path]:
     """A path named `name` in a new working folder, deleted with the folder on exit.
 
     `name` must already have passed `safe_archive_name`.
     """
-    folder = incoming_root(cache_dir) / uuid.uuid4().hex
-    folder.mkdir(parents=True)
-    try:
+    with incoming_folder(cache_dir) as folder:
         yield folder / name
-    finally:
-        shutil.rmtree(folder, ignore_errors=True)
 
 
 def clear_incoming(cache_dir: Path) -> int:

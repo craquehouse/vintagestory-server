@@ -6,6 +6,7 @@ from dataclasses import asdict
 from functools import partial
 from typing import Annotated, Any, Literal
 
+import httpx
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from pydantic import BaseModel, Field
@@ -30,6 +31,14 @@ from vintagestory_api.services.mod_api import (
 )
 from vintagestory_api.services.mod_api import (
     ModNotFoundError as ApiModNotFoundError,
+)
+from vintagestory_api.services.mod_link import (
+    LinkDownloadError,
+    ModUrlInvalidError,
+    check_link,
+    downloaded,
+    name_from_modinfo,
+    stored_link,
 )
 from vintagestory_api.services.mod_media import checked_url, mod_image_url
 from vintagestory_api.services.mod_updates import (
@@ -63,6 +72,7 @@ from vintagestory_api.services.mods import (
     UnusedFileNotFoundError,
     get_mod_service,
 )
+from vintagestory_api.services.safe_fetch import AddressBlockedError, parse_private_hosts
 
 logger = structlog.get_logger()
 
@@ -974,6 +984,17 @@ def archive_install_error(error: Exception) -> HTTPException:
         return HTTPException(
             status_code=413, detail={"code": ErrorCode.MOD_FILE_TOO_LARGE, "message": str(error)}
         )
+    if isinstance(error, (ModUrlInvalidError, AddressBlockedError)):
+        code = (
+            ErrorCode.MOD_URL_INVALID
+            if isinstance(error, ModUrlInvalidError)
+            else ErrorCode.MOD_URL_BLOCKED
+        )
+        return HTTPException(status_code=422, detail={"code": code, "message": str(error)})
+    if isinstance(error, LinkDownloadError):
+        return HTTPException(
+            status_code=502, detail={"code": ErrorCode.DOWNLOAD_FAILED, "message": str(error)}
+        )
     if isinstance(error, ModAlreadyInstalledError):
         return HTTPException(
             status_code=409,
@@ -1002,7 +1023,22 @@ def archive_install_error(error: Exception) -> HTTPException:
     return HTTPException(status_code=409, detail={"code": code, "message": str(error)})
 
 
+def file_write_error(error: OSError) -> HTTPException:
+    """A full disk or an unwritable folder while receiving or placing the file; the
+    working folder and any placed file are already removed (Story 28.2 review)."""
+    return HTTPException(
+        status_code=500,
+        detail={
+            "code": ErrorCode.MOD_FILE_WRITE_FAILED,
+            "message": f"The file could not be written: {error.strerror or error}",
+        },
+    )
+
+
 ARCHIVE_INSTALL_ERRORS = (
+    ModUrlInvalidError,
+    AddressBlockedError,
+    LinkDownloadError,
     ModFileInvalidError,
     ModFileTooLargeError,
     ModAlreadyInstalledError,
@@ -1071,19 +1107,96 @@ async def upload_mod(
         logger.info("mod_upload_refused", filename=filename, error_type=type(e).__name__)
         raise archive_install_error(e) from None
     except OSError as e:
-        # A full disk or an unwritable folder while receiving or placing the file; the
-        # working folder and any placed file are already removed (Story 28.2 review)
         logger.error("mod_upload_write_failed", filename=filename, error=str(e))
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "code": ErrorCode.MOD_FILE_WRITE_FAILED,
-                "message": f"The file could not be written: {e.strerror or e}",
-            },
-        ) from None
+        raise file_write_error(e) from None
     if result.replaced:
         update_service.forget(result.slug)
     return archive_install_response(result)
+
+
+class ModLinkInstallRequest(BaseModel):
+    """Request body for POST /mods/install-from-url (Story 28.3)."""
+
+    url: str = Field(min_length=1, max_length=4096, description="An https link to a mod zip")
+    replace: bool = Field(
+        default=False, description="Replace the installed mod with the same mod ID"
+    )
+
+
+def get_link_transport() -> httpx.AsyncBaseTransport | None:
+    """The transport for link downloads; None is the guarded one (tests override it)."""
+    return None
+
+
+@router.post(
+    "/install-from-url", response_model=ApiResponse, summary="Install a mod from an HTTPS link"
+)
+async def install_mod_from_url(
+    body: ModLinkInstallRequest,
+    _: RequireAdmin,
+    settings: Settings = Depends(get_settings),
+    service: ModService = Depends(get_mod_service),
+    update_service: ModUpdateService = Depends(get_mod_update_service),
+    transport: httpx.AsyncBaseTransport | None = Depends(get_link_transport),
+) -> ApiResponse:
+    """Download a mod's zip from a link and install it (Admin only, Story 28.3).
+
+    The link must be https (plain http only with VS_DEBUG=true) without a user name or
+    password. Every connection, including after a redirect (at most five), is refused
+    when its host resolves to a private, loopback, link-local or other internal address,
+    except private addresses of hosts in VS_MOD_URL_PRIVATE_HOSTS (Epic 28 ADR-5). Proxy
+    settings are not used. The file is named from Content-Disposition, else the link's
+    last path segment, else `{modid}_{version}.zip`, then checked and installed with
+    source `url` as an upload is (ADR-4). The link is stored without its query string.
+
+    Raises:
+        HTTPException: 422 MOD_URL_INVALID for a link or redirect that is not https, has
+            credentials, or redirects more than five times.
+        HTTPException: 422 MOD_URL_BLOCKED for a host on an internal address.
+        HTTPException: 502 DOWNLOAD_FAILED for an error answer, a timeout (connect 10 s,
+            read 30 s, whole download 300 s) or a connection error.
+        HTTPException: 413, 422, 409 and 500 as for POST /mods/upload.
+    """
+    limit_bytes = settings.mod_upload_max_mb * 1024 * 1024
+    try:
+        async with downloaded(
+            body.url,
+            cache_dir=service.cache_dir,
+            limit_bytes=limit_bytes,
+            allow_http=settings.debug,
+            transport=transport,
+            private_hosts=parse_private_hosts(settings.mod_url_private_hosts),
+        ) as (path, named):
+            if not named:
+                metadata = service.state_manager.read_modinfo(path)
+                name = name_from_modinfo(metadata.modid, metadata.version) if metadata else None
+                if name is not None:
+                    path = path.rename(path.with_name(name))
+            result = service.install_archive(
+                path,
+                source="url",
+                source_url=stored_link(check_link(body.url, allow_http=settings.debug)),
+                replace=body.replace,
+            )
+    except ARCHIVE_INSTALL_ERRORS as e:
+        logger.info(
+            "mod_link_install_refused",
+            link=_loggable_link(body.url),
+            error_type=type(e).__name__,
+            error=str(e),
+        )
+        raise archive_install_error(e) from None
+    except OSError as e:
+        logger.error("mod_link_write_failed", link=_loggable_link(body.url), error=str(e))
+        raise file_write_error(e) from None
+    if result.replaced:
+        update_service.forget(result.slug)
+    return archive_install_response(result)
+
+
+def _loggable_link(url: str) -> str:
+    """The link for a log line: never its query string, which may hold a signature."""
+    return url.split("?", 1)[0].split("#", 1)[0]
 
 
 @router.post("/{slug}/enable", response_model=ApiResponse)
