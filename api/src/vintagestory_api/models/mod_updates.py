@@ -27,6 +27,7 @@ UnknownReason = Literal[
     "not_checked",
     "not_in_database",
     "manual_install",
+    "release_asset_not_matched",
     "installed_release_not_listed",
     "version_unparsable",
 ]
@@ -49,6 +50,8 @@ class StoredRelease(BaseModel):
     fileid: int = 0
     filename: str = ""
     created: str | None = None
+    download_url: str | None = None
+    """For a GitHub or Forgejo release (Story 28.5): the asset's download link."""
 
     @classmethod
     def from_api(cls, release: object) -> StoredRelease:
