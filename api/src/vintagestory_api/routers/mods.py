@@ -1021,7 +1021,8 @@ async def upload_mod(
         Query(
             min_length=1,
             max_length=255,
-            description="The file's name: a base name ending in .zip, kept as the mod's file",
+            description="The file's name: a base name ending in lowercase .zip, kept as "
+            "the mod's file",
         ),
     ],
     _: RequireAdmin,
@@ -1049,14 +1050,16 @@ async def upload_mod(
             MOD_FILE_MISSING, as for an install or a version change.
         HTTPException: 500 MOD_VERSION_CHANGE_FAILED when a replace failed; the original
             file and state are restored.
+        HTTPException: 500 MOD_FILE_WRITE_FAILED when the file could not be written (for
+            example a full disk); nothing is left behind.
     """
     limit_bytes = settings.mod_upload_max_mb * 1024 * 1024
     try:
         name = safe_archive_name(filename)
         if name is None:
             raise ModFileInvalidError(
-                "The file name must be a plain name ending in .zip, with no folder, and "
-                "must not start with a dot."
+                "The file name must be a plain name ending in .zip (lowercase), with no "
+                "folder, at most 255 bytes, and must not start with a dot."
             )
         declared = request.headers.get("content-length")
         if declared is not None and declared.isdigit() and int(declared) > limit_bytes:
@@ -1067,6 +1070,17 @@ async def upload_mod(
     except ARCHIVE_INSTALL_ERRORS as e:
         logger.info("mod_upload_refused", filename=filename, error_type=type(e).__name__)
         raise archive_install_error(e) from None
+    except OSError as e:
+        # A full disk or an unwritable folder while receiving or placing the file; the
+        # working folder and any placed file are already removed (Story 28.2 review)
+        logger.error("mod_upload_write_failed", filename=filename, error=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": ErrorCode.MOD_FILE_WRITE_FAILED,
+                "message": f"The file could not be written: {e.strerror or e}",
+            },
+        ) from None
     if result.replaced:
         update_service.forget(result.slug)
     return archive_install_response(result)

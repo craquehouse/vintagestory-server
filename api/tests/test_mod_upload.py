@@ -115,7 +115,9 @@ def installed(
 
 
 class TestSafeArchiveName:
-    @pytest.mark.parametrize("name", ["demo_1.0.0.zip", "Demo.ZIP", "a b (fork).zip"])
+    @pytest.mark.parametrize(
+        "name", ["demo_1.0.0.zip", "Demo.zip", "a b (fork).zip", "é" * 125 + ".zip"]
+    )
     def test_accepts_a_plain_zip_name(self, name: str) -> None:
         assert safe_archive_name(name) == name
 
@@ -133,6 +135,11 @@ class TestSafeArchiveName:
             "de\nmo.zip",
             "de\x00mo.zip",
             "a" * 252 + ".zip",
+            # Story 28.2 review: 134 characters but 264 bytes, over ext4's 255
+            "é" * 130 + ".zip",
+            # Story 28.2 review: the manager and the game load only lowercase .zip
+            "Demo.ZIP",
+            "demo.Zip",
         ],
     )
     def test_refuses_anything_else(self, name: str) -> None:
@@ -219,6 +226,7 @@ class TestInstallArchive:
             (mod_zip(None, extra={"readme.txt": b"x"}), "no usable modinfo.json"),
             (mod_zip({"modid": "demo", "name": "Demo"}), "no usable modinfo.json"),
             (mod_zip({"name": "Demo", "version": "1"}), "no usable modinfo.json"),
+            (mod_zip({"modid": "demo", "version": "1"}), "no usable modinfo.json"),
         ],
     )
     def test_refuses_an_unusable_file(self, service: ModService, data: bytes, message: str) -> None:
@@ -489,3 +497,36 @@ class TestUploadRoute:
         )
         assert update_service.store.get("demo") is None
         assert ModUpdateStore(service.state_manager.state_dir).get("demo") is None
+
+    def test_a_name_taken_by_another_mod_is_409(
+        self, client: TestClient, service: ModService
+    ) -> None:
+        installed(service, "other", "1.0.0", "demo.zip")
+
+        response = client.post(
+            UPLOAD_URL, params={"filename": "demo.zip"}, content=demo_zip(), headers=ADMIN
+        )
+
+        assert response.status_code == 409
+        assert response.json()["detail"]["code"] == ErrorCode.MOD_FILE_CONFLICT
+        assert leftovers(service) == []
+
+    def test_a_write_failure_is_500_with_a_code_and_leaves_nothing(
+        self, client: TestClient, service: ModService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        def full_disk(*args: object, **kwargs: object) -> None:
+            raise OSError(28, "No space left on device")
+
+        monkeypatch.setattr(mods_module.shutil, "copy2", full_disk)
+
+        response = client.post(
+            UPLOAD_URL, params={"filename": "d.zip"}, content=demo_zip(), headers=ADMIN
+        )
+
+        assert response.status_code == 500
+        assert response.json()["detail"] == {
+            "code": ErrorCode.MOD_FILE_WRITE_FAILED,
+            "message": "The file could not be written: No space left on device",
+        }
+        assert leftovers(service) == []
+        assert service.state_manager.list_mods() == []

@@ -20,7 +20,8 @@ logger = structlog.get_logger()
 INCOMING_DIR_NAME = "incoming"
 """Folder under the cache directory that holds files being received."""
 
-MAX_ARCHIVE_NAME_LENGTH = 255
+MAX_ARCHIVE_NAME_BYTES = 255
+"""A file name's limit on ext4 and most volumes, in bytes (UTF-8)."""
 
 _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 
@@ -45,15 +46,17 @@ class ModFileTooLargeError(Exception):
 def safe_archive_name(name: str) -> str | None:
     """The name if it is a safe base name for a mod archive, else None (ADR-3 decision 4).
 
-    It must end in `.zip` (any case), be at most 255 characters, have no path separator or
-    control character, and not start with a dot. Nothing is changed: a name that needs
-    changing is refused, so the file is never stored under a name the admin did not give.
+    It must end in `.zip` (lowercase: the manager and the game on Linux load only that,
+    Story 28.2 review), be at most 255 bytes in UTF-8 (the volume's limit), have no path
+    separator or control character, and not start with a dot. Nothing is changed: a name
+    that needs changing is refused, so the file is never stored under a name the admin
+    did not give.
     """
-    if not name or len(name) > MAX_ARCHIVE_NAME_LENGTH:
+    if not name or len(name.encode("utf-8")) > MAX_ARCHIVE_NAME_BYTES:
         return None
     if "/" in name or "\\" in name or _CONTROL_CHARS.search(name):
         return None
-    if name.startswith(".") or not name.lower().endswith(".zip") or name.lower() == ".zip":
+    if name.startswith(".") or not name.endswith(".zip"):
         return None
     return name
 

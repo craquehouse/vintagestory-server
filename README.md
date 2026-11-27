@@ -171,7 +171,7 @@ Each save keeps the text it replaced, in `vsmanager/state/config-history/` in th
 
 ### Mods from outside the mod database
 
-A mod that is not on the mod database, or a patched build of one that is, can be installed by uploading its `.zip` with an Admin key: `POST /api/v1alpha1/mods/upload?filename=<name>.zip`, with the file itself as the request body (for example `curl -H "X-API-Key: $KEY" --data-binary @mymod.zip "http://host:8080/api/v1alpha1/mods/upload?filename=mymod.zip"`). The file must be a zip with a `modinfo.json` that names a mod ID, a name and a version, and at most `VS_MOD_UPLOAD_MAX_MB` (200 MB by default). It is kept under the name given.
+A mod that is not on the mod database, or a patched build of one that is, can be installed by uploading its `.zip` with an Admin key: `POST /api/v1alpha1/mods/upload?filename=<name>.zip`, with the file itself as the request body (for example `curl -H "X-API-Key: $KEY" --data-binary @mymod.zip "http://host:8080/api/v1alpha1/mods/upload?filename=mymod.zip"`). The file must be a zip with a `modinfo.json` that names a mod ID, a name and a version, and at most `VS_MOD_UPLOAD_MAX_MB` (200 MB by default). It is kept under the name given, which must end in `.zip` in lowercase, since the game loads only such files.
 
 If a mod with the same mod ID is installed, the upload is refused and says which version is installed and where it came from; add `&replace=true` to replace it. A replace keeps the mod enabled or disabled as it was, and puts the original back if anything fails.
 
