@@ -173,6 +173,8 @@ class TestModState:
             "enabled": True,
             "installed_at": "2025-12-29T10:30:00Z",
             "asset_id": 15312,
+            "source": "moddb",
+            "source_url": None,
         }
 
 

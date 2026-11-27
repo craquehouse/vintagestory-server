@@ -4,8 +4,10 @@ inputDocuments:
   - '_bmad-output/planning-artifacts/prd.md'
   - '_bmad-output/planning-artifacts/architecture.md'
   - '_bmad-output/planning-artifacts/ux-design-specification.md'
-lastUpdated: '2026-11-20'
+lastUpdated: '2026-11-27'
 updates:
+  - date: '2026-11-27'
+    description: 'Added Epic 28 (5 stories) for Mods From Outside the Mod Database; FR354-FR366, scope named by the maintainer (VSS-guzf)'
   - date: '2026-11-20'
     description: 'Added Epic 25 (4 stories) for Server Config Read Correctly; FR344-FR353, with the maintainer''s four answers of the same day (VSS-7ap, VSS-egi)'
   - date: '2026-11-20'
@@ -579,6 +581,19 @@ This document provides the complete epic and story breakdown for vintagestory-se
 | FR351 | Epic 25 | Entity Spawning is changed through the console only |
 | FR352 | Epic 25 | VS_CFG_ENTITY_SPAWNING is applied after each start |
 | FR353 | Epic 25 | A console change to Entity Spawning is reflected |
+| FR354 | Epic 28 | Each mod records its source |
+| FR355 | Epic 28 | Uploaded and linked mods are not looked up in the mod database |
+| FR356 | Epic 28 | Admin can upload a mod file |
+| FR357 | Epic 28 | Uploads and downloads have a size limit |
+| FR358 | Epic 28 | A file without a valid modinfo.json is refused |
+| FR359 | Epic 28 | An installed mod is replaced only when asked |
+| FR360 | Epic 28 | Admin can install a mod from a link |
+| FR361 | Epic 28 | A link install never reaches internal addresses |
+| FR362 | Epic 28 | A link install has time and size limits |
+| FR363 | Epic 28 | The Installed tab adds a mod from a file or a link |
+| FR364 | Epic 28 | The dialog offers a replace |
+| FR365 | Epic 28 | Release mods are checked for updates |
+| FR366 | Epic 28 | Release mods can be updated |
 
 ## Epic List
 
@@ -2099,7 +2114,8 @@ So that **I can monitor background task status**.
 | Epic 23: Config File Editing | 23.1, 23.2, 23.3, 23.4, 23.5, 23.6, 23.7 | 7 |
 | Epic 24: Mod Management Follow-ups | 24.1, 24.2, 24.3, 24.4, 24.5, 24.6, 24.7, 24.8 | 8 |
 | Epic 25: Server Config Read Correctly | 25.1, 25.2, 25.3, 25.4 | 4 |
-| **Total** | | **155** |
+| Epic 28: Mods From Outside the Mod Database | 28.1, 28.2, 28.3, 28.4, 28.5 | 5 |
+| **Total** | | **160** |
 
 ---
 
@@ -9073,3 +9089,85 @@ So that **I know whether I can change it now**.
 - [ ] The settings query is invalidated on a server state change
 - [ ] Unit tests for each source, the 502 and the env-managed lock
 - [ ] A `fix(web)` commit "show Entity Spawning as the game reports it, and the last value seen while stopped"; `just check` green
+
+## Epic 28: Mods From Outside the Mod Database
+
+**Goal:** An administrator can install a mod that is not on the mod database, by uploading its file or by giving an HTTPS link the server downloads (a GitHub or Forgejo release asset, an S3 object or presigned URL). The mod list says where each mod came from, an uploaded or linked mod is never confused with a mod-database mod of the same ID, and a mod installed from a GitHub or Forgejo release gets updates from that repo.
+
+**Architecture:** `architecture/epic-28-mods-from-outside-the-mod-database.md` (ADR-1 to ADR-7, with the facts checked at `0da3d584`). There is no preparation story.
+
+**Decided by the maintainer (Matt, 2026-11-27):** the scope, the five beads under the epic bead `VSS-guzf` (`VSS-guzf.1`, `VSS-cxuu`, `VSS-guzf.2`, `VSS-guzf.3`, `VSS-guzf.4`), and tokens for private sources out of scope. Every ADR is a planner decision, listed for review in `sprint-change-proposal-2026-11-27-epic-28.md`, section 5.
+
+**FRs:** FR354 to FR366. Order: 28.1 to 28.5, each branch from the previous story's branch, each PR to `main`.
+
+### Story 28.1: Each Installed Mod Records Where It Came From
+
+As an administrator, I want to see where each installed mod came from, so that I know which mods the mod database updates and which I manage myself.
+
+**Acceptance criteria:**
+
+1. **Given** an install from the mod database, the start-up sync or a rescan, **then** the mod's state has `source` `moddb` or `folder`; **given** a state file written before this story, **then** an entry reads as `moddb` when its asset ID is set and `folder` otherwise, and loading rewrites nothing (FR354; ADR-1).
+2. **Given** `GET /mods`, **then** each mod has `source` and `source_url` (FR354).
+3. **Given** a mod with source `upload` or `url`, **when** the update check runs, **then** it is not looked up in the mod database, its asset ID is not filled in, and its status is `unknown` with reason `manual_install` (FR355; ADR-2).
+4. **Given** a `folder` mod, **then** the check behaves as today: found mods get updates, others are local mods (ADR-2 decision 2).
+5. **Given** a mod with source `upload` or `url` in the Installed tab, **then** its name has no mod database link, its compatibility is not looked up and reads "Not verified" with "Not from the mod database", and its update cell reads "Uploaded file" or "Installed from a link" (the host in the tooltip), on the table and the phone cards (FR355).
+6. `just check` green; no suppression added.
+
+### Story 28.2: A Mod Can Be Installed by Uploading Its File
+
+As an administrator, I want to upload a mod's zip file, so that I can install a mod that is not on the mod database or a patched build of one that is.
+
+**Acceptance criteria:**
+
+1. **Given** an Admin key and a zip with a valid `modinfo.json`, **when** `POST /mods/upload?filename=<name>` sends it as the body, **then** the mod is installed with source `upload`, and the response has `slug`, `version`, `filename`, `compatibility` (`not_verified`), `pending_restart`, `source`, `replaced` and `previous_version` (FR356; ADR-3, ADR-4).
+2. **Given** a body over `VS_MOD_UPLOAD_MAX_MB` (by `Content-Length` or while reading), **then** 413 `MOD_FILE_TOO_LARGE`, and nothing is left in the mods folder or the cache (FR357).
+3. **Given** a name that is not a safe `.zip` base name, a body that is not a zip, or a zip without a `modinfo.json` that has a mod ID and a version, **then** 422 `MOD_FILE_INVALID` saying which (FR358).
+4. **Given** the mod ID is installed, **when** `replace` is not set, **then** 409 `MOD_ALREADY_INSTALLED` with the installed version and source; **when** `replace=true`, **then** the file is swapped keeping the enabled state, the source becomes `upload`, the update record is removed, and a failure restores the original file and state (FR359; ADR-4).
+5. **Given** the mod is busy or the name is taken, **then** 409 `MOD_OPERATION_IN_PROGRESS` or `MOD_FILE_CONFLICT`, as for an install.
+6. **Given** a Monitor key, **then** 403. **Given** the server runs, **then** a restart is pending.
+7. **Given** a crash during an upload, **then** the leftover working file is deleted at the next start.
+8. `just check` green; README documents the upload and `VS_MOD_UPLOAD_MAX_MB`.
+
+### Story 28.3: A Mod Can Be Installed from an HTTPS Link
+
+As an administrator, I want to give the server a link to a mod's file, so that I can install a mod published on GitHub, Forgejo or S3 without downloading it first.
+
+**Acceptance criteria:**
+
+1. **Given** an Admin key and an `https` link to a mod zip, **when** `POST /mods/install-from-url` runs with `{url}`, **then** the file is downloaded and installed with source `url` and `source_url` the link without its query string, fragment or user info (FR360; ADR-1 decision 4, ADR-5).
+2. **Given** a link or a redirect that is not `https` (without `VS_DEBUG`), more than 5 redirects, or a link with a user name or password, **then** 422 `MOD_URL_INVALID` (FR360).
+3. **Given** a host that resolves to a private, loopback, link-local, multicast, reserved or unspecified address, on the first request or after a redirect, **then** 422 `MOD_URL_BLOCKED` and no connection is made to it; **given** the host is in `VS_MOD_URL_PRIVATE_HOSTS`, **then** a private address is allowed, and loopback, link-local and unspecified stay blocked (FR361).
+4. **Given** a download over the size limit, slower than the limits, or a non-2xx answer, **then** 413 `MOD_FILE_TOO_LARGE` or 502 `DOWNLOAD_FAILED`, and nothing is left behind (FR362).
+5. **Given** the file, **then** its name comes from `Content-Disposition`, else the URL path, else `{modid}_{version}.zip`, and it is checked and installed (with `replace`) as Story 28.2's ACs 3 to 6 (ADR-4, ADR-5).
+6. Proxies from the environment are not used.
+7. `just check` green; README documents the link install and `VS_MOD_URL_PRIVATE_HOSTS`.
+
+### Story 28.4: The Mods Page Adds a Mod from a File or a Link
+
+As an administrator, I want to add a mod from a file or a link on the mods page, so that I do not need the API to do it.
+
+**Acceptance criteria:**
+
+1. **Given** an Admin key, **then** the Installed tab has "Add from file or link" next to Rescan; **given** a Monitor key, **then** it does not (FR363; ADR-6).
+2. **Given** the dialog's File tab, **when** a `.zip` is picked or dropped and Install is pressed, **then** it is uploaded as the request body (FR363).
+3. **Given** the Link tab, **when** an `https` link is entered and Install is pressed, **then** the link install runs (FR363).
+4. **Given** a `MOD_ALREADY_INSTALLED` answer, **then** the dialog names the installed mod, version and source, and "Replace it" resends with `replace=true` (FR364).
+5. **Given** any other error, **then** the dialog shows the API's message and keeps the input. **Given** success, **then** it closes, a toast names the mod and version (and the restart when pending), and the mod list and update status refresh.
+6. The dialog works on a phone (full width under 640 px, 44 px targets) and from the keyboard.
+7. **E2E (CI set):** an upload of a generated mod zip shows the mod as "Uploaded file"; an upload of a zip without `modinfo.json` shows the error; a link to a loopback address shows the blocked message.
+8. `just check` green.
+
+### Story 28.5: Mods from GitHub and Forgejo Releases Get Updates
+
+As an administrator, I want a mod I installed from a GitHub or Forgejo release to tell me when a newer release is out, so that I can update it like a mod-database mod.
+
+**Acceptance criteria:**
+
+1. **Given** a `url` mod whose link is a release asset (`/{owner}/{repo}/releases/download/{tag}/{asset}`), **when** the update check runs, **then** the repo's latest release is fetched (GitHub's API on `github.com`, `/api/v1` on any other host), through Story 28.3's transport (FR365; ADR-7).
+2. **Given** the latest release, **then** the asset is matched by name with version-like parts removed, else the only `.zip`; no match gives `unknown` / `release_asset_not_matched` (ADR-7 decision 3).
+3. **Given** a newer tag (a leading `v` removed), **then** `update_available` with `not_verified`; the same or older gives `up_to_date`; a tag that does not parse gives `unknown` / `version_unparsable` (FR365).
+4. **Given** a lookup that fails, **then** the error is recorded as for a mod-database lookup and the check goes on.
+5. **Given** `PUT /mods/{slug}/version` with the offered version, **then** the matching asset is installed with replace through Story 28.3's download; an archive with another mod ID is refused with 422 `MOD_FILE_INVALID` and the installed mod is kept (FR366).
+6. **Given** the Installed tab, **then** such a mod shows the update with the Update button, and Update all skips it as not verified; the webhook alert includes it.
+7. **Given** a link that is not a release asset, **then** its status stays `manual_install`.
+8. `just check` green; README documents release updates.

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 import { type ReactNode } from 'react';
@@ -718,6 +718,122 @@ describe('ModTable', () => {
         const link = screen.getByTestId('mod-link-custommod');
         expect(link).toHaveAttribute('href', 'https://mods.vintagestory.at/custommod');
       });
+    });
+  });
+
+  // Story 28.1 (FR355, Epic 28 ADR-2)
+  describe('uploaded and linked mods', () => {
+    const manualMods = {
+      status: 'ok',
+      data: {
+        mods: [
+          {
+            filename: 'smithingplus-1.5.0.zip',
+            slug: 'smithingplus',
+            version: '1.5.0',
+            enabled: true,
+            installedAt: '2026-11-27T00:00:00Z',
+            assetId: 15312,
+            name: 'Smithing Plus',
+            authors: [],
+            description: null,
+            source: 'moddb',
+            source_url: null,
+          },
+          {
+            filename: 'carryon-fork.zip',
+            slug: 'carryon',
+            version: '1.14.1-fork',
+            enabled: true,
+            installedAt: '2026-11-27T00:00:00Z',
+            assetId: 0,
+            name: 'Carry On (fork)',
+            authors: [],
+            description: null,
+            source: 'upload',
+            source_url: null,
+          },
+          {
+            filename: 'linked.zip',
+            slug: 'linked',
+            version: '2.0.0',
+            enabled: true,
+            installedAt: '2026-11-27T00:00:00Z',
+            assetId: 0,
+            name: 'Linked',
+            authors: [],
+            description: null,
+            source: 'url',
+            source_url: 'https://git.example.com/me/linked/releases/download/v2.0.0/linked.zip',
+          },
+        ],
+        pendingRestart: false,
+      },
+    };
+
+    function manualFetch() {
+      return vi.fn().mockImplementation((url: string) => {
+        const status = (slug: string) => ({
+          slug,
+          name: slug,
+          installed_version: '1',
+          status: 'unknown',
+          offered_version: null,
+          offered_compatibility: null,
+          offered_prerelease: null,
+          reason: 'manual_install',
+          checked_at: null,
+          error: null,
+        });
+        const body = url.includes('/mods/updates')
+          ? {
+              status: 'ok',
+              data: {
+                game_version: '1.22.7',
+                checked_at: null,
+                update_count: 0,
+                mods: [status('carryon'), status('linked')],
+              },
+            }
+          : manualMods;
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+      });
+    }
+
+    it('never looks them up in the mod database and links no mod page', async () => {
+      globalThis.fetch = manualFetch();
+
+      render(<ModTable />, { wrapper: createWrapper(createTestQueryClient()) });
+
+      expect(await screen.findByTestId('mod-name-carryon')).toHaveTextContent('Carry On (fork)');
+      expect(screen.getByTestId('mod-name-linked')).toHaveTextContent('Linked');
+      expect(screen.queryByTestId('mod-link-carryon')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('mod-link-linked')).not.toBeInTheDocument();
+      // Only the mod-database mod is handed to the compatibility lookups
+      const lastCall = compatibilityMock.calls[compatibilityMock.calls.length - 1];
+      expect(lastCall.map(({ slug }) => slug)).toEqual(['smithingplus']);
+    });
+
+    it('shows them as not verified, not from the mod database, with their source', async () => {
+      globalThis.fetch = manualFetch();
+
+      render(<ModTable />, { wrapper: createWrapper(createTestQueryClient()) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-update-carryon')).toHaveTextContent(/^Uploaded file/);
+      });
+      expect(screen.getByTestId('mod-update-linked')).toHaveTextContent(/^Installed from a link/);
+      expect(screen.getByTestId('mod-update-linked')).toHaveAttribute(
+        'title',
+        expect.stringContaining('Installed from git.example.com')
+      );
+      for (const slug of ['carryon', 'linked']) {
+        const badge = within(screen.getByTestId(`mod-row-${slug}`)).getByTestId(
+          'compatibility-badge'
+        );
+        expect(badge).toHaveTextContent('Not verified');
+        expect(badge).toHaveAttribute('title', 'Not from the mod database');
+      }
     });
   });
 

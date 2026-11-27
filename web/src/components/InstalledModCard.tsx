@@ -73,6 +73,8 @@ export function InstalledModCard({
           <span className="text-sm font-medium">Available</span>
           <ModUpdateCell
             status={mod.updateStatus}
+            source={mod.source}
+            sourceUrl={mod.sourceUrl}
             gameVersion={gameVersion}
             onUpdate={onUpdate}
             isUpdating={isUpdating}

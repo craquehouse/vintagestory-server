@@ -11,8 +11,10 @@ documentCounts:
   research: 0
   brainstorming: 1
   projectDocs: 1
-lastUpdated: '2026-11-20'
+lastUpdated: '2026-11-27'
 updates:
+  - date: '2026-11-27'
+    description: 'Added FR354-FR366 for Epic 28 (Mods From Outside the Mod Database), scope named by the maintainer (VSS-guzf)'
   - date: '2026-11-20'
     description: 'Added FR344-FR353 for Epic 25 (Server Config Read Correctly), with the maintainer''s four answers of the same day (VSS-7ap, VSS-egi)'
   - date: '2026-11-20'
@@ -1027,3 +1029,21 @@ If trivial to implement:
 - FR351: Entity Spawning is changed through the game's console and never written to `serverconfig.json`
 - FR352: `VS_CFG_ENTITY_SPAWNING` is applied through the console after each start, and the setting shows as managed by it
 - FR353: A value set in the console by hand is reflected in Entity Spawning
+
+### Epic 28: Mods From Outside the Mod Database
+
+#### Mod Sources (Matt, 2026-11-27)
+
+- FR354: Each installed mod records where it came from: the mod database, the mods folder, an upload or a link (kept without its query string, fragment or user info)
+- FR355: A mod installed from an upload or a link is never looked up in the mod database, and the mod list marks it as an uploaded file or installed from a link
+- FR356: An Admin can install a mod by uploading its zip file
+- FR357: An upload or download over the size limit (`VS_MOD_UPLOAD_MAX_MB`) is refused and nothing is kept
+- FR358: A file that is not a zip with a readable `modinfo.json` naming a mod ID and a version is refused, saying why
+- FR359: An upload or link install of an installed mod is refused unless the Admin asks to replace it; a replace keeps the enabled state and restores the original on failure
+- FR360: An Admin can install a mod from an HTTPS link
+- FR361: A link install never connects to a private, loopback or link-local address, including after a redirect; hosts in `VS_MOD_URL_PRIVATE_HOSTS` may use private addresses
+- FR362: A link install has time limits and the size limit
+- FR363: The Installed tab has an "Add from file or link" dialog for Admins
+- FR364: The dialog offers to replace an installed mod
+- FR365: A mod installed from a GitHub or Forgejo release link is checked against the repo's latest release
+- FR366: Updating such a mod installs the latest release's matching asset

@@ -888,6 +888,7 @@ class TestModServiceInstallMod:
         assert mod_state is not None
         assert mod_state.version == "1.8.3"
         assert mod_state.enabled is True
+        assert mod_state.source == "moddb"  # Epic 28 ADR-1
 
     @pytest.mark.asyncio
     async def test_install_mod_reads_capitalized_modinfo_keys(

@@ -20,6 +20,8 @@ function mod(overrides: Partial<ModInfo> = {}): ModInfo {
     authors: [],
     description: null,
     side: 'Both',
+    source: 'moddb',
+    sourceUrl: null,
     ...overrides,
   };
 }

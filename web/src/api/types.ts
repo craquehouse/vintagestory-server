@@ -105,6 +105,12 @@ export type CompatibilityStatus = 'compatible' | 'not_verified' | 'incompatible'
 export type ModSide = 'Both' | 'Client' | 'Server';
 
 /**
+ * Where an installed mod's file came from (Story 28.1, Epic 28 ADR-1): the mod database,
+ * the mods folder (start-up sync or rescan), an upload, or a link.
+ */
+export type ModSource = 'moddb' | 'folder' | 'upload' | 'url';
+
+/**
  * Installed mod information from GET /api/v1alpha1/mods.
  */
 export interface ModInfo {
@@ -118,6 +124,10 @@ export interface ModInfo {
   authors: string[] | null;
   description: string | null;
   side: ModSide | null;
+  /** Story 28.1: where the file came from */
+  source: ModSource;
+  /** Story 28.1: for source `url`, the link without its query string */
+  sourceUrl: string | null;
 }
 
 /**
@@ -747,7 +757,11 @@ export type ModUpdateState = 'update_available' | 'up_to_date' | 'blocked' | 'un
 
 /** Why an installed mod's update state is unknown. */
 export type ModUpdateUnknownReason =
-  'not_checked' | 'not_in_database' | 'installed_release_not_listed' | 'version_unparsable';
+  | 'not_checked'
+  | 'not_in_database'
+  | 'manual_install'
+  | 'installed_release_not_listed'
+  | 'version_unparsable';
 
 /** Update status of one installed mod from GET /mods/updates. */
 export interface ModUpdateStatus {

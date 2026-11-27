@@ -579,6 +579,26 @@ class TestChangeVersion:
 
     @respx.mock
     @pytest.mark.asyncio
+    async def test_a_change_keeps_the_source(self, tmp_path: Path) -> None:
+        """Epic 28 ADR-1 decision 2: a version change keeps where the mod came from."""
+        service = make_service(tmp_path)
+        install_existing(service, "carryon", "1.14.1", "carryon_1.14.1.zip")
+        entry = service.state_manager.get_mod_by_slug("carryon")
+        assert entry is not None
+        service.state_manager.set_mod_state(
+            entry.filename, entry.model_copy(update={"source": "folder"})
+        )
+        mock_lookup("carryon", "carryon")
+        mock_download(fixture_release("carryon", "carryon", "1.14.3"))
+
+        await service.change_version("carryon", "1.14.3")
+
+        state = service.state_manager.get_mod_by_slug("carryon")
+        assert state is not None
+        assert state.source == "folder"
+
+    @respx.mock
+    @pytest.mark.asyncio
     async def test_new_archive_with_capitalized_keys_is_cached(self, tmp_path: Path) -> None:
         """A new archive whose modinfo.json says "ModID"/"Version" is imported with its real
         metadata and cached, like one with lowercase keys (VSS-0jl)."""
