@@ -1,6 +1,6 @@
 # Story 28.1: Each Installed Mod Records Where It Came From
 
-Status: review
+Status: done
 
 <!-- Implements FR354, FR355, Epic 28 ADR-1 and ADR-2. Bead: VSS-guzf.1 (API-100), closes with this story after merge. Branch story/28-1-each-installed-mod-records-where-it-came-from from main; the PR targets main. API and web. -->
 
@@ -97,7 +97,19 @@ Claude Opus 5.5 (claude-opus-5-5).
 - Web: `api/types.ts`, `components/InstalledModParts.tsx`, `components/ModTable.tsx`, `components/ModUpdateCell.tsx`, `components/InstalledModCard.tsx`; tests `ModUpdateCell.test.tsx`, `ModTable.test.tsx`, `InstalledModCard.test.tsx`, `InstalledModParts.test.tsx`, `api/mods.test.ts` (Task 2)
 - this file; `sprint-status.yaml` (through `just sprint set`)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode (read-only, 2026-11-27). Verdict: approve. 0 HIGH, 0 MEDIUM, 4 LOW; two fixed, two kept with a reason:
+
+1. **LOW: `PUT /mods/{slug}/version` still looked an uploaded or linked mod up in the mod database** (not reachable until 28.2, but a direct call could install the database release over a fork). Fixed in the epic rather than filed: `change_version` refuses a manual mod before any lookup with 409 `MOD_NOT_FROM_DATABASE` (new error code). Story 28.5 relaxes it for release mods. Router test for both sources (no lookup, version kept).
+2. **LOW: the phone card tested only `upload`.** A card test for `url`.
+3. **LOW: the check's `checked` count leaves manual mods out.** Kept: deliberate (Implementation decisions).
+4. **LOW: an unknown `source` value in a hand-edited state file fails the whole load.** Kept: the same holds for every field today, and the API never writes one.
+
+After the fixes `just check` exit 0: API 4247 passed, web 3986 passed.
+
 ## Change Log
 
 - 2026-11-27: Story 28.1 created (create-story); status in-progress.
 - 2026-11-27: Story 28.1 implemented (dev-story): Tasks 1 to 3; status review.
+- 2026-11-27: Code review (GLM-5.3-Flash via opencode): approve; 0 HIGH, 0 MEDIUM, 4 LOW; two fixed, two kept with a reason (see "Review"). Status done.

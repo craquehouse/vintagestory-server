@@ -278,7 +278,7 @@ development_status:
   25-4-game-settings-shows-entity-spawning-from-the-game: done
   epic-28: in-progress
   epic-28-retrospective: optional
-  28-1-each-installed-mod-records-where-it-came-from: review
+  28-1-each-installed-mod-records-where-it-came-from: done
   28-2-a-mod-can-be-installed-by-uploading-its-file: backlog
   28-3-a-mod-can-be-installed-from-an-https-link: backlog
   28-4-the-mods-page-adds-a-mod-from-a-file-or-a-link: backlog
