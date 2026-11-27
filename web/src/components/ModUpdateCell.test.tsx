@@ -147,6 +147,38 @@ describe('ModUpdateCell', () => {
     );
   });
 
+  // Story 28.5 (ADR-7 decision 3)
+  it('says when the latest release has no matching file', () => {
+    render(
+      <ModUpdateCell status={item({ status: 'unknown', reason: 'release_asset_not_matched' })} />
+    );
+
+    const label = screen.getByTestId('mod-update-carryon');
+    expect(label).toHaveTextContent(/^No matching file/);
+    expect(label).toHaveAttribute(
+      'title',
+      "The repo's latest release has no file matching the installed one, so no update is offered."
+    );
+  });
+
+  it('offers a release update with the Update action', () => {
+    const onUpdate = vi.fn();
+    render(
+      <ModUpdateCell
+        status={item({
+          status: 'update_available',
+          offeredVersion: '1.1.0',
+          offeredCompatibility: 'not_verified',
+        })}
+        source="url"
+        onUpdate={onUpdate}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /update/i }));
+    expect(onUpdate).toHaveBeenCalled();
+  });
+
   // Story 24.4 (FR335, Epic 24 ADR-1 decision 4)
   it('shows a mod the mod database does not know as a local mod', () => {
     render(<ModUpdateCell status={item({ status: 'unknown', reason: 'not_in_database' })} />);

@@ -16,7 +16,7 @@ from vintagestory_api.config import Settings
 from vintagestory_api.middleware.auth import get_current_user, get_settings
 from vintagestory_api.middleware.permissions import RequireAdmin
 from vintagestory_api.models.errors import ErrorCode
-from vintagestory_api.models.mods import ModBrowseItem, ModBrowseResponse, PaginationMeta
+from vintagestory_api.models.mods import ModBrowseItem, ModBrowseResponse, ModInfo, PaginationMeta
 from vintagestory_api.models.responses import ApiResponse
 from vintagestory_api.services.mod_api import (
     DownloadError,
@@ -47,6 +47,7 @@ from vintagestory_api.services.mod_updates import (
     ModUpdateCheckInProgressError,
     ModUpdateService,
     get_mod_update_service,
+    is_release_mod,
 )
 from vintagestory_api.services.mod_upload import (
     ModFileInvalidError,
@@ -1493,15 +1494,119 @@ def _version_change_error(
     return HTTPException(status_code=status_code, detail=detail)
 
 
+async def _update_release_mod(
+    installed: ModInfo,
+    request: ModVersionChangeRequest,
+    settings: Settings,
+    service: ModService,
+    update_service: ModUpdateService,
+    transport: httpx.AsyncBaseTransport | None,
+) -> ApiResponse:
+    """Install a release mod's offered release (Story 28.5, ADR-7 decision 6).
+
+    The mod's lock is held only while the file is placed (`install_archive`), not during
+    the download, as for a link install: a remove during a slow download is not refused,
+    and the finished update installs the mod again. The admin who removed it can remove
+    it again.
+    """
+    slug = installed.slug
+    if request.version == installed.version:
+        return ApiResponse(
+            status="ok",
+            data={
+                "slug": slug,
+                "previous_version": installed.version,
+                "version": installed.version,
+                "filename": installed.filename,
+                "compatibility": None,
+                "changed": False,
+                "pending_restart": False,
+            },
+        )
+    record = update_service.store.get(slug)
+    offer = record.releases[0] if record is not None and record.releases else None
+    if offer is None or offer.modversion != request.version or not offer.download_url:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": ErrorCode.MOD_VERSION_NOT_FOUND,
+                "message": f"Version '{request.version}' is not the latest release of "
+                f"'{slug}' as last checked. Check for updates first.",
+            },
+        )
+    if not request.confirm:
+        # Never verified against the game version, as any not-verified release
+        confirmation = ModConfirmationRequiredError(
+            slug, request.version, ["not_verified"], "not_verified"
+        )
+        raise _version_change_error(
+            409,
+            ErrorCode.MOD_CONFIRMATION_REQUIRED,
+            confirmation,
+            reasons=confirmation.reasons,
+            compatibility=confirmation.compatibility,
+        )
+    try:
+        async with downloaded(
+            offer.download_url,
+            cache_dir=service.cache_dir,
+            limit_bytes=settings.mod_upload_max_mb * 1024 * 1024,
+            allow_http=settings.debug,
+            transport=transport,
+            private_hosts=parse_private_hosts(settings.mod_url_private_hosts),
+        ) as (path, named):
+            if not named:
+                metadata = service.state_manager.read_modinfo(path)
+                if metadata is not None:
+                    name = name_from_modinfo(metadata.modid, metadata.version)
+                    path = path.rename(path.with_name(name or f"mod_{uuid.uuid4().hex[:8]}.zip"))
+            result = service.install_archive(
+                path,
+                source="url",
+                # The release link, not Forgejo's `/attachments/` URL (Story 28.5 review)
+                source_url=offer.release_link
+                or stored_link(check_link(offer.download_url, allow_http=settings.debug)),
+                replace=True,
+                expect_modid=slug,
+            )
+    except ARCHIVE_INSTALL_ERRORS as e:
+        logger.info(
+            "mod_release_update_refused", slug=slug, error_type=type(e).__name__, error=str(e)
+        )
+        raise archive_install_error(e) from None
+    except OSError as e:
+        logger.error("mod_release_update_write_failed", slug=slug, error=str(e))
+        raise file_write_error(e) from None
+    return ApiResponse(
+        status="ok",
+        data={
+            "slug": result.slug,
+            "previous_version": result.previous_version or installed.version,
+            "version": result.version,
+            "filename": result.filename,
+            "compatibility": result.compatibility,
+            "changed": True,
+            "pending_restart": result.pending_restart,
+        },
+    )
+
+
 @router.put("/{slug}/version", response_model=ApiResponse, summary="Change a mod's version")
 async def change_mod_version(
     request: ModVersionChangeRequest,
     _: RequireAdmin,
     slug: str = Path(..., description="Installed mod's modid"),
+    settings: Settings = Depends(get_settings),
     service: ModService = Depends(get_mod_service),
     update_service: ModUpdateService = Depends(get_mod_update_service),
+    transport: httpx.AsyncBaseTransport | None = Depends(get_link_transport),
 ) -> ApiResponse:
     """Update or roll back an installed mod to a listed release (Admin only).
+
+    A mod installed from a GitHub or Forgejo release link is updated to its latest
+    release's matching asset, as the last update check found it (Story 28.5, ADR-7
+    decision 6): only that version, confirmed (it is not verified), and only an archive
+    of the same mod ID.
 
     The installed file is only replaced after the new release is validated; any
     failure leaves the mod unchanged. Returns 409 if another operation on this mod is
@@ -1513,6 +1618,11 @@ async def change_mod_version(
     back. A completed change stores the mod's update record from its own lookup,
     so its update status shows without waiting for the next check (Story 18.2).
     """
+    installed = service.get_mod(slug)
+    if installed is not None and is_release_mod(installed):
+        return await _update_release_mod(
+            installed, request, settings, service, update_service, transport
+        )
     try:
         result = await service.change_version(
             slug,

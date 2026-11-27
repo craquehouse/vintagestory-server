@@ -105,7 +105,8 @@ def name_from_modinfo(modid: str, version: str) -> str | None:
     return safe_archive_name(f"{stem}.zip") if stem else None
 
 
-def _client(transport: httpx.AsyncBaseTransport) -> httpx.AsyncClient:
+def link_client(transport: httpx.AsyncBaseTransport) -> httpx.AsyncClient:
+    """A client for links: no redirects followed by httpx, no proxy from the environment."""
     return httpx.AsyncClient(
         transport=transport,
         follow_redirects=False,
@@ -113,6 +114,38 @@ def _client(transport: httpx.AsyncBaseTransport) -> httpx.AsyncClient:
         timeout=httpx.Timeout(READ_TIMEOUT_S, connect=CONNECT_TIMEOUT_S),
         headers={"User-Agent": "vintagestory-server-manager"},
     )
+
+
+async def open_following(
+    client: httpx.AsyncClient,
+    url: httpx.URL,
+    *,
+    allow_http: bool,
+    headers: dict[str, str] | None = None,
+) -> httpx.Response:
+    """GET the link, following at most five redirects one by one (ADR-5 decision 2).
+
+    Each hop's link is checked as the first is; the address check is in the transport.
+    Returns the streamed answer, which the caller closes. 301, 302, 303, 307 and 308 are
+    followed; any other answer (a 304 too) is returned.
+    """
+    current = url
+    for _hop in range(MAX_REDIRECTS + 1):
+        response = await client.send(
+            client.build_request("GET", current, headers=headers), stream=True
+        )
+        if not response.has_redirect_location:
+            return response
+        location = response.headers["location"]
+        await response.aclose()
+        try:
+            target = current.join(location)
+        except httpx.InvalidURL as e:
+            # httpx.InvalidURL is not a ValueError; unhandled, one bad redirect would end
+            # the whole update check (Story 28.5 review)
+            raise ModUrlInvalidError(f"The server redirected to an invalid link: {e}") from None
+        current = check_link(str(target), allow_http=allow_http)
+    raise ModUrlInvalidError(f"The link redirects more than {MAX_REDIRECTS} times.")
 
 
 async def _fetch(
@@ -124,31 +157,22 @@ async def _fetch(
     allow_http: bool,
 ) -> tuple[Path, bool]:
     """Download into `folder`; returns the file and whether its name came from the server."""
-    current = url
-    for _hop in range(MAX_REDIRECTS + 1):
-        request = client.build_request("GET", current)
-        response = await client.send(request, stream=True)
-        try:
-            # 301, 302, 303, 307 and 308 only: a 304 or 305 is an answer, not a redirect
-            if response.has_redirect_location:
-                location = response.headers["location"]
-                current = check_link(str(current.join(location)), allow_http=allow_http)
-                continue
-            if not response.is_success:
-                raise LinkDownloadError(
-                    f"The server answered {response.status_code} {response.reason_phrase}."
-                )
-            declared = response.headers.get("content-length")
-            if declared is not None and declared.isascii() and declared.isdigit():
-                if int(declared) > limit_bytes:
-                    raise ModFileTooLargeError(limit_bytes)
-            name = name_from_response(response)
-            path = folder / (name or UNNAMED)
-            await write_limited(response.aiter_bytes(), path, limit_bytes)
-            return path, name is not None
-        finally:
-            await response.aclose()
-    raise ModUrlInvalidError(f"The link redirects more than {MAX_REDIRECTS} times.")
+    response = await open_following(client, url, allow_http=allow_http)
+    try:
+        if not response.is_success:
+            raise LinkDownloadError(
+                f"The server answered {response.status_code} {response.reason_phrase}."
+            )
+        declared = response.headers.get("content-length")
+        if declared is not None and declared.isascii() and declared.isdigit():
+            if int(declared) > limit_bytes:
+                raise ModFileTooLargeError(limit_bytes)
+        name = name_from_response(response)
+        path = folder / (name or UNNAMED)
+        await write_limited(response.aiter_bytes(), path, limit_bytes)
+        return path, name is not None
+    finally:
+        await response.aclose()
 
 
 @asynccontextmanager
@@ -172,7 +196,7 @@ async def downloaded(
     """
     link = check_link(url, allow_http=allow_http)
     with incoming_folder(cache_dir) as folder:
-        async with _client(transport or GuardedTransport(private_hosts)) as client:
+        async with link_client(transport or GuardedTransport(private_hosts)) as client:
             try:
                 with anyio.fail_after(TOTAL_TIMEOUT_S):
                     result = await _fetch(

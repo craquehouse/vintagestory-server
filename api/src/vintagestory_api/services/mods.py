@@ -1650,10 +1650,12 @@ class ModService:
         source: ModSource,
         source_url: str | None = None,
         replace: bool = False,
+        expect_modid: str | None = None,
     ) -> ArchiveInstallResult:
         """Install a received mod file from an upload or a link (Epic 28 ADR-3, ADR-4).
 
         `path` is the received file under its final name (already `safe_archive_name`).
+        `expect_modid` (a release update) refuses an archive of any other mod ID.
         Synchronous on purpose: from the check to the state save nothing else may run, so
         the mod's lock is taken and released with no `await` between.
 
@@ -1675,6 +1677,11 @@ class ModService:
                 "The archive has no usable modinfo.json: it needs a mod ID, a name and a version."
             )
         modid = metadata.modid
+        if expect_modid is not None and self._lock_key(modid) != self._lock_key(expect_modid):
+            # A release update must replace the same mod (Story 28.5, ADR-7 decision 6)
+            raise ModFileInvalidError(
+                f"The file is the mod '{modid}', not '{expect_modid}', so it was not installed."
+            )
         with self._hold(modid):
             key = self._lock_key(modid)
             existing = next(

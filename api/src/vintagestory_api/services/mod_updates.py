@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, Protocol
 
+import httpx
 import structlog
 from pydantic import ValidationError
 
@@ -33,8 +34,18 @@ from vintagestory_api.services.mod_api import (
     ModApiError,
     check_compatibility,
 )
+from vintagestory_api.services.mod_link import LinkDownloadError, ModUrlInvalidError
 from vintagestory_api.services.mod_release_selection import is_prerelease
+from vintagestory_api.services.mod_releases import (
+    ReleaseLookup,
+    is_newer,
+    match_asset,
+    parse_release_link,
+    release_lookup,
+    tag_version,
+)
 from vintagestory_api.services.mod_update_alerts import send_update_alert
+from vintagestory_api.services.safe_fetch import AddressBlockedError, parse_private_hosts
 
 if TYPE_CHECKING:
     from vintagestory_api.services.mods import VersionChangeResult
@@ -219,6 +230,31 @@ def _status_item(
     )
 
 
+def is_release_mod(mod: ModInfo) -> bool:
+    """A mod installed from a GitHub or Forgejo release asset link (Story 28.5)."""
+    return mod.source == "url" and parse_release_link(mod.source_url) is not None
+
+
+def _release_status(mod: ModInfo, store: ModUpdateStore) -> ModUpdateStatusItem:
+    """A release mod's status from its last release lookup (ADR-7 decisions 3 and 4)."""
+    record = store.get(mod.slug)
+    if record is None:
+        return _status_item(
+            mod, "unknown", reason="not_checked", error=store.lookup_error(mod.slug)
+        )
+    if not record.releases:
+        return _status_item(mod, "unknown", record=record, reason="release_asset_not_matched")
+    offered = record.releases[0]
+    newer = is_newer(offered.modversion, mod.version)
+    if newer is None:
+        return _status_item(mod, "unknown", record=record, reason="version_unparsable")
+    if not newer:
+        return _status_item(mod, "up_to_date", record=record)
+    return _status_item(
+        mod, "update_available", record=record, offered=offered, compatibility="not_verified"
+    )
+
+
 def build_status_items(
     mods: list[ModInfo], store: ModUpdateStore, game_version: str
 ) -> list[ModUpdateStatusItem]:
@@ -226,6 +262,9 @@ def build_status_items(
     items: list[ModUpdateStatusItem] = []
     for mod in mods:
         if mod.source in MANUAL_SOURCES:
+            if is_release_mod(mod):
+                items.append(_release_status(mod, store))
+                continue
             # Never looked up in the mod database (Epic 28 ADR-2); a record left from
             # before the mod was replaced by an upload or a link does not apply to it
             items.append(_status_item(mod, "unknown", reason="manual_install"))
@@ -343,8 +382,12 @@ class ModUpdateService:
         mod_source: InstalledModSource,
         game_version_provider: Callable[[], str | None],
         webhook_url_provider: Callable[[], str | None] | None = None,
+        release_lookup: ReleaseLookup | None = None,
     ) -> None:
         self._store = store
+        # Story 28.5: how the check asks a GitHub or Forgejo repo for its latest release
+        # (built from the process settings on first use when not given)
+        self._release_lookup: ReleaseLookup | None = release_lookup
         self._mod_source = mod_source
         self._game_version_provider = game_version_provider
         self._webhook_url_provider = webhook_url_provider
@@ -501,11 +544,21 @@ class ModUpdateService:
         async with self._check_lock:
             # Uploaded and linked mods are never looked up in the mod database: their mod
             # ID may name another mod there (Epic 28 ADR-2)
-            mods = [m for m in self._mod_source.list_mods() if m.source not in MANUAL_SOURCES]
+            # A mod from a GitHub or Forgejo release is asked of its repo (Story 28.5)
+            mods = [
+                m
+                for m in self._mod_source.list_mods()
+                if m.source not in MANUAL_SOURCES or is_release_mod(m)
+            ]
             logger.info("mod_update_check_started", mod_count=len(mods))
             failed: list[str] = []
             for mod in mods:
-                if not await self._check_one(mod.slug):
+                checked = (
+                    await self._check_release(mod)
+                    if is_release_mod(mod)
+                    else await self._check_one(mod.slug)
+                )
+                if not checked:
                     failed.append(mod.slug)
             # Prune against the installed mods as they are now, not as they were at the
             # start: an install during the lookups has stored its record (Story 17.4)
@@ -550,6 +603,54 @@ class ModUpdateService:
             self._store.save()
         except (OSError, ValueError) as e:
             logger.error("mod_update_store_save_failed", path=str(self._store.path), error=str(e))
+
+    async def _check_release(self, mod: ModInfo) -> bool:
+        """Refresh a release mod from its repo's latest release. False if it failed."""
+        link = parse_release_link(mod.source_url)
+        if link is None:
+            return True
+        try:
+            if self._release_lookup is None:
+                self._release_lookup = default_release_lookup()
+            latest = await self._release_lookup(link)
+        except (
+            LinkDownloadError,
+            ModUrlInvalidError,
+            AddressBlockedError,
+            OSError,
+            # One mod must never fail the whole check, as in _check_one (review)
+            httpx.HTTPError,
+            httpx.InvalidURL,
+            ValueError,
+            TypeError,
+            KeyError,
+        ) as e:
+            logger.warning("mod_release_lookup_failed", slug=mod.slug, host=link.host, error=str(e))
+            previous = self._store.get(mod.slug)
+            if previous is not None:
+                self._store.set(mod.slug, previous.model_copy(update={"error": str(e)}))
+            else:
+                self._store.set_lookup_error(mod.slug, str(e))
+            return False
+        asset = match_asset(link.asset, latest.assets)
+        releases = (
+            [
+                StoredRelease(
+                    modversion=tag_version(latest.tag),
+                    modidstr=mod.slug,
+                    filename=asset.name,
+                    download_url=asset.download_url,
+                    release_link=link.asset_link(latest.tag, asset.name),
+                )
+            ]
+            if asset is not None
+            else []
+        )
+        self._store.set(
+            mod.slug, StoredModRecord(checked_at=datetime.now(UTC), found=True, releases=releases)
+        )
+        self._store.clear_lookup_error(mod.slug)
+        return True
 
     async def _check_one(self, slug: str) -> bool:
         """Refresh one mod. Returns False if the lookup failed."""
@@ -611,6 +712,15 @@ def _configured_webhook_url() -> str | None:
     from vintagestory_api.services.api_settings import ApiSettingsService
 
     return ApiSettingsService().get_settings().mod_update_webhook_url
+
+
+def default_release_lookup() -> ReleaseLookup:
+    """The release lookup with the process settings (VS_DEBUG, VS_MOD_URL_PRIVATE_HOSTS)."""
+    settings = Settings()
+    return release_lookup(
+        allow_http=settings.debug,
+        private_hosts=parse_private_hosts(settings.mod_url_private_hosts),
+    )
 
 
 def get_mod_update_service() -> ModUpdateService:
