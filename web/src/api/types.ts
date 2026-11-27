@@ -131,6 +131,21 @@ export interface ModInfo {
 }
 
 /**
+ * Response from POST /mods/upload and POST /mods/install-from-url (Stories 28.2, 28.3).
+ */
+export interface ModFileInstallData {
+  slug: string;
+  version: string;
+  filename: string;
+  compatibility: CompatibilityStatus;
+  pendingRestart: boolean;
+  source: ModSource;
+  /** Whether an installed mod with the same mod ID was replaced */
+  replaced: boolean;
+  previousVersion: string | null;
+}
+
+/**
  * Response from GET /api/v1alpha1/mods (list installed mods).
  */
 export interface ModsListData {

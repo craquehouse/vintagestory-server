@@ -872,6 +872,26 @@ describe('InstalledTab', () => {
 
       expect(await screen.findByTestId('mods-rescan')).toHaveClass('max-lg:h-11');
     });
+
+    // Story 28.4 (FR363)
+    it('has "Add from file or link" for an Admin key, which opens the dialog', async () => {
+      globalThis.fetch = rescanFetch(() => Promise.reject(new Error('not called')));
+      renderAs('admin');
+
+      const button = await screen.findByTestId('mods-add-from-file-or-link');
+      expect(button).toHaveClass('max-lg:h-11');
+      fireEvent.click(button);
+
+      expect(await screen.findByTestId('add-mod-dialog')).toBeInTheDocument();
+    });
+
+    it('has no "Add from file or link" for a Monitor key', async () => {
+      globalThis.fetch = rescanFetch(() => Promise.reject(new Error('not called')));
+      renderAs('monitor');
+
+      await screen.findByTestId('mod-updates-check');
+      expect(screen.queryByTestId('mods-add-from-file-or-link')).not.toBeInTheDocument();
+    });
   });
 
   describe('Filters (Story 24.7)', () => {

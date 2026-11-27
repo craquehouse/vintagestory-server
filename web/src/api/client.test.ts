@@ -150,6 +150,41 @@ describe('apiClient', () => {
     Object.assign(import.meta.env, originalEnv);
   });
 
+  // Story 28.4 (Epic 28 ADR-6)
+  describe('raw body', () => {
+    function okFetch() {
+      return vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ status: 'ok', data: {} }),
+      });
+    }
+
+    it('sends a Blob as is with its content type, not as JSON', async () => {
+      const mockFetch = okFetch();
+      globalThis.fetch = mockFetch;
+      const file = new File(['bytes'], 'demo.zip', { type: 'application/zip' });
+
+      await apiClient('/upload', { method: 'POST', rawBody: file });
+
+      const [, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(init.body).toBe(file);
+      const headers = new Headers(init.headers);
+      expect(headers.get('Content-Type')).toBe('application/zip');
+      expect(headers.get('X-API-Key')).toBe('test-api-key');
+      expect(init).not.toHaveProperty('rawBody');
+    });
+
+    it('labels a Blob without a type as octet-stream', async () => {
+      const mockFetch = okFetch();
+      globalThis.fetch = mockFetch;
+
+      await apiClient('/upload', { method: 'POST', rawBody: new Blob(['x']) });
+
+      const [, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(new Headers(init.headers).get('Content-Type')).toBe('application/octet-stream');
+    });
+  });
+
   describe('header injection', () => {
     it('adds X-API-Key header to requests', async () => {
       const mockFetch = vi.fn().mockResolvedValue({

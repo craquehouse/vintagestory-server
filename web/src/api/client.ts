@@ -148,6 +148,11 @@ export interface ApiClientOptions extends Omit<RequestInit, 'body'> {
   /** Request body - will be transformed to snake_case and stringified */
   body?: unknown;
   /**
+   * A body sent as is, with its own content type and no JSON transform: a mod file
+   * upload (Story 28.4, Epic 28 ADR-6). Takes the place of `body`.
+   */
+  rawBody?: Blob;
+  /**
    * Whether to turn the response's snake_case keys into camelCase (default true).
    * False returns the response as sent: for data whose keys are not the API's own,
    * such as a config file's content (Story 23.1).
@@ -177,15 +182,20 @@ export async function apiClient<T>(path: string, options: ApiClientOptions = {})
 
   const headers = new Headers(options.headers);
   headers.set('X-API-Key', config.apiKey);
-  headers.set('Content-Type', 'application/json');
 
-  // Transform request body to snake_case if present
-  let body: string | undefined;
-  if (options.body !== undefined) {
-    body = JSON.stringify(camelToSnake(options.body));
+  // Transform request body to snake_case if present; a raw body goes as it is
+  let body: string | Blob | undefined;
+  if (options.rawBody !== undefined) {
+    headers.set('Content-Type', options.rawBody.type || 'application/octet-stream');
+    body = options.rawBody;
+  } else {
+    headers.set('Content-Type', 'application/json');
+    if (options.body !== undefined) {
+      body = JSON.stringify(camelToSnake(options.body));
+    }
   }
 
-  const { transformResponse = true, ...init } = options;
+  const { transformResponse = true, rawBody: _rawBody, ...init } = options;
   const response = await fetch(url, {
     ...init,
     headers,

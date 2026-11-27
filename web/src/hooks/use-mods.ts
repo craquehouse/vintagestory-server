@@ -23,6 +23,8 @@ import {
   fetchUnusedFiles,
   deleteUnusedFile,
   rescanMods,
+  uploadMod,
+  installModFromUrl,
 } from '@/api/mods';
 import type {
   ApiResponse,
@@ -473,6 +475,27 @@ export function useRescanMods() {
 
   return useMutation({
     mutationFn: () => rescanMods(),
+    onError: () => {},
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.mods.all });
+    },
+  });
+}
+
+/**
+ * Story 28.4: install a mod from a file or a link (Epic 28 ADR-6). The dialog reports
+ * errors itself (an installed mod is offered a replace), so there is no global toast.
+ */
+export function useAddModFromFileOrLink() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (
+      request: { file: File; replace?: boolean } | { url: string; replace?: boolean }
+    ) =>
+      'file' in request
+        ? uploadMod(request.file, request.replace)
+        : installModFromUrl(request.url, request.replace),
     onError: () => {},
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.mods.all });
