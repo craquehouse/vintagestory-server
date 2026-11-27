@@ -52,6 +52,9 @@ class StoredRelease(BaseModel):
     created: str | None = None
     download_url: str | None = None
     """For a GitHub or Forgejo release (Story 28.5): the asset's download link."""
+    release_link: str | None = None
+    """For a GitHub or Forgejo release: the asset's `/releases/download/` link, stored as
+    the mod's link after an update so it stays a release mod (Story 28.5 review)."""
 
     @classmethod
     def from_api(cls, release: object) -> StoredRelease:

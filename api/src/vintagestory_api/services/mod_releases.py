@@ -12,8 +12,9 @@ import re
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import cast
-from urllib.parse import unquote
+from urllib.parse import quote
 
+import anyio
 import httpx
 
 from vintagestory_api.services.mod_link import (
@@ -23,6 +24,9 @@ from vintagestory_api.services.mod_link import (
     open_following,
 )
 from vintagestory_api.services.safe_fetch import GuardedTransport
+
+LOOKUP_TIMEOUT_S = 60.0
+"""The whole lookup's limit, on top of the connect and read timeouts (review)."""
 
 MAX_RELEASE_JSON_BYTES = 2 * 1024 * 1024
 """A latest-release answer is a few kilobytes; anything far larger is refused."""
@@ -46,12 +50,31 @@ class ReleaseLink:
     def is_github(self) -> bool:
         return self.host.lower() == "github.com"
 
+    @property
+    def _netloc(self) -> str:
+        return self.host if self.port is None else f"{self.host}:{self.port}"
+
     def latest_release_url(self) -> str:
-        """The repo's latest release in its forge's API (ADR-7 decision 2)."""
+        """The repo's latest release in its forge's API (ADR-7 decision 2).
+
+        Owner and repo are re-encoded, so a `?` or `#` in them stays part of the path
+        (Story 28.5 review).
+        """
+        repo_path = f"{quote(self.owner, safe='')}/{quote(self.repo, safe='')}"
         if self.is_github:
-            return f"https://api.github.com/repos/{self.owner}/{self.repo}/releases/latest"
-        netloc = self.host if self.port is None else f"{self.host}:{self.port}"
-        return f"{self.scheme}://{netloc}/api/v1/repos/{self.owner}/{self.repo}/releases/latest"
+            return f"https://api.github.com/repos/{repo_path}/releases/latest"
+        return f"{self.scheme}://{self._netloc}/api/v1/repos/{repo_path}/releases/latest"
+
+    def asset_link(self, tag: str, asset: str) -> str:
+        """The release asset's link in the same `/releases/download/` form.
+
+        Stored as a release mod's link after an update: Forgejo's API gives an asset's
+        download URL as `/attachments/<uuid>`, which is not a release link, so storing
+        it would end the mod's updates (Story 28.5 review). Both forges serve this form.
+        """
+        parts = (self.owner, self.repo, "releases", "download", tag, asset)
+        path = "/".join(quote(part, safe="") for part in parts)
+        return f"{self.scheme}://{self._netloc}/{path}"
 
 
 @dataclass(frozen=True)
@@ -84,7 +107,9 @@ def parse_release_link(url: str | None) -> ReleaseLink | None:
     # ['', owner, repo, 'releases', 'download', tag, asset]
     if len(parts) != 7 or parts[0] != "" or parts[3:5] != ["releases", "download"]:
         return None
-    owner, repo, tag, asset = (unquote(p) for p in (parts[1], parts[2], parts[5], parts[6]))
+    # httpx has already decoded the path's escapes; decoding again would change a name
+    # with a literal `%hh` in it (Story 28.5 review)
+    owner, repo, tag, asset = parts[1], parts[2], parts[5], parts[6]
     if not all((owner, repo, tag, asset)) or "/" in owner + repo:
         return None
     return ReleaseLink(
@@ -172,25 +197,44 @@ def release_lookup(
     async def lookup(link: ReleaseLink) -> LatestRelease:
         url = check_link(link.latest_release_url(), allow_http=allow_http)
         headers = {"Accept": "application/vnd.github+json"} if link.is_github else {}
-        async with link_client(transport or GuardedTransport(private_hosts)) as client:
-            try:
-                response = await open_following(client, url, allow_http=allow_http, headers=headers)
-            except httpx.TimeoutException:
-                raise LinkDownloadError("The forge took too long to answer.") from None
-            except httpx.TransportError as e:
-                raise LinkDownloadError(f"Could not reach the forge: {e}") from None
-            try:
-                if not response.is_success:
-                    raise LinkDownloadError(
-                        f"The forge answered {response.status_code} {response.reason_phrase}."
-                    )
-                body = b""
-                async for chunk in response.aiter_bytes():
-                    body += chunk
-                    if len(body) > MAX_RELEASE_JSON_BYTES:
-                        raise LinkDownloadError("The release answer is too large.")
-            finally:
-                await response.aclose()
+        # A new transport per lookup: closing the client closes its transport
+        client_transport = transport or GuardedTransport(private_hosts)
+        try:
+            with anyio.fail_after(LOOKUP_TIMEOUT_S):
+                body = await _read_latest(client_transport, url, allow_http, headers)
+        except TimeoutError:
+            raise LinkDownloadError(
+                f"The forge took longer than {int(LOOKUP_TIMEOUT_S)} seconds to answer."
+            ) from None
         return _parse_latest(body)
 
     return lookup
+
+
+async def _read_latest(
+    transport: httpx.AsyncBaseTransport,
+    url: httpx.URL,
+    allow_http: bool,
+    headers: dict[str, str],
+) -> bytes:
+    """The latest-release answer's body, at most MAX_RELEASE_JSON_BYTES."""
+    async with link_client(transport) as client:
+        try:
+            response = await open_following(client, url, allow_http=allow_http, headers=headers)
+        except httpx.TimeoutException:
+            raise LinkDownloadError("The forge took too long to answer.") from None
+        except httpx.TransportError as e:
+            raise LinkDownloadError(f"Could not reach the forge: {e}") from None
+        try:
+            if not response.is_success:
+                raise LinkDownloadError(
+                    f"The forge answered {response.status_code} {response.reason_phrase}."
+                )
+            body = b""
+            async for chunk in response.aiter_bytes():
+                body += chunk
+                if len(body) > MAX_RELEASE_JSON_BYTES:
+                    raise LinkDownloadError("The release answer is too large.")
+        finally:
+            await response.aclose()
+    return body

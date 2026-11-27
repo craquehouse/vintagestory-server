@@ -6,6 +6,7 @@ import zipfile
 from collections.abc import Generator
 from pathlib import Path
 
+import anyio
 import httpx
 import pytest
 import respx
@@ -17,7 +18,13 @@ from vintagestory_api.main import app
 from vintagestory_api.middleware.auth import get_settings
 from vintagestory_api.models.errors import ErrorCode
 from vintagestory_api.routers.mods import get_link_transport
-from vintagestory_api.services.mod_link import LinkDownloadError
+from vintagestory_api.services import mod_releases
+from vintagestory_api.services.mod_link import (
+    LinkDownloadError,
+    ModUrlInvalidError,
+    link_client,
+    open_following,
+)
 from vintagestory_api.services.mod_releases import (
     LatestRelease,
     ReleaseAsset,
@@ -86,7 +93,42 @@ class TestReleaseLinks:
         assert (link.repo, link.asset, link.is_github) == ("my mod", "my mod.zip", False)
         assert (
             link.latest_release_url()
-            == "https://git.example.com:3000/api/v1/repos/team/my mod/releases/latest"
+            == "https://git.example.com:3000/api/v1/repos/team/my%20mod/releases/latest"
+        )
+
+    def test_a_question_mark_in_the_repo_stays_in_the_path(self) -> None:
+        """Story 28.5 review: a decoded `?` must not start a query in the API URL."""
+        link = parse_release_link("https://github.com/foo%3Fx/bar/releases/download/v1/x.zip")
+
+        assert link is not None
+        assert link.owner == "foo?x"
+        url = httpx.URL(link.latest_release_url())
+        assert (url.path, url.query) == ("/repos/foo?x/bar/releases/latest", b"")
+
+    def test_a_literal_percent_sequence_in_the_asset_is_decoded_once(self) -> None:
+        link = parse_release_link("https://github.com/me/demo/releases/download/v1/a%2520b.zip")
+
+        assert link is not None
+        assert link.asset == "a%20b.zip"
+
+    def test_the_asset_link_rebuilds_the_release_form(self) -> None:
+        link = parse_release_link(
+            "https://git.example.com:3000/team/my%20mod/releases/download/1.2/my%20mod.zip"
+        )
+
+        assert link is not None
+        rebuilt = link.asset_link("1.3", "my mod 1.3.zip")
+        assert rebuilt == (
+            "https://git.example.com:3000/team/my%20mod/releases/download/1.3/my%20mod%201.3.zip"
+        )
+        assert parse_release_link(rebuilt) == ReleaseLink(
+            scheme="https",
+            host="git.example.com",
+            port=3000,
+            owner="team",
+            repo="my mod",
+            tag="1.3",
+            asset="my mod 1.3.zip",
         )
 
     @pytest.mark.parametrize(
@@ -215,6 +257,48 @@ class TestReleaseLookup:
         lookup = release_lookup(allow_http=False, transport=httpx.MockTransport(handle))
 
         assert (await lookup(github_link())).tag == "v2.0.0"
+
+    @pytest.mark.asyncio
+    async def test_a_broken_redirect_location_is_a_link_error(self) -> None:
+        """Story 28.5 review: httpx.InvalidURL from the join must not escape."""
+        transport = httpx.MockTransport(
+            lambda _r: httpx.Response(302, headers={"Location": "https://a\x00b/"})
+        )
+
+        # Either typed error is caught by the check; nothing else escapes
+        with pytest.raises((ModUrlInvalidError, LinkDownloadError)):
+            await release_lookup(allow_http=False, transport=transport)(github_link())
+
+    @pytest.mark.asyncio
+    async def test_a_location_that_cannot_be_joined_is_a_link_error(self) -> None:
+        """The join itself raising httpx.InvalidURL (not a ValueError) is mapped too."""
+
+        class UnjoinableURL(httpx.URL):
+            def join(self, url: object) -> httpx.URL:
+                raise httpx.InvalidURL("Invalid non-printable ASCII character in URL")
+
+        transport = httpx.MockTransport(
+            lambda _r: httpx.Response(302, headers={"Location": "/elsewhere"})
+        )
+
+        async with link_client(transport) as client:
+            with pytest.raises(ModUrlInvalidError, match="invalid link"):
+                await open_following(
+                    client, UnjoinableURL("https://example.com/a"), allow_http=False
+                )
+
+    @pytest.mark.asyncio
+    async def test_the_whole_lookup_has_a_time_limit(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(mod_releases, "LOOKUP_TIMEOUT_S", 0.05)
+
+        async def slow(_r: httpx.Request) -> httpx.Response:
+            await anyio.sleep(1)
+            return httpx.Response(200, json=latest_json("v1", "demo.zip"))
+
+        lookup = release_lookup(allow_http=False, transport=httpx.MockTransport(slow))
+
+        with pytest.raises(LinkDownloadError, match="longer than"):
+            await lookup(github_link())
 
     @pytest.mark.parametrize(
         ("response", "message"),
@@ -392,6 +476,26 @@ class TestCheck:
         assert status_of(update_service, "other") == ("up_to_date", None)
 
     @pytest.mark.asyncio
+    async def test_an_unexpected_error_from_one_forge_does_not_end_the_check(
+        self, service: ModService, update_service: ModUpdateService, forge: FakeForge
+    ) -> None:
+        install_linked(service)
+        install_linked(
+            service,
+            "https://github.com/me/other/releases/download/v1/other_1.0.0.zip",
+            modid="other",
+        )
+        forge.latest["me/demo"] = httpx.InvalidURL("bad label")
+        forge.latest["me/other"] = LatestRelease(
+            tag="v1.0.0", assets=[ReleaseAsset("other_1.0.0.zip", NEW_ASSET)]
+        )
+
+        summary = await update_service.check()
+
+        assert (summary.checked, summary.failed) == (2, 1)
+        assert status_of(update_service, "other") == ("up_to_date", None)
+
+    @pytest.mark.asyncio
     async def test_a_link_that_is_not_a_release_stays_manual(
         self, service: ModService, update_service: ModUpdateService, forge: FakeForge
     ) -> None:
@@ -511,6 +615,42 @@ class TestApplyingAReleaseUpdate:
         assert sorted(p.name for p in service.state_manager.mods_dir.iterdir()) == [
             "demo_1.1.0.zip.disabled"
         ]
+
+    @pytest.mark.asyncio
+    async def test_a_forgejo_mod_stays_a_release_mod_after_an_update(
+        self,
+        client: TestClient,
+        service: ModService,
+        update_service: ModUpdateService,
+        forge: FakeForge,
+        web: dict[str, bytes],
+    ) -> None:
+        """Story 28.5 review: Forgejo gives `/attachments/<uuid>` download URLs."""
+        service.remove_mod("demo")
+        install_linked(service, "https://git.example.com/me/demo/releases/download/v1/demo.zip")
+        attachment = "https://git.example.com/attachments/9ca7e1b2"
+        forge.latest["me/demo"] = LatestRelease(
+            tag="v1.1.0", assets=[ReleaseAsset("demo.zip", attachment)]
+        )
+        await update_service.check()
+        web[attachment] = demo_zip(version="1.1.0")
+
+        response = client.put(
+            VERSION_URL, json={"version": "1.1.0", "confirm": True}, headers=ADMIN
+        )
+
+        assert response.status_code == 200
+        state = service.state_manager.get_mod_by_slug("demo")
+        assert state is not None
+        assert state.source_url == (
+            "https://git.example.com/me/demo/releases/download/v1.1.0/demo.zip"
+        )
+        forge.latest["me/demo"] = LatestRelease(
+            tag="v1.2.0", assets=[ReleaseAsset("demo.zip", attachment)]
+        )
+        await update_service.check()
+        [item] = update_service.get_status()
+        assert (item.status, item.offered_version) == ("update_available", "1.2.0")
 
     def test_an_archive_of_another_mod_is_refused_and_the_mod_kept(
         self, client: TestClient, service: ModService, web: dict[str, bytes]

@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, Protocol
 
+import httpx
 import structlog
 from pydantic import ValidationError
 
@@ -612,7 +613,18 @@ class ModUpdateService:
             if self._release_lookup is None:
                 self._release_lookup = default_release_lookup()
             latest = await self._release_lookup(link)
-        except (LinkDownloadError, ModUrlInvalidError, AddressBlockedError, OSError) as e:
+        except (
+            LinkDownloadError,
+            ModUrlInvalidError,
+            AddressBlockedError,
+            OSError,
+            # One mod must never fail the whole check, as in _check_one (review)
+            httpx.HTTPError,
+            httpx.InvalidURL,
+            ValueError,
+            TypeError,
+            KeyError,
+        ) as e:
             logger.warning("mod_release_lookup_failed", slug=mod.slug, host=link.host, error=str(e))
             previous = self._store.get(mod.slug)
             if previous is not None:
@@ -628,6 +640,7 @@ class ModUpdateService:
                     modidstr=mod.slug,
                     filename=asset.name,
                     download_url=asset.download_url,
+                    release_link=link.asset_link(latest.tag, asset.name),
                 )
             ]
             if asset is not None

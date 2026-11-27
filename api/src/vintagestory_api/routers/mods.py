@@ -1502,7 +1502,13 @@ async def _update_release_mod(
     update_service: ModUpdateService,
     transport: httpx.AsyncBaseTransport | None,
 ) -> ApiResponse:
-    """Install a release mod's offered release (Story 28.5, ADR-7 decision 6)."""
+    """Install a release mod's offered release (Story 28.5, ADR-7 decision 6).
+
+    The mod's lock is held only while the file is placed (`install_archive`), not during
+    the download, as for a link install: a remove during a slow download is not refused,
+    and the finished update installs the mod again. The admin who removed it can remove
+    it again.
+    """
     slug = installed.slug
     if request.version == installed.version:
         return ApiResponse(
@@ -1557,7 +1563,9 @@ async def _update_release_mod(
             result = service.install_archive(
                 path,
                 source="url",
-                source_url=stored_link(check_link(offer.download_url, allow_http=settings.debug)),
+                # The release link, not Forgejo's `/attachments/` URL (Story 28.5 review)
+                source_url=offer.release_link
+                or stored_link(check_link(offer.download_url, allow_http=settings.debug)),
                 replace=True,
                 expect_modid=slug,
             )

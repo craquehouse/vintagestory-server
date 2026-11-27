@@ -138,7 +138,13 @@ async def open_following(
             return response
         location = response.headers["location"]
         await response.aclose()
-        current = check_link(str(current.join(location)), allow_http=allow_http)
+        try:
+            target = current.join(location)
+        except httpx.InvalidURL as e:
+            # httpx.InvalidURL is not a ValueError; unhandled, one bad redirect would end
+            # the whole update check (Story 28.5 review)
+            raise ModUrlInvalidError(f"The server redirected to an invalid link: {e}") from None
+        current = check_link(str(target), allow_http=allow_http)
     raise ModUrlInvalidError(f"The link redirects more than {MAX_REDIRECTS} times.")
 
 
