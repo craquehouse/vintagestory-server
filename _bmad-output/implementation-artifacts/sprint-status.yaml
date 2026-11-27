@@ -282,7 +282,7 @@ development_status:
   28-2-a-mod-can-be-installed-by-uploading-its-file: done
   28-3-a-mod-can-be-installed-from-an-https-link: done
   28-4-the-mods-page-adds-a-mod-from-a-file-or-a-link: done
-  28-5-mods-from-github-and-forgejo-releases-get-updates: review
+  28-5-mods-from-github-and-forgejo-releases-get-updates: done
 # RETRO ACTION ITEMS
 # Action items from retrospectives are now tracked in beads with the RETRO label.
 # Run: bd list --label RETRO --status open

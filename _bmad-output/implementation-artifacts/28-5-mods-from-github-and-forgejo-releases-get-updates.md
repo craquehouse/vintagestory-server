@@ -1,6 +1,6 @@
 # Story 28.5: Mods from GitHub and Forgejo Releases Get Updates
 
-Status: review
+Status: done
 
 <!-- Implements FR365, FR366, Epic 28 ADR-7. Bead: VSS-guzf.4 (API-102), closes with this story after merge. Branch story/28-5-mods-from-github-and-forgejo-releases-get-updates, stacked on story/28-4-the-mods-page-adds-a-mod-from-a-file-or-a-link (PR #238); the PR targets main and merges after 28.4's. API, with a web label. -->
 
@@ -73,7 +73,21 @@ Claude Opus 5.5 (claude-opus-5-5).
 - `web/src/api/types.ts`, `web/src/components/ModUpdateCell.tsx`, `ModUpdateCell.test.tsx`; `README.md` (Task 3)
 - this file; `sprint-status.yaml` (through `just sprint set`)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode (read-only, 2026-11-27). Verdict: request changes. 1 HIGH, 1 MEDIUM, 4 LOW; all six fixed:
+
+1. **HIGH: a Forgejo mod stopped being a release mod after its first update.** Forgejo's (and Gitea's) API gives an asset's download URL as `/attachments/<uuid>`, which was stored as the mod's link and no longer parses as a release link, so no later release was ever offered. The check now stores the asset's `/releases/download/<tag>/<asset>` link (`ReleaseLink.asset_link`, `StoredRelease.release_link`) and the update stores that. Test with an `attachments` URL: after the update the link is the release form and the next release is offered.
+2. **MEDIUM: a redirect `Location` that cannot be joined raised `httpx.InvalidURL`** (not a `ValueError`), which nothing caught, ending the whole update check. `open_following` maps it to `ModUrlInvalidError` (also fixing the same path in link installs), and `_check_release` has the same per-mod backstop as `_check_one`. Tests for both.
+3. **LOW: a decoded `?` or `#` in the owner or repo could start a query in the forge API URL.** The parts are re-encoded. Test.
+4. **LOW: the path was decoded twice.** httpx already decodes it; the extra `unquote` is gone. Test (a literal `%20` in an asset name).
+5. **LOW: the lock is not held during a release update's download.** Kept, as for a link install, and documented on `_update_release_mod`.
+6. **LOW: no total time limit on a lookup.** 60 seconds (`LOOKUP_TIMEOUT_S`). Test.
+
+After the fixes `just check` exit 0: API 4411 passed, web 4001 passed.
+
 ## Change Log
 
 - 2026-11-27: Story 28.5 created (create-story).
 - 2026-11-27: Story 28.5 implemented (dev-story): Tasks 1 to 4; status review.
+- 2026-11-27: Code review (GLM-5.3-Flash via opencode): request changes; 1 HIGH, 1 MEDIUM, 4 LOW; all fixed (see "Review"). Status done.
