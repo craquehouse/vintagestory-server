@@ -1,6 +1,6 @@
 # Story 28.4: The Mods Page Adds a Mod from a File or a Link
 
-Status: review
+Status: done
 
 <!-- Implements FR363, FR364, Epic 28 ADR-6. Bead: VSS-guzf.3 (UI-105), closes with this story after merge. Branch story/28-4-the-mods-page-adds-a-mod-from-a-file-or-a-link, stacked on story/28-3-a-mod-can-be-installed-from-an-https-link (PR #237); the PR targets main and merges after 28.3's. Web and E2E. -->
 
@@ -72,7 +72,18 @@ Claude Opus 5.5 (claude-opus-5-5).
 - `README.md` (Task 3)
 - this file; `sprint-status.yaml` (through `just sprint set`)
 
+## Review
+
+Reviewer: GLM-5.3-Flash via opencode (read-only, 2026-11-27). Verdict: approve with changes. 0 HIGH, 0 MEDIUM, 3 LOW; all three fixed:
+
+1. **LOW: Enter in the link field resent the request while the replace prompt showed** (the button was disabled, the key handler was not). `install` now refuses a plain install while the prompt shows. Test (Enter sends nothing more; the prompt stays).
+2. **LOW: the link tab's replace (`replace: true` in the body) was untested.** The same test replaces from a link and checks the body.
+3. **LOW: the drop zone's highlight flickered over its children.** `dragleave` into a child of the zone is ignored.
+
+After the fixes `just check` exit 0: API 4355 passed, web 3999 passed.
+
 ## Change Log
 
 - 2026-11-27: Story 28.4 created (create-story).
 - 2026-11-27: Story 28.4 implemented (dev-story): Tasks 1 to 3; status review.
+- 2026-11-27: Code review (GLM-5.3-Flash via opencode): approve with changes; 0 HIGH, 0 MEDIUM, 3 LOW; all fixed (see "Review"). Status done.
