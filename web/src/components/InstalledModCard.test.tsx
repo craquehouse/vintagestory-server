@@ -94,4 +94,19 @@ describe('InstalledModCard local mods (Story 24.4, FR335)', () => {
     expect(screen.getByTestId('mod-update-playercorpse')).toHaveTextContent(/^Uploaded file/);
     expect(screen.getByText('Not from the mod database')).toBeInTheDocument();
   });
+
+  it('shows a linked mod as installed from a link on the card', () => {
+    renderCard(
+      row({
+        source: 'url',
+        sourceUrl: 'https://github.com/me/playercorpse/releases/download/v1/pc.zip',
+        updateStatus: updateStatus({ reason: 'manual_install' }),
+      })
+    );
+
+    expect(screen.queryByTestId('mod-link-playercorpse')).not.toBeInTheDocument();
+    expect(screen.getByTestId('mod-update-playercorpse')).toHaveTextContent(
+      /^Installed from a link/
+    );
+  });
 });

@@ -486,3 +486,30 @@ class TestVersionChangeStoresTheUpdateRecord:
         assert response.status_code == status
         assert update_service.store.get("carryon") == seeded
         assert ModUpdateStore(update_service.store.path.parent).get("carryon") == seeded
+
+
+class TestManualMods:
+    """Epic 28 ADR-2 (Story 28.1 review): an uploaded or linked mod is never looked up."""
+
+    @pytest.mark.parametrize("source", ["upload", "url"])
+    @respx.mock
+    def test_a_manual_mod_is_refused_before_any_lookup(
+        self, client: TestClient, service: ModService, source: str
+    ) -> None:
+        entry = service.state_manager.get_mod_by_slug("carryon")
+        assert entry is not None
+        service.state_manager.set_mod_state(
+            entry.filename, entry.model_copy(update={"source": source})
+        )
+        lookup = respx.get("https://mods.vintagestory.at/api/mod/carryon").mock(
+            return_value=Response(500)
+        )
+
+        response = client.put(URL, json={"version": "1.14.3"}, headers=ADMIN)
+
+        assert response.status_code == 409
+        assert response.json()["detail"]["code"] == ErrorCode.MOD_NOT_FROM_DATABASE
+        assert lookup.call_count == 0
+        state = service.state_manager.get_mod_by_slug("carryon")
+        assert state is not None
+        assert state.version == "1.14.1"

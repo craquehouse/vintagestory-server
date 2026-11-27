@@ -19,6 +19,7 @@ import structlog
 from vintagestory_api.config import DEFAULT_MOD_DB_URL, Settings
 from vintagestory_api.models.mod_updates import StoredRelease
 from vintagestory_api.models.mods import (
+    MANUAL_SOURCES,
     CompatibilityInfo,
     DisableResult,
     EnableResult,
@@ -227,6 +228,22 @@ class ModValidationError(Exception):
     def __init__(self, slug: str, message: str) -> None:
         self.slug = slug
         super().__init__(f"Release for mod '{slug}' failed validation: {message}")
+
+
+class ModNotFromDatabaseError(Exception):
+    """Raised when a version change asks the mod database about an uploaded or linked mod.
+
+    Its mod ID may name another mod there (Epic 28 ADR-2), whose release would replace it.
+    """
+
+    def __init__(self, slug: str, source: str) -> None:
+        self.slug = slug
+        self.source = source
+        how = "installed from a link" if source == "url" else "uploaded"
+        super().__init__(
+            f"Mod '{slug}' was {how}, so its version is not changed from the mod database. "
+            "Upload or link the file you want instead."
+        )
 
 
 class ModOperationInProgressError(Exception):
@@ -1252,6 +1269,8 @@ class ModService:
                 in the mods directory or the mod state, ignoring case (Epic 19 ADR-8).
             ModFileMissingError: The mod's own file is no longer in the mods directory
                 (Epic 24 ADR-5), checked before any lookup.
+            ModNotFromDatabaseError: The mod was uploaded or installed from a link
+                (Epic 28 ADR-2), checked before any lookup.
             ModVersionChangeFailedError: Placing the file or saving state failed.
             ModReleaseNotDownloadableError: The target release has no downloadable file.
             See `_prepare_version_change` for lookup, confirmation and validation errors.
@@ -1271,6 +1290,9 @@ class ModService:
                     pending_restart=False,
                 )
 
+            # Before any lookup: an uploaded or linked mod is never looked up (Epic 28 ADR-2)
+            if state.source in MANUAL_SOURCES:
+                raise ModNotFromDatabaseError(slug, state.source)
             # Before any lookup or download, as enable and disable check (Epic 24 ADR-5)
             if not (self._state_manager.mods_dir / state.filename).is_file():
                 raise ModFileMissingError(slug, state.filename, operation="change the version of")
