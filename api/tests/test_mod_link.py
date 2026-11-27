@@ -5,6 +5,7 @@ import ipaddress
 import json
 import zipfile
 from collections.abc import AsyncIterator, Callable, Generator, Iterable
+from io import StringIO
 from pathlib import Path
 from typing import Any
 
@@ -72,6 +73,8 @@ class TestAddressRules:
             ("::", "unspecified"),
             ("224.0.0.1", "multicast"),
             ("240.0.0.1", "reserved"),
+            # Story 28.3 review: NAT64 of 127.0.0.1; pinned in case Python reclassifies it
+            ("64:ff9b::7f00:1", "reserved"),
         ],
     )
     def test_always_refused_even_for_a_listed_host(self, address: str, reason: str) -> None:
@@ -80,7 +83,17 @@ class TestAddressRules:
         assert address_refusal(ip, private_allowed=True) == reason
 
     @pytest.mark.parametrize(
-        "address", ["10.0.0.5", "172.16.0.1", "192.168.1.5", "100.64.0.1", "fc00::1"]
+        "address",
+        [
+            "10.0.0.5",
+            "172.16.0.1",
+            "192.168.1.5",
+            "100.64.0.1",
+            "fc00::1",
+            # Story 28.3 review: 6to4 and Teredo forms that embed a loopback address
+            "2002:7f00:1::",
+            "2001::7f00:1",
+        ],
     )
     def test_private_is_refused_unless_the_host_is_listed(self, address: str) -> None:
         ip = ipaddress.ip_address(address)
@@ -442,6 +455,55 @@ class TestLinkRoute:
         assert response.json()["detail"]["code"] == ErrorCode.MOD_URL_INVALID
         assert len(web.requests) == 1
 
+    def test_five_redirects_are_followed(self, client: TestClient, web: Web) -> None:
+        for n in range(5):
+            web.redirect(f"https://example.com/{n}", f"/{n + 1}")
+        web.serve("https://example.com/5", demo_zip())
+
+        response = client.post(LINK_URL, json={"url": "https://example.com/0"}, headers=ADMIN)
+
+        assert response.status_code == 200
+        assert len(web.requests) == 6
+
+    def test_credentials_in_a_redirect_are_422(self, client: TestClient, web: Web) -> None:
+        web.redirect("https://example.com/demo.zip", "https://me:pw@example.com/real.zip")
+
+        response = client.post(
+            LINK_URL, json={"url": "https://example.com/demo.zip"}, headers=ADMIN
+        )
+
+        assert response.status_code == 422
+        assert response.json()["detail"]["code"] == ErrorCode.MOD_URL_INVALID
+        assert len(web.requests) == 1
+
+    def test_a_304_is_an_answer_not_a_redirect(self, client: TestClient, web: Web) -> None:
+        web.routes["https://example.com/demo.zip"] = lambda _r: httpx.Response(
+            304, headers={"Location": "https://example.com/other.zip"}
+        )
+
+        response = client.post(
+            LINK_URL, json={"url": "https://example.com/demo.zip"}, headers=ADMIN
+        )
+
+        assert response.status_code == 502
+        assert "304" in response.json()["detail"]["message"]
+        assert len(web.requests) == 1
+
+    def test_a_refused_link_is_logged_without_its_password_or_signature(
+        self, client: TestClient, captured_logs: StringIO
+    ) -> None:
+        response = client.post(
+            LINK_URL,
+            json={"url": "https://user:hunter2@example.com/mod.zip?sig=SECRET"},
+            headers=ADMIN,
+        )
+
+        assert response.status_code == 422
+        text = captured_logs.getvalue()
+        assert "mod_link_install_refused" in text
+        assert "hunter2" not in text
+        assert "SECRET" not in text
+
     def test_more_than_five_redirects_is_422(self, client: TestClient, web: Web) -> None:
         for n in range(7):
             web.redirect(f"https://example.com/{n}", f"/{n + 1}")
@@ -601,10 +663,10 @@ class TestNoProxyFromTheEnvironment:
 
 class TestDownloadErrorsAreTyped:
     @pytest.mark.asyncio
-    async def test_a_redirect_without_location(self, tmp_path: Path) -> None:
+    async def test_a_redirect_without_location_is_an_error_answer(self, tmp_path: Path) -> None:
         transport = httpx.MockTransport(lambda _r: httpx.Response(302))
 
-        with pytest.raises(LinkDownloadError, match="without a location"):
+        with pytest.raises(LinkDownloadError, match="302"):
             async with downloaded(
                 "https://example.com/a.zip",
                 cache_dir=tmp_path,

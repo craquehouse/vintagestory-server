@@ -2,6 +2,7 @@
 
 import asyncio
 import math
+import uuid
 from dataclasses import asdict
 from functools import partial
 from typing import Annotated, Any, Literal
@@ -1169,9 +1170,10 @@ async def install_mod_from_url(
         ) as (path, named):
             if not named:
                 metadata = service.state_manager.read_modinfo(path)
-                name = name_from_modinfo(metadata.modid, metadata.version) if metadata else None
-                if name is not None:
-                    path = path.rename(path.with_name(name))
+                if metadata is not None:
+                    # A unique name when the mod ID and version give none (review)
+                    name = name_from_modinfo(metadata.modid, metadata.version)
+                    path = path.rename(path.with_name(name or f"mod_{uuid.uuid4().hex[:8]}.zip"))
             result = service.install_archive(
                 path,
                 source="url",
@@ -1195,8 +1197,13 @@ async def install_mod_from_url(
 
 
 def _loggable_link(url: str) -> str:
-    """The link for a log line: never its query string, which may hold a signature."""
-    return url.split("?", 1)[0].split("#", 1)[0]
+    """The link for a log line: never its user info, query string or fragment, which may
+    hold a password or a signature (Story 28.3 review)."""
+    try:
+        parsed = httpx.URL(url)
+        return str(parsed.copy_with(userinfo=b"", query=None, fragment=None))
+    except httpx.InvalidURL, TypeError, ValueError:
+        return "<unparsable link>"
 
 
 @router.post("/{slug}/enable", response_model=ApiResponse)

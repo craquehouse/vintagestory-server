@@ -129,10 +129,9 @@ async def _fetch(
         request = client.build_request("GET", current)
         response = await client.send(request, stream=True)
         try:
-            if response.is_redirect:
-                location = response.headers.get("location")
-                if not location:
-                    raise LinkDownloadError("The server sent a redirect without a location.")
+            # 301, 302, 303, 307 and 308 only: a 304 or 305 is an answer, not a redirect
+            if response.has_redirect_location:
+                location = response.headers["location"]
                 current = check_link(str(current.join(location)), allow_http=allow_http)
                 continue
             if not response.is_success:
