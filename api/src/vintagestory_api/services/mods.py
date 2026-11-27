@@ -7,6 +7,7 @@ and PendingRestartState for restart tracking.
 """
 
 import shutil
+import zipfile
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -25,7 +26,9 @@ from vintagestory_api.models.mods import (
     EnableResult,
     ModInfo,
     ModLookupResponse,
+    ModMetadata,
     ModRelease,
+    ModSource,
     ModState,
     RemoveResult,
     RescanResult,
@@ -67,6 +70,7 @@ from vintagestory_api.services.mod_media import (
 from vintagestory_api.services.mod_release_selection import select_install_release
 from vintagestory_api.services.mod_state import ModStateManager
 from vintagestory_api.services.mod_updates import installed_game_version, is_prerelease
+from vintagestory_api.services.mod_upload import ModFileInvalidError, clear_incoming
 from vintagestory_api.services.pending_restart import PendingRestartState
 
 logger = structlog.get_logger()
@@ -142,7 +146,8 @@ def prepare_mod_files() -> None:
     1. recover the manager's working files (ADR-9 decisions 6-7);
     2. bring the mod state in line with the mods directory (ADR-10), after step 1 so
        that it sees the recovered files; it never raises;
-    3. remove the download cache's old flat layout (ADR-11 decision 5).
+    3. remove the download cache's old flat layout (ADR-11 decision 5);
+    4. delete files left half-received by an upload or a link install (Epic 28 ADR-3).
     If step 1 raises, the sync does not run: an entry whose file is still kept aside
     would otherwise be removed.
 
@@ -156,6 +161,10 @@ def prepare_mod_files() -> None:
     removed = service.api_client.remove_flat_layout()
     if removed:
         logger.info("mod_cache_old_layout_removed", files=removed)
+    # Story 28.2 (Epic 28 ADR-3 decision 3): a file a crash left mid-receive
+    leftovers = clear_incoming(service.cache_dir)
+    if leftovers:
+        logger.info("mod_incoming_leftovers_removed", entries=leftovers)
 
 
 def sync_mod_state_at_startup() -> None:
@@ -195,9 +204,11 @@ class ModNotFoundError(Exception):
 class ModAlreadyInstalledError(Exception):
     """Raised when attempting to install a mod that is already installed."""
 
-    def __init__(self, slug: str, current_version: str) -> None:
+    def __init__(self, slug: str, current_version: str, source: str | None = None) -> None:
         self.slug = slug
         self.current_version = current_version
+        self.source = source
+        """Where the installed mod came from (Epic 28 ADR-4 decision 3)."""
         super().__init__(f"Mod '{slug}' is already installed (version {current_version})")
 
 
@@ -256,7 +267,7 @@ class ModOperationInProgressError(Exception):
         )
 
 
-ModFileOperation = Literal["install", "enable", "disable", "change the version of"]
+ModFileOperation = Literal["install", "enable", "disable", "change the version of", "replace"]
 """The mod operations that place or rename a file, as their messages name them."""
 
 
@@ -336,6 +347,29 @@ class VersionChangeResult:
     """Compatibility of the new version; None when nothing changed."""
     changed: bool
     pending_restart: bool
+
+
+@dataclass(frozen=True)
+class _Replacement:
+    """What a file install that replaces a mod puts on the new entry (Epic 28 ADR-4)."""
+
+    source: ModSource
+    source_url: str | None
+    asset_id: int
+
+
+@dataclass(frozen=True)
+class ArchiveInstallResult:
+    """Outcome of installing a file from an upload or a link (Epic 28 ADR-4)."""
+
+    slug: str
+    version: str
+    filename: str
+    compatibility: CompatibilityStatus
+    pending_restart: bool
+    source: ModSource
+    replaced: bool
+    previous_version: str | None
 
 
 @dataclass(frozen=True)
@@ -659,6 +693,11 @@ class ModService:
     def game_version(self) -> str | None:
         """The game version compatibility is checked against (installed server by default)."""
         return self._game_version_provider()
+
+    @property
+    def cache_dir(self) -> Path:
+        """The cache directory; uploads and links are received under it (Epic 28 ADR-3)."""
+        return self._cache_dir
 
     @property
     def state_manager(self) -> ModStateManager:
@@ -1326,12 +1365,21 @@ class ModService:
                 pending_restart=pending_restart,
             )
 
-    def _apply_version_change(self, state: ModState, prepared: PreparedVersionChange) -> str:
+    def _apply_version_change(
+        self,
+        state: ModState,
+        prepared: PreparedVersionChange,
+        *,
+        replacement: _Replacement | None = None,
+    ) -> str:
         """Swap the validated archive into the mods directory and update state.
 
         Refuses before writing anything when the release's file name, or its .disabled
         form, is taken by another file or state entry, ignoring case (Epic 19 ADR-8).
         Returns the new filename. On a later failure, restores the original file and state.
+
+        A `replacement` (a file install that replaces the mod, Epic 28 ADR-4 decision 4)
+        gives the new entry its own source, link and asset ID instead of the old ones.
 
         Raises:
             ModFileConflictError: A name the change would create is taken.
@@ -1343,7 +1391,7 @@ class ModService:
             slug,
             (release_name, f"{release_name}.disabled"),
             state.filename,
-            "change the version of",
+            "change the version of" if replacement is None else "replace",
         )
         mods_dir = self._state_manager.mods_dir
         mods_dir.mkdir(parents=True, exist_ok=True)
@@ -1377,9 +1425,9 @@ class ModService:
             version=prepared.target.modversion,
             enabled=state.enabled,
             installed_at=state.installed_at,
-            asset_id=state.asset_id,
-            source=state.source,
-            source_url=state.source_url,
+            asset_id=state.asset_id if replacement is None else replacement.asset_id,
+            source=state.source if replacement is None else replacement.source,
+            source_url=state.source_url if replacement is None else replacement.source_url,
         )
         try:
             self._state_manager.remove_mod(state.filename)
@@ -1595,6 +1643,97 @@ class ModService:
             # 7. Place the file and save state
             return self._place_install(slug, download_result, resolved.releases)
 
+    def install_archive(
+        self,
+        path: Path,
+        *,
+        source: ModSource,
+        source_url: str | None = None,
+        replace: bool = False,
+    ) -> ArchiveInstallResult:
+        """Install a received mod file from an upload or a link (Epic 28 ADR-3, ADR-4).
+
+        `path` is the received file under its final name (already `safe_archive_name`).
+        Synchronous on purpose: from the check to the state save nothing else may run, so
+        the mod's lock is taken and released with no `await` between.
+
+        Raises:
+            ModFileInvalidError: Not a zip, or no modinfo.json with a mod ID, a name and a
+                version (ADR-3 decision 5).
+            ModOperationInProgressError: An operation holds the mod's lock.
+            ModAlreadyInstalledError: The mod ID is installed and `replace` is not set.
+            ModFileConflictError: The name, or its .disabled form, is taken by another file.
+            ModFileMissingError: A replace found the installed mod's file gone.
+            ModVersionChangeFailedError: A replace could not place the file or save state;
+                the original is restored.
+        """
+        if not zipfile.is_zipfile(path):
+            raise ModFileInvalidError("The file is not a zip archive.")
+        metadata = self._state_manager.read_modinfo(path)
+        if metadata is None:
+            raise ModFileInvalidError(
+                "The archive has no usable modinfo.json: it needs a mod ID, a name and a version."
+            )
+        modid = metadata.modid
+        with self._hold(modid):
+            key = self._lock_key(modid)
+            existing = next(
+                (m for m in self._state_manager.list_mods() if self._lock_key(m.slug) == key),
+                None,
+            )
+            if existing is not None and not replace:
+                raise ModAlreadyInstalledError(existing.slug, existing.version, existing.source)
+            if existing is None:
+                name = path.name
+                self._refuse_taken_names(modid, (name, f"{name}.disabled"), None, "install")
+                self._copy_and_record(path, name, asset_id=0, source=source, source_url=source_url)
+                filename = name
+                previous_version = None
+                change = f"Mod '{modid}' was installed"
+            else:
+                # As a version change checks (Epic 24 ADR-5): the swap needs the old file
+                if not (self._state_manager.mods_dir / existing.filename).is_file():
+                    raise ModFileMissingError(existing.slug, existing.filename, operation="replace")
+                prepared = PreparedVersionChange(
+                    target=StoredRelease(modversion=metadata.version, modidstr=modid),
+                    archive=path,
+                    compatibility="not_verified",
+                    releases=[],
+                )
+                filename = self._apply_version_change(
+                    existing,
+                    prepared,
+                    replacement=_Replacement(source=source, source_url=source_url, asset_id=0),
+                )
+                previous_version = existing.version
+                change = f"Mod '{existing.slug}' was replaced"
+
+        pending_restart = False
+        if self._server_running:
+            self._restart_state.require_restart(change)
+            pending_restart = True
+        installed = self._state_manager.get_mod(filename)
+        slug = installed.slug if installed is not None else modid
+        logger.info(
+            "mod_file_installed",
+            slug=slug,
+            version=metadata.version,
+            filename=filename,
+            source=source,
+            replaced=existing is not None,
+            pending_restart=pending_restart,
+        )
+        return ArchiveInstallResult(
+            slug=slug,
+            version=metadata.version,
+            filename=filename,
+            compatibility="not_verified",
+            pending_restart=pending_restart,
+            source=source,
+            replaced=existing is not None,
+            previous_version=previous_version,
+        )
+
     def _refuse_if_installed(self, mod_id: str) -> None:
         """Raise ModAlreadyInstalledError if `mod_id` is installed, ignoring case.
 
@@ -1613,7 +1752,80 @@ class ModService:
                 requested=mod_id,
                 current_version=existing.version,
             )
-            raise ModAlreadyInstalledError(existing.slug, existing.version)
+            raise ModAlreadyInstalledError(existing.slug, existing.version, existing.source)
+
+    def _copy_and_record(
+        self,
+        src: Path,
+        filename: str,
+        *,
+        asset_id: int,
+        source: ModSource,
+        source_url: str | None,
+    ) -> ModMetadata:
+        """Copy an archive into the mods directory as `filename`, import it, save state.
+
+        The caller has refused a taken name. The copy goes through a working file and a
+        rename; on a failure to import or save, the placed file and the entry are removed.
+        Shared by the mod database install and the file install (Epic 28 ADR-4).
+        """
+        # Copy to the mods directory (atomic write pattern)
+        dest_path = self._state_manager.mods_dir / filename
+        # The working copy, renamed into place once complete; recovery deletes a leftover
+        temp_path = dest_path.with_name(dest_path.name + WORKING_COPY_SUFFIX)
+
+        # Ensure mods directory exists
+        self._state_manager.mods_dir.mkdir(parents=True, exist_ok=True)
+
+        logger.debug(
+            "mod_file_copy_start", source=str(src), dest=str(dest_path), temp=str(temp_path)
+        )
+        try:
+            shutil.copy2(src, temp_path)
+            temp_path.rename(dest_path)
+            logger.debug(
+                "mod_file_copy_complete", filename=filename, size_bytes=dest_path.stat().st_size
+            )
+        except OSError:
+            # Cleanup partial file on failure
+            if temp_path.exists():
+                temp_path.unlink()
+            raise
+
+        # Import mod and save state - cleanup dest_path and state if anything fails
+        try:
+            # Import mod (extracts modinfo.json and caches metadata)
+            logger.debug("mod_import_start", filename=filename)
+            metadata = self._state_manager.import_mod(dest_path)
+            logger.debug(
+                "mod_import_complete",
+                filename=filename,
+                modid=metadata.modid,
+                version=metadata.version,
+            )
+            mod_state = ModState(
+                filename=filename,
+                slug=metadata.modid,
+                version=metadata.version,
+                enabled=True,
+                installed_at=datetime.now(UTC),
+                asset_id=asset_id,
+                source=source,
+                source_url=source_url,
+            )
+            self._state_manager.set_mod_state(filename, mod_state)
+            self._state_manager.save()
+        except Exception:
+            # Cleanup orphaned mod file on any failure
+            if dest_path.exists():
+                dest_path.unlink()
+            # Remove from in-memory state if it was added
+            self._state_manager.remove_mod(filename)
+            logger.warning(
+                "mod_install_cleanup", filename=filename, reason="import or state save failed"
+            )
+            raise
+        return metadata
 
     def _place_install(
         self, slug: str, download_result: DownloadResult, releases: list[ReleaseDict]
@@ -1637,71 +1849,13 @@ class ModService:
         # Check compatibility with game version
         compatibility = check_compatibility(download_result.release, self.game_version() or "")
 
-        # Copy from cache to mods directory (atomic write pattern)
-        dest_path = self._state_manager.mods_dir / download_result.filename
-        # The working copy, renamed into place once complete; recovery deletes a leftover
-        temp_path = dest_path.with_name(dest_path.name + WORKING_COPY_SUFFIX)
-
-        # Ensure mods directory exists
-        self._state_manager.mods_dir.mkdir(parents=True, exist_ok=True)
-
-        # Copy file from cache to mods directory using temp file + rename
-        logger.debug(
-            "mod_file_copy_start",
-            source=str(download_result.path),
-            dest=str(dest_path),
-            temp=str(temp_path),
+        metadata = self._copy_and_record(
+            download_result.path,
+            download_result.filename,
+            asset_id=download_result.asset_id,
+            source="moddb",
+            source_url=None,
         )
-        try:
-            shutil.copy2(download_result.path, temp_path)
-            temp_path.rename(dest_path)
-            logger.debug(
-                "mod_file_copy_complete",
-                filename=download_result.filename,
-                size_bytes=dest_path.stat().st_size,
-            )
-        except OSError:
-            # Cleanup partial file on failure
-            if temp_path.exists():
-                temp_path.unlink()
-            raise
-
-        # Import mod and save state - cleanup dest_path and state if anything fails
-        try:
-            # Import mod (extracts modinfo.json and caches metadata)
-            logger.debug("mod_import_start", filename=download_result.filename)
-            metadata = self._state_manager.import_mod(dest_path)
-            logger.debug(
-                "mod_import_complete",
-                filename=download_result.filename,
-                modid=metadata.modid,
-                version=metadata.version,
-            )
-
-            # Create and save mod state
-            mod_state = ModState(
-                filename=download_result.filename,
-                slug=metadata.modid,
-                version=metadata.version,
-                enabled=True,
-                installed_at=datetime.now(UTC),
-                asset_id=download_result.asset_id,
-                source="moddb",
-            )
-            self._state_manager.set_mod_state(download_result.filename, mod_state)
-            self._state_manager.save()
-        except Exception:
-            # Cleanup orphaned mod file on any failure
-            if dest_path.exists():
-                dest_path.unlink()
-            # Remove from in-memory state if it was added
-            self._state_manager.remove_mod(download_result.filename)
-            logger.warning(
-                "mod_install_cleanup",
-                filename=download_result.filename,
-                reason="import or state save failed",
-            )
-            raise
 
         # Determine if restart is needed
         pending_restart = False

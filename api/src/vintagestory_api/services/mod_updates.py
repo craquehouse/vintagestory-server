@@ -167,6 +167,11 @@ class ModUpdateStore:
     def mark_notified(self, modid: str, version: str) -> None:
         self._data.notified[modid] = version
 
+    def forget(self, modid: str) -> None:
+        """Drop one mod's record, lookup error and alert record."""
+        for mods in (self._data.mods, self._data.lookup_errors, self._data.notified):
+            mods.pop(modid, None)
+
     def prune(self, keep: set[str]) -> None:
         """Drop records, lookup errors and alert records for modids not in `keep`."""
         for mods in (self._data.mods, self._data.lookup_errors, self._data.notified):
@@ -375,6 +380,14 @@ class ModUpdateService:
             self._store_record(modid, [StoredRelease.from_api(r) for r in releases])
         except (OSError, ValueError, TypeError) as e:
             logger.warning("mod_update_record_after_install_failed", slug=modid, error=str(e))
+
+    def forget(self, modid: str) -> None:
+        """Drop a replaced mod's update data (Epic 28 ADR-4 decision 4). Never raises."""
+        self._store.forget(modid)
+        try:
+            self._store.save()
+        except (OSError, ValueError) as e:
+            logger.error("mod_update_store_save_failed", path=str(self._store.path), error=str(e))
 
     def record_releases(self, modid: str, releases: list[StoredRelease]) -> None:
         """Store a mod's releases from a completed version change's lookup (Story 18.2).

@@ -7,10 +7,11 @@ from functools import partial
 from typing import Annotated, Any, Literal
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from pydantic import BaseModel, Field
 
-from vintagestory_api.middleware.auth import get_current_user
+from vintagestory_api.config import Settings
+from vintagestory_api.middleware.auth import get_current_user, get_settings
 from vintagestory_api.middleware.permissions import RequireAdmin
 from vintagestory_api.models.errors import ErrorCode
 from vintagestory_api.models.mods import ModBrowseItem, ModBrowseResponse, PaginationMeta
@@ -37,7 +38,15 @@ from vintagestory_api.services.mod_updates import (
     ModUpdateService,
     get_mod_update_service,
 )
+from vintagestory_api.services.mod_upload import (
+    ModFileInvalidError,
+    ModFileTooLargeError,
+    incoming_file,
+    safe_archive_name,
+    write_limited,
+)
 from vintagestory_api.services.mods import (
+    ArchiveInstallResult,
     InvalidSlugError,
     ModAlreadyInstalledError,
     ModConfirmationRequiredError,
@@ -936,6 +945,145 @@ async def install_mod(
                 "message": str(e),
             },
         )
+
+
+def archive_install_response(result: ArchiveInstallResult) -> ApiResponse:
+    """The answer of a file install (Epic 28 ADR-4 decision 5)."""
+    return ApiResponse(
+        status="ok",
+        data={
+            "slug": result.slug,
+            "version": result.version,
+            "filename": result.filename,
+            "compatibility": result.compatibility,
+            "pending_restart": result.pending_restart,
+            "source": result.source,
+            "replaced": result.replaced,
+            "previous_version": result.previous_version,
+        },
+    )
+
+
+def archive_install_error(error: Exception) -> HTTPException:
+    """Map an `install_archive` error to its answer (Epic 28 ADR-3, ADR-4)."""
+    if isinstance(error, ModFileInvalidError):
+        return HTTPException(
+            status_code=422, detail={"code": ErrorCode.MOD_FILE_INVALID, "message": str(error)}
+        )
+    if isinstance(error, ModFileTooLargeError):
+        return HTTPException(
+            status_code=413, detail={"code": ErrorCode.MOD_FILE_TOO_LARGE, "message": str(error)}
+        )
+    if isinstance(error, ModAlreadyInstalledError):
+        return HTTPException(
+            status_code=409,
+            detail={
+                "code": ErrorCode.MOD_ALREADY_INSTALLED,
+                "message": f"Mod '{error.slug}' is already installed "
+                f"(version {error.current_version})",
+                "slug": error.slug,
+                "installed_version": error.current_version,
+                "source": error.source,
+            },
+        )
+    if isinstance(error, ModOperationInProgressError):
+        code = ErrorCode.MOD_OPERATION_IN_PROGRESS
+    elif isinstance(error, ModFileConflictError):
+        code = ErrorCode.MOD_FILE_CONFLICT
+    elif isinstance(error, ModFileMissingError):
+        code = ErrorCode.MOD_FILE_MISSING
+    elif isinstance(error, ModVersionChangeFailedError):
+        return HTTPException(
+            status_code=500,
+            detail={"code": ErrorCode.MOD_VERSION_CHANGE_FAILED, "message": str(error)},
+        )
+    else:
+        raise error
+    return HTTPException(status_code=409, detail={"code": code, "message": str(error)})
+
+
+ARCHIVE_INSTALL_ERRORS = (
+    ModFileInvalidError,
+    ModFileTooLargeError,
+    ModAlreadyInstalledError,
+    ModOperationInProgressError,
+    ModFileConflictError,
+    ModFileMissingError,
+    ModVersionChangeFailedError,
+)
+
+
+@router.post("/upload", response_model=ApiResponse, summary="Install a mod by uploading its file")
+async def upload_mod(
+    request: Request,
+    filename: Annotated[
+        str,
+        Query(
+            min_length=1,
+            max_length=255,
+            description="The file's name: a base name ending in lowercase .zip, kept as "
+            "the mod's file",
+        ),
+    ],
+    _: RequireAdmin,
+    replace: Annotated[
+        bool, Query(description="Replace the installed mod with the same mod ID")
+    ] = False,
+    settings: Settings = Depends(get_settings),
+    service: ModService = Depends(get_mod_service),
+    update_service: ModUpdateService = Depends(get_mod_update_service),
+) -> ApiResponse:
+    """Install a mod from the request body, a zip file (Admin only, Story 28.2).
+
+    The body is the file itself (`application/zip` or `application/octet-stream`), not a
+    form. It is written to a working file with the size limit counted while reading
+    (VS_MOD_UPLOAD_MAX_MB), then checked and installed with source `upload` (Epic 28
+    ADR-3, ADR-4). The mod database is never asked about it.
+
+    Raises:
+        HTTPException: 413 MOD_FILE_TOO_LARGE over the limit, by Content-Length or read.
+        HTTPException: 422 MOD_FILE_INVALID for an unsafe name, a body that is not a zip,
+            or no modinfo.json with a mod ID, a name and a version.
+        HTTPException: 409 MOD_ALREADY_INSTALLED (with `installed_version` and `source`)
+            when the mod ID is installed and `replace` is not set.
+        HTTPException: 409 MOD_OPERATION_IN_PROGRESS, MOD_FILE_CONFLICT or
+            MOD_FILE_MISSING, as for an install or a version change.
+        HTTPException: 500 MOD_VERSION_CHANGE_FAILED when a replace failed; the original
+            file and state are restored.
+        HTTPException: 500 MOD_FILE_WRITE_FAILED when the file could not be written (for
+            example a full disk); nothing is left behind.
+    """
+    limit_bytes = settings.mod_upload_max_mb * 1024 * 1024
+    try:
+        name = safe_archive_name(filename)
+        if name is None:
+            raise ModFileInvalidError(
+                "The file name must be a plain name ending in .zip (lowercase), with no "
+                "folder, at most 255 bytes, and must not start with a dot."
+            )
+        declared = request.headers.get("content-length")
+        if declared is not None and declared.isdigit() and int(declared) > limit_bytes:
+            raise ModFileTooLargeError(limit_bytes)
+        with incoming_file(service.cache_dir, name) as path:
+            await write_limited(request.stream(), path, limit_bytes)
+            result = service.install_archive(path, source="upload", replace=replace)
+    except ARCHIVE_INSTALL_ERRORS as e:
+        logger.info("mod_upload_refused", filename=filename, error_type=type(e).__name__)
+        raise archive_install_error(e) from None
+    except OSError as e:
+        # A full disk or an unwritable folder while receiving or placing the file; the
+        # working folder and any placed file are already removed (Story 28.2 review)
+        logger.error("mod_upload_write_failed", filename=filename, error=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": ErrorCode.MOD_FILE_WRITE_FAILED,
+                "message": f"The file could not be written: {e.strerror or e}",
+            },
+        ) from None
+    if result.replaced:
+        update_service.forget(result.slug)
+    return archive_install_response(result)
 
 
 @router.post("/{slug}/enable", response_model=ApiResponse)
