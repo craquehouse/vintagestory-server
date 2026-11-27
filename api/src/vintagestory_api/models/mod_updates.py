@@ -26,6 +26,7 @@ UpdateState = Literal["update_available", "up_to_date", "blocked", "unknown"]
 UnknownReason = Literal[
     "not_checked",
     "not_in_database",
+    "manual_install",
     "installed_release_not_listed",
     "version_unparsable",
 ]

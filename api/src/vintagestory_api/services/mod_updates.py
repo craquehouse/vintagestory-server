@@ -25,7 +25,7 @@ from vintagestory_api.models.mod_updates import (
     UpdateState,
 )
 from vintagestory_api.models.moddb import ModDict, ReleaseDict
-from vintagestory_api.models.mods import ModInfo
+from vintagestory_api.models.mods import MANUAL_SOURCES, ModInfo
 from vintagestory_api.services.mod_api import (
     CompatibilityStatus,
     ExternalApiError,
@@ -220,6 +220,11 @@ def build_status_items(
     """Compute update status for each installed mod from stored mod database data."""
     items: list[ModUpdateStatusItem] = []
     for mod in mods:
+        if mod.source in MANUAL_SOURCES:
+            # Never looked up in the mod database (Epic 28 ADR-2); a record left from
+            # before the mod was replaced by an upload or a link does not apply to it
+            items.append(_status_item(mod, "unknown", reason="manual_install"))
+            continue
         record = store.get(mod.slug)
         if record is None:
             error = store.lookup_error(mod.slug)
@@ -481,7 +486,9 @@ class ModUpdateService:
         if self._check_lock.locked():
             raise ModUpdateCheckInProgressError()
         async with self._check_lock:
-            mods = self._mod_source.list_mods()
+            # Uploaded and linked mods are never looked up in the mod database: their mod
+            # ID may name another mod there (Epic 28 ADR-2)
+            mods = [m for m in self._mod_source.list_mods() if m.source not in MANUAL_SOURCES]
             logger.info("mod_update_check_started", mod_count=len(mods))
             failed: list[str] = []
             for mod in mods:

@@ -10,9 +10,21 @@ These models support the mod service layer:
 """
 
 from datetime import datetime
-from typing import Literal
+from typing import Literal, cast
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
+
+ModSource = Literal["moddb", "folder", "upload", "url"]
+"""Where an installed mod's file came from (Epic 28 ADR-1).
+
+- moddb: installed from the mod database
+- folder: found in the mods folder by the start-up sync or a rescan
+- upload: uploaded through the API (Story 28.2)
+- url: downloaded from a link through the API (Story 28.3)
+"""
+
+MANUAL_SOURCES: frozenset[str] = frozenset({"upload", "url"})
+"""Sources the mod database is never asked about (Epic 28 ADR-2)."""
 
 _MODINFO_SIDES: dict[str, str] = {
     "universal": "Both",
@@ -88,6 +100,27 @@ class ModState(BaseModel):
     Defaults to 0 for backwards compatibility with existing state files.
     """
 
+    source: ModSource = "folder"
+    """Where the file came from (Epic 28 ADR-1). An entry without one (saved before
+    Epic 28, or built without it) reads as `moddb` when it has an asset ID, otherwise
+    `folder`; `_default_source` sets it before this default could apply."""
+
+    source_url: str | None = None
+    """For source `url`: the link without its query string, fragment or user info."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _default_source(cls, data: object) -> object:
+        """Give an entry saved before Epic 28 its source from its asset ID (ADR-1 decision 3)."""
+        if not isinstance(data, dict):
+            return data
+        entry = cast(dict[str, object], data)
+        if entry.get("source") is not None:
+            return entry
+        asset_id = entry.get("asset_id", 0)
+        has_asset = isinstance(asset_id, int) and not isinstance(asset_id, bool) and asset_id > 0
+        return {**entry, "source": "moddb" if has_asset else "folder"}
+
 
 class ModInfo(BaseModel):
     """Combined local and remote mod information for API responses.
@@ -128,6 +161,12 @@ class ModInfo(BaseModel):
 
     side: Literal["Both", "Client", "Server"] | None = None
     """Mod side: 'Both', 'Client', or 'Server'. None if unknown."""
+
+    source: ModSource = "folder"
+    """Where the file came from (Epic 28 ADR-1)."""
+
+    source_url: str | None = None
+    """For source `url`: the link the file was downloaded from, without its query string."""
 
 
 class CompatibilityInfo(BaseModel):

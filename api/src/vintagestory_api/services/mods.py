@@ -686,6 +686,8 @@ class ModService:
                     enabled=state.enabled,
                     installed_at=state.installed_at,
                     asset_id=state.asset_id,
+                    source=state.source,
+                    source_url=state.source_url,
                     name=metadata.name,
                     authors=metadata.authors,
                     description=metadata.description,
@@ -700,6 +702,8 @@ class ModService:
                     enabled=state.enabled,
                     installed_at=state.installed_at,
                     asset_id=state.asset_id,
+                    source=state.source,
+                    source_url=state.source_url,
                     name=state.slug,  # Use slug as name fallback
                 )
             mods.append(mod_info)
@@ -729,6 +733,8 @@ class ModService:
                 enabled=state.enabled,
                 installed_at=state.installed_at,
                 asset_id=state.asset_id,
+                source=state.source,
+                source_url=state.source_url,
                 name=metadata.name,
                 authors=metadata.authors,
                 description=metadata.description,
@@ -742,6 +748,8 @@ class ModService:
             enabled=state.enabled,
             installed_at=state.installed_at,
             asset_id=state.asset_id,
+            source=state.source,
+            source_url=state.source_url,
             name=state.slug,
         )
 
@@ -1348,6 +1356,8 @@ class ModService:
             enabled=state.enabled,
             installed_at=state.installed_at,
             asset_id=state.asset_id,
+            source=state.source,
+            source_url=state.source_url,
         )
         try:
             self._state_manager.remove_mod(state.filename)
@@ -1654,6 +1664,7 @@ class ModService:
                 enabled=True,
                 installed_at=datetime.now(UTC),
                 asset_id=download_result.asset_id,
+                source="moddb",
             )
             self._state_manager.set_mod_state(download_result.filename, mod_state)
             self._state_manager.save()

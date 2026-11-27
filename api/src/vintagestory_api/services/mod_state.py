@@ -660,6 +660,7 @@ class ModStateManager:
                 version=metadata.version,
                 enabled=enabled,
                 installed_at=now,
+                source="folder",
             )
             by_mod_id[metadata.modid.lower()] = filename
             added += 1
