@@ -53,6 +53,8 @@ class Settings(BaseSettings):
     console_history_lines: int = 100  # Default history lines sent on WebSocket connect
     disk_space_warning_threshold_gb: float = 1.0  # Warn when available space below this
     mod_cache_max_size_mb: int = 500  # Maximum size of mod cache in MB (0 to disable)
+    # VS_MOD_UPLOAD_MAX_MB: largest mod file an upload or a link install takes (Epic 28 ADR-3)
+    mod_upload_max_mb: int = 200
     # VS_CSP_MODE: how the web UI's Content-Security-Policy is sent (Epic 19 ADR-6):
     # enforce (default), report-only or off. Blank means unset
     csp_mode: str = "enforce"
@@ -121,6 +123,14 @@ class Settings(BaseSettings):
             raise ValueError(
                 "VS_MOD_CACHE_MAX_SIZE_MB must be non-negative. Use 0 to disable cache eviction."
             )
+        return v
+
+    @field_validator("mod_upload_max_mb")
+    @classmethod
+    def validate_mod_upload_max_mb(cls, v: int) -> int:
+        """VS_MOD_UPLOAD_MAX_MB must be at least 1 (Epic 28 ADR-3 decision 2)."""
+        if v < 1:
+            raise ValueError("VS_MOD_UPLOAD_MAX_MB must be at least 1.")
         return v
 
     @field_validator("csp_mode")
